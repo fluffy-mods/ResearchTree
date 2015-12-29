@@ -40,9 +40,17 @@ namespace FluffyResearchTree
             Genus = genus;
             Trunk = trunk.OrderBy( node => node.Depth ).ToList();
             Leaves     = new List<Node>();
-            MinDepth   = trunk.Select( node => node.Depth ).Min();
-            MaxDepth   = trunk.Select( node => node.Depth ).Max();
-            Width      = 1;
+
+            if ( trunk.Any() )
+            {
+                MinDepth = trunk.Select( node => node.Depth ).Min();
+                MaxDepth = trunk.Select( node => node.Depth ).Max();
+                Width = 1;
+            }
+            else
+            {
+                MinDepth = MaxDepth = Width = 0;
+            }
 
             // make all Trunk nodes a part of this Tree
             foreach ( Node node in trunk )

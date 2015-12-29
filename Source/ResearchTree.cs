@@ -30,32 +30,50 @@ namespace FluffyResearchTree
         public static void DrawLine( Vector2 right, Vector2 left, Color color, int width )
         {
             GUI.color = color;
-            bool flag = Math.Abs(left.y - right.y) < 0.1f;
-            if( flag )
+
+            // if left and right are on the same level, just draw a straight line.
+            if( Math.Abs( left.y - right.y ) < 0.1f )
             {
                 Widgets.DrawLine( left, right, color, width );
             }
+
+            // draw three line pieces and two curves.
             else
             {
+                // left to curve
                 Widgets.DrawLine( left, new Vector2( left.x + Settings.Margin.x / 4f + 0.5f, left.y ), color, width );
-                float y = Math.Min(left.y, right.y) + Settings.Margin.x / 4f;
-                float y2 = Math.Max(left.y, right.y) - Settings.Margin.x / 4f;
-                Widgets.DrawLine( new Vector2( left.x + Settings.Margin.x / 2f, y ), new Vector2( left.x + Settings.Margin.x / 2f, y2 ), color, width );
+
+                // determine top and bottom y positions
+                float top = Math.Min(left.y, right.y) + Settings.Margin.x / 4f;
+                float bottom = Math.Max(left.y, right.y) - Settings.Margin.x / 4f;
+
+                // curve to curve
+                Widgets.DrawLine( new Vector2( left.x + Settings.Margin.x / 2f, top ), new Vector2( left.x + Settings.Margin.x / 2f, bottom ), color, width );
+
+                // curve to right
                 Widgets.DrawLine( new Vector2( right.x - Settings.Margin.x / 4f - 0.5f, right.y ), right, color, width );
-                Rect position = new Rect(left.x + Settings.Margin.x / 4f, left.y - Settings.Margin.x / 4f, Settings.Margin.x / 2f, Settings.Margin.x / 2f);
-                Rect position2 = new Rect(right.x - Settings.Margin.x * 3f / 4f, right.y - Settings.Margin.x / 4f, Settings.Margin.x / 2f, Settings.Margin.x / 2f);
+
+                // curve positions
+                Rect curveLeft = new Rect(left.x + Settings.Margin.x / 4f, left.y - Settings.Margin.x / 4f, Settings.Margin.x / 2f, Settings.Margin.x / 2f);
+                Rect curveRight = new Rect(right.x - Settings.Margin.x * 3f / 4f, right.y - Settings.Margin.x / 4f, Settings.Margin.x / 2f, Settings.Margin.x / 2f);
+
+                // curve texture
                 Texture2D image = (width == 3) ? Circle3 : Circle;
-                bool flag2 = left.y < right.y;
-                if( flag2 )
+
+                // going down
+                if( left.y < right.y )
                 {
-                    GUI.DrawTextureWithTexCoords( position, image, new Rect( 0.5f, 0.5f, 0.5f, 0.5f ) );
-                    GUI.DrawTextureWithTexCoords( position2, image, new Rect( 0f, 0f, 0.5f, 0.5f ) );
+                    GUI.DrawTextureWithTexCoords( curveLeft, image, new Rect( 0.5f, 0.5f, 0.5f, 0.5f ) ); // bottom right quadrant
+                    GUI.DrawTextureWithTexCoords( curveRight, image, new Rect( 0f, 0f, 0.5f, 0.5f ) ); // top left quadrant
                 }
+                // going up
                 else
                 {
-                    GUI.DrawTextureWithTexCoords( position, image, new Rect( 0.5f, 0f, 0.5f, 0.5f ) );
-                    GUI.DrawTextureWithTexCoords( position2, image, new Rect( 0f, 0.5f, 0.5f, 0.5f ) );
+                    GUI.DrawTextureWithTexCoords( curveLeft, image, new Rect( 0.5f, 0f, 0.5f, 0.5f ) ); // top right quadrant
+                    GUI.DrawTextureWithTexCoords( curveRight, image, new Rect( 0f, 0.5f, 0.5f, 0.5f ) ); // bottom left quadrant
                 }
+
+                // reset color
                 GUI.color = Color.white;
             }
         }
@@ -111,36 +129,27 @@ namespace FluffyResearchTree
             // The order in which Trees should appear; ideally we want Trees with lots of cross-references to appear together.
             OrderTrunks();
             
-            // Attach orphan nodes to the nearest Trunk.
+            // Attach orphan nodes to the nearest Trunk, or the orphanage trunk
+            Tree Orphanage = new Tree( "orphans", new List<Node>() );
             foreach ( Node orphan in orphans )
             {
-                Tree closest = orphan.ClosestTree();
-                if ( closest != null )
-                {
-                    closest.AddLeaf( orphan );
-                }
-                else
-                {
-                    Orphans.Add( orphan );
-                }
+                Tree closest = orphan.ClosestTree() ?? Orphanage;
+                closest.AddLeaf( orphan );
             }
-
-            // set some info about Orphans that we need for plotting
-            OrphanDepths = new IntVec2( Orphans.Min( node => node.Depth ), Orphans.Max( node => node.Depth ) );
-            OrphanWidth = ( from node in Orphans
-                            group node by node.Depth into nodes
-                            orderby nodes.Count() descending
-                            select nodes.Count() ).First();
-
-            // update nodes with position info
-            FixPositions();
 
             // Assign colors to trunks
             int n = Trees.Count;
-            for ( int i = 1; i <= Trees.Count; i++ )
+            for( int i = 1; i <= Trees.Count; i++ )
             {
-                Trees[i - 1].Color = ColorHelper.HSVtoRGB( (float)i / n, 1, 1);
+                Trees[i - 1].Color = ColorHelper.HSVtoRGB( (float)i / n, 1, 1 );
             }
+
+            // add orphanage tree, and color it grey.
+            Trees.Add( Orphanage );
+            Orphanage.Color = Color.grey;
+
+            // update nodes with position info
+            FixPositions();
         }
 
         private static void OrderTrunks()
