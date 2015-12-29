@@ -81,7 +81,10 @@ namespace FluffyResearchTree
         public static void Initialize()
         {
             // populate all nodes
-            Forest = new List<Node>( DefDatabase<ResearchProjectDef>.AllDefsListForReading.ConvertAll( def => new Node( def ) ) );
+            Forest = new List<Node>( DefDatabase<ResearchProjectDef>.AllDefsListForReading
+                                        // exclude hidden projects (prereq of itself is a common trick to hide research).
+                                        .Where( def => !def.prerequisites.Contains( def ) )
+                                        .Select( def => new Node( def ) ) );
 
             // create links between nodes
             foreach ( Node node in Forest )
@@ -193,12 +196,24 @@ namespace FluffyResearchTree
                 for ( int x = tree.MinDepth; x <= tree.MaxDepth; x++ )
                 {
                     List<Node> nodes = tree.NodesAtDepth( x );
-                    for ( int y = 0; y < nodes.Count; y++ )
+
+                    foreach ( Node node in nodes )
                     {
-                        // update Width to take account of trunks with 'gaps'
-                        // also assumes the Trunk is at most 1 node wide - this might bite us in the arse.
-                        if ( y + 2 > tree.Width ) tree.Width = y + 2;
-                        nodes[y].Pos = new IntVec2( nodes[y].Depth, curY + y + 1 );
+                        // try find the closest matching position
+                        int bestPos = curY + 1;
+                        if (node.Parents.Any())
+                            bestPos = node.Parents.Select( parent => parent.Pos.z ).Min();
+
+                        // bump down if taken
+                        while ( nodes.Any( n => n.Pos.z == bestPos ) )
+                            bestPos++;
+
+                        // extend tree width if necessary
+                        tree.Width = Math.Max( tree.Width, bestPos );
+
+                        // set position
+                        node.Pos = new IntVec2( node.Depth, bestPos );
+
                     }
                 }
 
