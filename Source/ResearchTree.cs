@@ -192,10 +192,11 @@ namespace FluffyResearchTree
                     node.Pos = new IntVec2( node.Depth, curY );
                 }
 
-                // TODO: Better positioning.
+                // position child nodes as close to their parents as possible
                 for ( int x = tree.MinDepth; x <= tree.MaxDepth; x++ )
                 {
-                    List<Node> nodes = tree.NodesAtDepth( x );
+                    // put nodes that are children of the trunk first.
+                    List<Node> nodes = tree.NodesAtDepth( x ).OrderBy( node => node.Parents.Any( parent => node.Tree.Trunk.Contains( parent )) ? 0 : 1 ).ToList();
 
                     foreach ( Node node in nodes )
                     {
@@ -204,18 +205,74 @@ namespace FluffyResearchTree
                         if (node.Parents.Any())
                             bestPos = node.Parents.Select( parent => parent.Pos.z ).Min();
 
-                        // bump down if taken
-                        while ( nodes.Any( n => n.Pos.z == bestPos ) )
+                        // bump down if taken or trunk level
+                        while ( nodes.Any( n => n.Pos.z == bestPos ) || bestPos == curY )
                             bestPos++;
 
                         // extend tree width if necessary
-                        tree.Width = Math.Max( tree.Width, bestPos );
+                        tree.Width = Math.Max( tree.Width, bestPos - curY + 1 );
 
                         // set position
                         node.Pos = new IntVec2( node.Depth, bestPos );
-
                     }
                 }
+
+                // sort all nodes by their depths, then by their z position.
+                tree.Leaves = tree.Leaves.OrderBy( node => node.Depth ).ThenBy( node => node.Pos.z ).ToList();
+
+                // do a reverse pass to position parent nodes next to their children
+                for ( int x = tree.MaxDepth; x >= tree.MinDepth; x-- )
+                {
+                    List<Node> nodes = tree.NodesAtDepth( x );
+                    foreach ( Node node in nodes )
+                    {
+                        Log.Message( "Try: " + node.Research.LabelCap );
+                        // if this node has children;
+                        if ( node.Children.Count > 0 )
+                        {
+                            Log.Message( "Do: " + node.Research.LabelCap );
+                            // ideal position would be right next to top child
+                            Node topChild = node.Children.OrderBy( child => child.Pos.z ).First();
+                            int bestPos = topChild.Pos.z;
+
+                            // keep checking until we have a decent position
+                            // if that is indeed the current position, great, move to next
+                            if ( bestPos == node.Pos.z )
+                                continue;
+
+                            // we're only checking leaves - don't allow them to be on trunk positions.
+                            if ( bestPos == node.Tree.StartY )
+                                bestPos++;
+                           
+                            // otherwise, check if position is taken (exclude this node itself from matches
+                            while ( nodes.Any( n => n.Pos.z == bestPos && n != node ) )
+                            {
+                                Log.Message( "Pos: " + bestPos );
+                                // does the node at that position have the same child?
+                                Node otherNode = nodes.First(n => n.Pos.z == bestPos);
+                                if ( !otherNode.Children.Contains( topChild ) )
+                                {
+                                    // if not, switch them around
+                                    bestPos = otherNode.Pos.z;
+                                    otherNode.Pos.z = node.Pos.z;
+                                }
+                                // or just bump it down otherwise
+                                else
+                                {
+                                    bestPos++;
+                                }
+                            }
+
+                            // we should now have a decent position
+                            // extend tree width if necessary
+                            tree.Width = Math.Max( tree.Width, bestPos - curY + 1 );
+
+                            // set position
+                            node.Pos = new IntVec2( node.Depth, bestPos );
+                        }
+                    }
+                }
+                
 
                 curY += tree.Width;
             }
