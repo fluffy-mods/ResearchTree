@@ -153,6 +153,9 @@ namespace FluffyResearchTree
 
             // update nodes with position info
             FixPositions();
+
+            // Done!
+            Initialized = true;
         }
 
         private static void OrderTrunks()
