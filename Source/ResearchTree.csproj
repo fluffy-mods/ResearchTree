@@ -61,6 +61,16 @@
     <Compile Include="Tree.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>
+
+echo Copy to vanilla install dir.
+copy $(TargetPath) "C:\Users\Karel\Desktop\RimWorld914Win\Mods\RW_ResearchTree\Assemblies"
+
+rem echo Copy to MVP install dir
+rem copy $(TargetPath) "C:\Users\Karel\Desktop\ModVarietyPack\Mods\RW_ResearchTree\Assemblies"
+</PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

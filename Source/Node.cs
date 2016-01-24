@@ -16,15 +16,18 @@ namespace FluffyResearchTree
     public class Node
     {
         // shortcuts to UI rects (these are only generated once and accessed through properties)
-        private Rect _tagRect;
-        private Rect _rect;
+        private Rect _queueRect, _rect, _labelRect, _costLabelRect, _costIconRect, _iconsRect;
         private bool _rectSet;
+
+        // research icon
+        public static Texture2D ResearchIcon = ContentFinder<Texture2D>.Get( "Research" );
 
         // further offsets and positional variables
         public IntVec2 Pos;
         private const float Offset = 2f;
         private const float LabSize = 30f;
         public int Depth;
+        private bool _largeLabel = false;
 
         // left/right edges of Rects
         private Vector2 _left = Vector2.zero;
@@ -89,17 +92,64 @@ namespace FluffyResearchTree
         /// <summary>
         /// Tag UI Rect
         /// </summary>
-        public Rect TagRect
+        public Rect QueueRect
         {
             get
             {
-                if ( !_rectSet )
+                if( !_rectSet )
                 {
                     CreateRects();
                 }
-                return _tagRect;
+                return _queueRect;
             }
+        }
 
+        public Rect LabelRect
+        {
+            get
+            {
+                if( !_rectSet )
+                {
+                    CreateRects();
+                }
+                return _labelRect;
+            }
+        }
+
+        public Rect CostLabelRect
+        {
+            get
+            {
+                if( !_rectSet )
+                {
+                    CreateRects();
+                }
+                return _costLabelRect;
+            }
+        }
+
+        public Rect CostIconRect
+        {
+            get
+            {
+                if( !_rectSet )
+                {
+                    CreateRects();
+                }
+                return _costIconRect;
+            }
+        }
+
+        public Rect IconsRect
+        {
+            get
+            {
+                if( !_rectSet )
+                {
+                    CreateRects();
+                }
+                return _iconsRect;
+            }
         }
 
         public Node( ResearchProjectDef research )
@@ -111,14 +161,49 @@ namespace FluffyResearchTree
             Parents = new List<Node>();
             Children = new List<Node>();
         }
-
+        
         private void CreateRects()
         {
+            // main rect
             _rect = new Rect( Pos.x * ( Settings.Button.x + Settings.Margin.x ) + Offset,
-                              Pos.z * ( Settings.Button.y + Settings.Margin.y ) + Offset, Settings.Button.x,
+                              Pos.z * ( Settings.Button.y + Settings.Margin.y ) + Offset,
+                              Settings.Button.x,
                               Settings.Button.y );
-            _tagRect = new Rect( _rect.xMax - LabSize / 2f, _rect.yMin + ( _rect.height - LabSize ) / 2f, LabSize,
+
+            // queue rect
+            _queueRect = new Rect( _rect.xMax - LabSize / 2f,
+                                 _rect.yMin + ( _rect.height - LabSize ) / 2f,
+                                 LabSize,
                                  LabSize );
+
+            // label rect
+            _labelRect = new Rect( _rect.xMin + 6f, 
+                                   _rect.yMin + 3f, 
+                                   _rect.width * 2f / 3f - 6f, 
+                                   _rect.height * .5f - 3f );
+
+            // research cost rect
+            _costLabelRect = new Rect( _rect.xMin + _rect.width * 2f / 3f,
+                                  _rect.yMin + 3f,
+                                  _rect.width * 1f / 3f - 16f - 3f,
+                                  _rect.height * .5f - 3f);
+
+            // research icon rect
+            _costIconRect = new Rect( _costLabelRect.xMax,
+                                      _rect.yMin + ( _costLabelRect.height - 16f ) / 2,
+                                      16f,
+                                      16f );
+
+            // icon container rect
+            _iconsRect = new Rect( _rect.xMin,
+                                   _rect.yMin + _rect.height * .5f,
+                                   _rect.width,
+                                   _rect.height * .5f );
+
+            // see if the label is too big
+            _largeLabel = Text.CalcHeight( Research.LabelCap, _labelRect.width ) > _labelRect.height;
+
+            // done
             _rectSet = true;
         }
 
@@ -247,16 +332,16 @@ namespace FluffyResearchTree
             GUI.color = Color.white;
             if ( linkParents )
             {
-                foreach ( Node current in Parents )
+                foreach ( Node parent in Parents )
                 {
-                    ResearchTree.DrawLine( Left, current.Right, GenUI.MouseoverColor, 3 );
+                    MainTabWindow_ResearchTree.highlightedConnections.Add( new Pair<Node, Node>( parent, this) );
                 }
             }
             if ( linkChildren )
             {
-                foreach ( Node current2 in Children )
+                foreach ( Node child in Children )
                 {
-                    ResearchTree.DrawLine( current2.Left, Right, GenUI.MouseoverColor, 3 );
+                    MainTabWindow_ResearchTree.highlightedConnections.Add( new Pair<Node, Node>( this, child ) );
                 }
             }
         }
@@ -288,7 +373,7 @@ namespace FluffyResearchTree
                 {
                     foreach ( Node child in Children )
                     {
-                        ResearchTree.DrawLine( child.Left, Right, GenUI.MouseoverColor, 3 );
+                        MainTabWindow_ResearchTree.highlightedConnections.Add( new Pair<Node, Node>( this, child ) );
                         child.Highlight( GenUI.MouseoverColor, false, false );
                     }
                 }
@@ -310,7 +395,20 @@ namespace FluffyResearchTree
 
             // draw the research label
             GUI.color = Color.white;
-            Widgets.Label( Rect, Research.LabelCap );
+            Text.Anchor = TextAnchor.UpperLeft;
+            Text.WordWrap = false;
+            Text.Font = _largeLabel ? GameFont.Tiny : GameFont.Small;
+            Widgets.Label( LabelRect, Research.LabelCap );
+
+            // draw research cost and icon
+            Text.Anchor = TextAnchor.UpperRight;
+            Text.Font = GameFont.Small;
+            Widgets.Label( CostLabelRect, Research.totalCost.ToStringByStyle( ToStringStyle.Integer ) );
+            GUI.DrawTexture( CostIconRect, ResearchIcon );
+            Text.WordWrap = true;
+
+            // draw unlock icons
+            // TODO: Unlock icons.
 
             // attach description and further info to a tooltip
             TooltipHandler.TipRegion( Rect, GetResearchTooltipString() );
@@ -318,8 +416,16 @@ namespace FluffyResearchTree
             // if clicked and not yet finished, queue up this research and all prereqs.
             if ( Widgets.InvisibleButton( Rect ) && !Research.IsFinished )
             {
-                // if shift is held, add to queue, otherwise replace queue
-                Queue.EnqueueRange( GetMissingRequiredRecursive().Concat( new List<Node>( new[] { this } ) ), Event.current.shift );
+                // LMB is queue operations, RMB is info
+                if ( Event.current.button == 0 )
+                {
+                    // if shift is held, add to queue, otherwise replace queue
+                    Queue.EnqueueRange( GetMissingRequiredRecursive().Concat( new List<Node>( new[] { this } ) ), Event.current.shift );
+                }
+                else if ( Event.current.button == 1 )
+                {
+                    // TODO: Jump to help page.
+                }
             }
         }
 
@@ -376,6 +482,11 @@ namespace FluffyResearchTree
                 allParents.AddRange( current.GetMissingRequiredRecursive() );
             }
             return allParents.Distinct().ToList();
+        }
+
+        public override string ToString()
+        {
+            return this.Research.LabelCap + this.Pos;
         }
     }
 }

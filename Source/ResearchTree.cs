@@ -17,65 +17,92 @@ namespace FluffyResearchTree
     {
         public static List<Node> Forest;
         public static List<Tree> Trees;
-        public static List<Node> Orphans;
+        public static Tree Orphans;
         public static IntVec2 OrphanDepths;
         public static int OrphanWidth;
         public static Texture2D Button = ContentFinder<Texture2D>.Get( "button" );
         public static Texture2D ButtonActive = ContentFinder<Texture2D>.Get( "button-active" );
-        public static Texture2D Circle3 = ContentFinder<Texture2D>.Get( "circle3" );
         public static Texture2D Circle = ContentFinder<Texture2D>.Get( "circle" );
+        public static Texture2D EW = ContentFinder<Texture2D>.Get( "ew" );
+        public static Texture2D NS = ContentFinder<Texture2D>.Get( "ns" );
+        public static Texture2D End = ContentFinder<Texture2D>.Get( "end" );
+
         public static bool Initialized;
         public const int MinTrunkSize = 2;
 
-        public static void DrawLine( Vector2 right, Vector2 left, Color color, int width )
+        public static void DrawLine( Pair<Node, Node> connection )
+        {
+            DrawLine( connection.First.Left, connection.Second.Right,
+                      connection.Second.Research.IsFinished ? connection.Second.Tree.MediumColor : connection.Second.Tree.GreyedColor );
+        }
+
+        public static void DrawLine( Vector2 a, Vector2 b, Color color )
         {
             GUI.color = color;
+
+            Vector2 left, right;
+            // make sure line goes left -> right
+            if ( a.x < b.x )
+            {
+                left = a;
+                right = b;
+            }
+            else
+            {
+                left = b;
+                right = a;
+            }
 
             // if left and right are on the same level, just draw a straight line.
             if( Math.Abs( left.y - right.y ) < 0.1f )
             {
-                Widgets.DrawLine( left, right, color, width );
+                Rect line = new Rect( left.x, left.y - 2f, right.x - left.x, 4f );
+                GUI.DrawTexture( line, EW );
             }
 
             // draw three line pieces and two curves.
             else
             {
-                // left to curve
-                Widgets.DrawLine( left, new Vector2( left.x + Settings.Margin.x / 4f + 0.5f, left.y ), color, width );
-
                 // determine top and bottom y positions
                 float top = Math.Min(left.y, right.y) + Settings.Margin.x / 4f;
                 float bottom = Math.Max(left.y, right.y) - Settings.Margin.x / 4f;
 
+                // left to curve
+                Rect leftToCurve = new Rect( left.x, left.y - 2f, Settings.Margin.x / 4f, 4f );
+                GUI.DrawTexture( leftToCurve, EW );
+                
                 // curve to curve
-                Widgets.DrawLine( new Vector2( left.x + Settings.Margin.x / 2f, top ), new Vector2( left.x + Settings.Margin.x / 2f, bottom ), color, width );
+                Rect curveToCurve = new Rect( left.x + Settings.Margin.x / 2f - 2f, top, 4f, bottom - top );
+                GUI.DrawTexture( curveToCurve, NS );
 
                 // curve to right
-                Widgets.DrawLine( new Vector2( right.x - Settings.Margin.x / 4f - 0.5f, right.y ), right, color, width );
-
+                Rect curveToRight = new Rect( right.x - Settings.Margin.x / 4f, right.y - 2f, Settings.Margin.x / 4f, 4f );
+                GUI.DrawTexture( curveToRight, EW );
+                
                 // curve positions
                 Rect curveLeft = new Rect(left.x + Settings.Margin.x / 4f, left.y - Settings.Margin.x / 4f, Settings.Margin.x / 2f, Settings.Margin.x / 2f);
                 Rect curveRight = new Rect(right.x - Settings.Margin.x * 3f / 4f, right.y - Settings.Margin.x / 4f, Settings.Margin.x / 2f, Settings.Margin.x / 2f);
 
-                // curve texture
-                Texture2D image = (width == 3) ? Circle3 : Circle;
-
                 // going down
                 if( left.y < right.y )
                 {
-                    GUI.DrawTextureWithTexCoords( curveLeft, image, new Rect( 0.5f, 0.5f, 0.5f, 0.5f ) ); // bottom right quadrant
-                    GUI.DrawTextureWithTexCoords( curveRight, image, new Rect( 0f, 0f, 0.5f, 0.5f ) ); // top left quadrant
+                    GUI.DrawTextureWithTexCoords( curveLeft, Circle, new Rect( 0.5f, 0.5f, 0.5f, 0.5f ) ); // bottom right quadrant
+                    GUI.DrawTextureWithTexCoords( curveRight, Circle, new Rect( 0f, 0f, 0.5f, 0.5f ) ); // top left quadrant
                 }
                 // going up
                 else
                 {
-                    GUI.DrawTextureWithTexCoords( curveLeft, image, new Rect( 0.5f, 0f, 0.5f, 0.5f ) ); // top right quadrant
-                    GUI.DrawTextureWithTexCoords( curveRight, image, new Rect( 0f, 0.5f, 0.5f, 0.5f ) ); // bottom left quadrant
+                    GUI.DrawTextureWithTexCoords( curveLeft, Circle, new Rect( 0.5f, 0f, 0.5f, 0.5f ) ); // top right quadrant
+                    GUI.DrawTextureWithTexCoords( curveRight, Circle, new Rect( 0f, 0.5f, 0.5f, 0.5f ) ); // bottom left quadrant
                 }
-
-                // reset color
-                GUI.color = Color.white;
             }
+
+            // draw the end arrow
+            Rect end = new Rect( right.x - 12f, right.y - 8f, 16f, 16f );
+            GUI.DrawTexture( end, End );
+
+            // reset color
+            GUI.color = Color.white;
         }
 
         public static void Initialize()
@@ -102,7 +129,6 @@ namespace FluffyResearchTree
             // We're aiming for finding things like Construction I/II/III/IV/V here.
             Dictionary<string, List<Node>> trunks = new Dictionary<string, List<Node>>();
             List<Node> orphans = new List<Node>(); // temp
-            Orphans = new List<Node>();
             foreach ( Node node in Forest )
             {
                 // try to remove the amount of random hits by requiring Trees to be directly linked.
@@ -133,10 +159,10 @@ namespace FluffyResearchTree
             OrderTrunks();
             
             // Attach orphan nodes to the nearest Trunk, or the orphanage trunk
-            Tree Orphanage = new Tree( "orphans", new List<Node>() );
+            Orphans = new Tree( "orphans", new List<Node>() ) { Color = Color.grey };
             foreach ( Node orphan in orphans )
             {
-                Tree closest = orphan.ClosestTree() ?? Orphanage;
+                Tree closest = orphan.ClosestTree() ?? Orphans;
                 closest.AddLeaf( orphan );
             }
 
@@ -146,11 +172,7 @@ namespace FluffyResearchTree
             {
                 Trees[i - 1].Color = ColorHelper.HSVtoRGB( (float)i / n, 1, 1 );
             }
-
-            // add orphanage tree, and color it grey.
-            Trees.Add( Orphanage );
-            Orphanage.Color = Color.grey;
-
+            
             // update nodes with position info
             FixPositions();
 
@@ -164,21 +186,31 @@ namespace FluffyResearchTree
             if ( Trees.Count < 3 ) return;
 
             // This is a form of the travelling salesman problem, but let's simplify immensely by taking a nearest-neighbour approach.
-            List<Tree> trees = Trees.OrderBy( trunk => trunk.MinDepth ).ToList();
+            List<Tree> trees = Trees.OrderBy( tree => - tree.Leaves.Count ).ToList();
             Trees.Clear();
 
-            // initialize list of Trees with the shallowest Trunk
+            // initialize list of Trees with the deepest Trunk
             Tree first = trees.First();
             Trees.Add( first );
             trees.Remove( first );
 
+            // Set up a weighting system to keep 2nd highest affinity closer to 1st highest affinity
+            Dictionary<Tree, int> weights =
+                new Dictionary<Tree, int>( trees.ToDictionary( tree => tree, tree => first.AffinityWith( tree ) ) );
+
             // add other Trees
             while ( trees.Count > 0 )
             {
-                Tree next = trees.OrderByDescending( tree => tree.AffinityWith( Trees.Last() ) ).First();
-
+                // get tree with highest accumulated weight
+                Tree next = weights.Where( pair => trees.Contains( pair.Key ) ).MaxBy( pair => pair.Value ).Key;
                 Trees.Add( next );
                 trees.Remove( next );
+
+                // add weights for next set
+                foreach ( Tree tree in trees )
+                {
+                    weights[tree] += next.AffinityWith( tree );
+                }
             }
         }
 
@@ -186,6 +218,7 @@ namespace FluffyResearchTree
         {
             int curY = 0;
 
+            #region Tree Node positions
             foreach( Tree tree in Trees )
             {
                 tree.StartY = curY;
@@ -276,9 +309,73 @@ namespace FluffyResearchTree
                     }
                 }
                 
-
                 curY += tree.Width;
             }
+            #endregion Tree Node Positions
+
+            #region Orphan grid
+            // try and get root nodes first
+            IEnumerable<Node> roots = Orphans.Leaves.Where( node => node.Children.Any() && !node.Parents.Any() ).OrderBy( node => node.Depth );
+            int rootYOffset = 0;
+            foreach ( Node root in roots )
+            {
+                // set position
+                root.Pos = new IntVec2( root.Depth, curY + rootYOffset );
+
+                // recursively go through all children
+                // width at depths
+                Dictionary<int, int> widthAtDepth = new Dictionary<int, int>();
+                Stack<Node> children = new Stack<Node>( root.Children );
+                while ( children.Any() )
+                {
+                    // get node
+                    Node child = children.Pop();
+
+                    // continue if already positioned
+                    if ( child.Pos != IntVec2.Zero )
+                        continue;
+
+                    // get width at current depth
+                    int width;
+                    if ( !widthAtDepth.ContainsKey( child.Depth ) )
+                    {
+                        widthAtDepth.Add( child.Depth, 0 );
+                    }
+                    width = widthAtDepth[child.Depth]++;
+
+                    // set position
+                    child.Pos = new IntVec2(child.Depth, curY + width);
+                    
+                    // enqueue child's children
+                    foreach ( Node grandchild in child.Children )
+                    {
+                        children.Push(grandchild);
+                    }
+                }
+
+                // next root
+                rootYOffset += widthAtDepth.Max().Value;
+            }
+
+            // update orphan width for mini tree(s)
+            ResearchTree.Orphans.Width = rootYOffset;
+            curY += rootYOffset;
+
+            // create orphan grid
+            int nodesPerRow = (int)( Screen.width / ( Settings.Button.x + Settings.Margin.x ) );
+            List<Node> orphans = Orphans.Leaves.Where( node => !node.Parents.Any() && !node.Children.Any() ).OrderBy( node => node.Research.LabelCap ).ToList();
+
+            // set positions
+            for ( int i = 0; i < orphans.Count; i++ )
+            {
+                orphans[i].Pos = new IntVec2( i % nodesPerRow, i / nodesPerRow + curY );
+            }
+
+            // update width + depth
+            Orphans.Width += Mathf.CeilToInt( (float)orphans.Count / (float)nodesPerRow );
+            Orphans.MaxDepth = Math.Max( Orphans.MaxDepth, nodesPerRow - 1 ); // zero-based
+
+            #endregion
         }
     }
 }

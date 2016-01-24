@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using CommunityCoreLibrary.ColorPicker;
 using UnityEngine;
+using Verse;
 
 namespace FluffyResearchTree
 {
@@ -24,7 +26,6 @@ namespace FluffyResearchTree
             get { return _color; }
             set
             {
-
                 _color = value;
 
                 float h, s, v;
@@ -117,6 +118,35 @@ namespace FluffyResearchTree
             if (includeTrunk) nodes.AddRange( Trunk.Where( node => node.Depth == depth ) );
             nodes.AddRange( Leaves.Where( node => node.Depth == depth ) );
             return nodes;
+        }
+
+        public override string ToString()
+        {
+            StringBuilder text = new StringBuilder();
+
+            text.AppendLine( Genus.ToUpper() );
+            text.AppendLine( "Trunk:" );
+            foreach ( Node node in Trunk )
+            {
+                text.AppendFormat( node.ToString() );
+            }
+
+            text.AppendLine( "\n\nLeaves:" );
+            foreach( Node node in Leaves )
+            {
+                text.AppendFormat( node.ToString() + ", " );
+            }
+
+            text.AppendLine( "\n\nAffinities:" );
+            foreach ( Tree tree in ResearchTree.Trees )
+            {
+                if ( tree != this )
+                {
+                    text.AppendLine( tree.Genus + ": " + AffinityWith( tree ) );
+                }
+            }
+
+            return text.ToString();
         }
     }
 }
