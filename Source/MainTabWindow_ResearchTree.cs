@@ -19,7 +19,7 @@ namespace FluffyResearchTree
     public class MainTabWindow_ResearchTree : MainTabWindow
     {
         // tree view stuff
-        private Vector2 _scrollPosition = Vector2.zero;
+        internal static Vector2 _scrollPosition = Vector2.zero;
         private bool _noBenchWarned;
 
         // collect lines to be drawn
@@ -72,6 +72,7 @@ namespace FluffyResearchTree
         public override void DoWindowContents( Rect canvas )
         {
             DrawTree( canvas );
+            Log.Message( _scrollPosition.ToString() );
         }
 
         private void DrawTree( Rect canvas )
@@ -97,7 +98,6 @@ namespace FluffyResearchTree
 
             // main view rect
             Rect view = new Rect( 0f, 0f, width, height );
-            Log.Message( view.ToString() );
             Widgets.BeginScrollView( canvas, ref _scrollPosition, view );
             GUI.BeginGroup( view );
 

@@ -344,7 +344,7 @@ namespace FluffyResearchTree
                     width = widthAtDepth[child.Depth]++;
 
                     // set position
-                    child.Pos = new IntVec2(child.Depth, curY + width);
+                    child.Pos = new IntVec2(child.Depth, curY + rootYOffset + width);
                     
                     // enqueue child's children
                     foreach ( Node grandchild in child.Children )

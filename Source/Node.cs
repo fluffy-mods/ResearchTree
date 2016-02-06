@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CommunityCoreLibrary;
+using RimWorld;
 using UnityEngine;
 using Verse;
 
@@ -41,6 +42,9 @@ namespace FluffyResearchTree
 
         // what it's all about - the research project.
         public ResearchProjectDef Research;
+
+        // enable linking to CCL help tab for details
+        MainTabWindow_ModHelp helpWindow = DefDatabase<MainTabDef>.GetNamed("CCL_ModHelp", false).Window as MainTabWindow_ModHelp;
 
         /// <summary>
         /// Static UI rect for this node
@@ -354,6 +358,16 @@ namespace FluffyResearchTree
             // set color
             GUI.color = !Research.PrereqsFulfilled ? Tree.GreyedColor : Tree.MediumColor;
 
+            // cop out if off-screen
+            Rect screen = new Rect(MainTabWindow_ResearchTree._scrollPosition.x, MainTabWindow_ResearchTree._scrollPosition.y, Screen.width, Screen.height - 35);
+            if (Rect.xMin > screen.xMax ||
+                Rect.xMax < screen.xMin ||
+                Rect.yMin > screen.yMax ||
+                Rect.yMax < screen.yMin )
+            {
+                return;
+            }
+
             // mouseover highlights
             if ( Mouse.IsOver( Rect ) )
             {
@@ -407,12 +421,31 @@ namespace FluffyResearchTree
             GUI.DrawTexture( CostIconRect, ResearchIcon );
             Text.WordWrap = true;
 
-            // draw unlock icons
-            // TODO: Unlock icons.
-
             // attach description and further info to a tooltip
-            TooltipHandler.TipRegion( Rect, GetResearchTooltipString() );
+            TooltipHandler.TipRegion( Rect, new TipSignal( GetResearchTooltipString(), Settings.TipID ) );
 
+            // draw unlock icons
+            List<Pair<Texture2D, string>> unlocks = Research.GetUnlockIconsAndDescs();
+            for (int i = 0; i < unlocks.Count(); i++ )
+            {
+                Rect iconRect = new Rect( IconsRect.xMax - (i + 1) * ( Settings.Icon.x + 4f ),
+                                          IconsRect.yMin + (IconsRect.height - Settings.Icon.y) / 2f,
+                                          Settings.Icon.x,
+                                          Settings.Icon.y);
+
+                if (iconRect.xMin < IconsRect.xMin )
+                {
+                    // stop the loop if we're overflowing.
+                    break;
+                }
+
+                // draw icon
+                unlocks[i].First.DrawFittedIn( iconRect );
+
+                // tooltip
+                TooltipHandler.TipRegion( iconRect, new TipSignal( unlocks[i].Second, Settings.TipID, TooltipPriority.Pawn ) );
+            }
+            
             // if clicked and not yet finished, queue up this research and all prereqs.
             if ( Widgets.InvisibleButton( Rect ) && !Research.IsFinished )
             {
@@ -424,7 +457,8 @@ namespace FluffyResearchTree
                 }
                 else if ( Event.current.button == 1 )
                 {
-                    // TODO: Jump to help page.
+                    // right click links to CCL help def.
+                    helpWindow.JumpTo( Research.GetHelpDef() );
                 }
             }
         }
@@ -438,34 +472,9 @@ namespace FluffyResearchTree
             // start with the descripton
             StringBuilder text = new StringBuilder();
             text.AppendLine( Research.description );
-
-            // need to get the CCL helpDef for further info sections
-            HelpDef helpDef = Research.GetHelpDef();
-            if ( helpDef != null )
-            {
-                foreach ( HelpDetailSection section in helpDef.HelpDetailSections )
-                {
-                    text.AppendLine();
-                    text.AppendLine( section.Label );
-                    // def linked sections (can't do links here, so just create the strings)
-                    if ( section.KeyDefs != null )
-                    {
-                        foreach ( DefStringTriplet triplet in section.KeyDefs )
-                        {
-                            text.AppendLine( section.InsetString + triplet.Prefix + triplet.Def.LabelCap + triplet.Suffix );
-                        }
-                    }
-
-                    // string sections
-                    if ( section.StringDescs != null )
-                    {
-                        foreach ( string str in section.StringDescs )
-                        {
-                            text.AppendLine( section.InsetString + str );
-                        }
-                    }
-                }
-            }
+            text.AppendLine( "LClickReplaceQueue".Translate() );
+            text.AppendLine( "ShiftLeftClickAddToQueue".Translate() );
+            text.AppendLine( "RClickForDetails".Translate() );
             return text.ToString();
         }
 
