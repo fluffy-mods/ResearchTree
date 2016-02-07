@@ -6,6 +6,7 @@
 	<Fluffy.ResearchTree.AllowsSowingXinY>Enables sowing {0} in {1}.</Fluffy.ResearchTree.AllowsSowingXinY>
 
 	<Fluffy.ResearchTree.LClickReplaceQueue>Left-Click to replace queue</Fluffy.ResearchTree.LClickReplaceQueue>
+	<Fluffy.ResearchTree.LClickRemoveFromQueue>Left-Click to remove from queue</Fluffy.ResearchTree.LClickRemoveFromQueue>
 	<Fluffy.ResearchTree.SLClickAddToQueue>Shift-Left-Click to add to queue</Fluffy.ResearchTree.SLClickAddToQueue>
 	<Fluffy.ResearchTree.RClickForDetails>Right click for details</Fluffy.ResearchTree.RClickForDetails>
 

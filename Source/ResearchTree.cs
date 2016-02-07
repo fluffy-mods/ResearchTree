@@ -29,7 +29,6 @@ namespace FluffyResearchTree
         public static Texture2D MoreIcon = ContentFinder<Texture2D>.Get( "more" );
 
         public static bool Initialized;
-        public const int MinTrunkSize = 3;
 
         public static void DrawLine( Pair<Node, Node> connection )
         {
@@ -164,12 +163,12 @@ namespace FluffyResearchTree
             }
 
             // Assign the working dictionary to Tree objects, culling stumps.
-            Trees = trunks.Where( trunk => trunk.Value.Count >= MinTrunkSize )
+            Trees = trunks.Where( trunk => trunk.Value.Count >= Settings.MinTrunkSize )
                             .Select( trunk => new Tree( trunk.Key, trunk.Value ) )
                             .ToList();
 
             // add too small Trees back into orphan list
-            orphans.AddRange( trunks.Where( trunk => trunk.Value.Count < MinTrunkSize ).SelectMany( trunk => trunk.Value ) );
+            orphans.AddRange( trunks.Where( trunk => trunk.Value.Count < Settings.MinTrunkSize ).SelectMany( trunk => trunk.Value ) );
 
             // The order in which Trees should appear; ideally we want Trees with lots of cross-references to appear together.
             OrderTrunks();

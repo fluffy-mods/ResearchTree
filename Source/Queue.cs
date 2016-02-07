@@ -37,6 +37,16 @@ namespace FluffyResearchTree
             researchManager.currentProj = next?.Research; // null if next is null.
         }
 
+        public static void Dequeue( Node node )
+        {
+            _queue.Remove( node );
+            List<Node> followUps = _queue.Where( n => n.GetMissingRequiredRecursive().Contains( node ) ).ToList();
+            foreach( Node followUp in followUps )
+            {
+                _queue.Remove( followUp );
+            }
+        }
+
         public static void EnqueueRange( IEnumerable<Node> nodes, bool add )
         {
             // clear current Queue if not adding
@@ -63,7 +73,7 @@ namespace FluffyResearchTree
         /// Removes and returns the first node in the queue.
         /// </summary>
         /// <returns></returns>
-        public static Node Dequeue()
+        public static Node Pop()
         {
             if( _queue != null && _queue.Count > 0 )
             {
@@ -116,7 +126,7 @@ namespace FluffyResearchTree
                     string text = "ResearchFinished".Translate( researchManager.currentProj.LabelCap ) + "\n\n" + researchManager.currentProj.DescriptionDiscovered;
 
                     // remove from queue
-                    Dequeue();
+                    Pop();
 
                     // if there's something on the queue start it, and push an appropriate message
                     if( _queue.Count > 0 )

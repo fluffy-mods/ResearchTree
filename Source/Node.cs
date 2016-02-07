@@ -464,13 +464,20 @@ namespace FluffyResearchTree
             }
             
             // if clicked and not yet finished, queue up this research and all prereqs.
-            if ( Widgets.InvisibleButton( Rect ) && !Research.IsFinished )
+            if ( Widgets.InvisibleButton( Rect ))
             {
                 // LMB is queue operations, RMB is info
-                if ( Event.current.button == 0 )
+                if ( Event.current.button == 0 && !Research.IsFinished )
                 {
-                    // if shift is held, add to queue, otherwise replace queue
-                    Queue.EnqueueRange( GetMissingRequiredRecursive().Concat( new List<Node>( new[] { this } ) ), Event.current.shift );
+                    if (!Queue.IsQueued( this ) )
+                    {
+                        // if shift is held, add to queue, otherwise replace queue
+                        Queue.EnqueueRange( GetMissingRequiredRecursive().Concat( new List<Node>( new[] { this } ) ), Event.current.shift );
+                    }
+                    else
+                    {
+                        Queue.Dequeue( this );
+                    }
                 }
                 else if ( Event.current.button == 1 )
                 {
@@ -490,8 +497,15 @@ namespace FluffyResearchTree
             StringBuilder text = new StringBuilder();
             text.AppendLine( Research.description );
             text.AppendLine();
-            text.AppendLine( "Fluffy.ResearchTree.LClickReplaceQueue".Translate() );
-            text.AppendLine( "Fluffy.ResearchTree.SLClickAddToQueue".Translate() );
+            if (Queue.IsQueued( this ) )
+            {
+                text.AppendLine( "Fluffy.ResearchTree.LClickRemoveFromQueue".Translate() );
+            }
+            else
+            {
+                text.AppendLine( "Fluffy.ResearchTree.LClickReplaceQueue".Translate() );
+                text.AppendLine( "Fluffy.ResearchTree.SLClickAddToQueue".Translate() );
+            }
             text.AppendLine( "Fluffy.ResearchTree.RClickForDetails".Translate() );
             return text.ToString();
         }
@@ -500,7 +514,7 @@ namespace FluffyResearchTree
         /// Get recursive list of all incomplete prerequisites
         /// </summary>
         /// <returns>List<Node> prerequisites</Node></returns>
-        private List<Node> GetMissingRequiredRecursive()
+        public List<Node> GetMissingRequiredRecursive()
         {
             List<Node> parents = new List<Node>( Parents.Where( node => !node.Research.IsFinished ) );
             List<Node> allParents = new List<Node>( parents );
