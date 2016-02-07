@@ -35,8 +35,8 @@ namespace FluffyResearchTree
         private Vector2 _right = Vector2.zero;
 
         // node relations
-        public List<Node> Parents;
-        public List<Node> Children;
+        public List<Node> Parents = new List<Node>();
+        public List<Node> Children = new List<Node>();
         public Tree Tree;
         public string Genus;
 

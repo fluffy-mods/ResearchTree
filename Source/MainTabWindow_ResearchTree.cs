@@ -33,12 +33,11 @@ namespace FluffyResearchTree
             if ( !ResearchTree.Initialized )
             {
                 // initialize tree
-                ResearchTree.Initialize(); Log.Message( "ResearchTree :: duplicated positions " + string.Join( "\n", ResearchTree.Forest.Where( n => ResearchTree.Forest.Any( n2 => n.Pos == n2.Pos && n != n2 ) ).Select( n => n.Pos + n.Research.LabelCap + " (" + n.Genus + ")" ).ToArray() ) );
-
+                ResearchTree.Initialize(); 
 
                 // spit out debug info
 #if DEBUG
-                Log.Message( "ResearchTree :: duplicated positions " + string.Join( "\n", ResearchTree.Forest.Where( n => ResearchTree.Forest.Any( n2 => n.Pos == n2.Pos && n != n2 ) ).Select( n => n.Pos + n.Research.LabelCap + " (" + n.Genus + ")" ).ToArray() ) );
+                Log.Message( "ResearchTree :: duplicated positions:\n " + string.Join( "\n", ResearchTree.Forest.Where( n => ResearchTree.Forest.Any( n2 => n.Pos == n2.Pos && n != n2 ) ).Select( n => n.Pos + n.Research.LabelCap + " (" + n.Genus + ")" ).ToArray() ) );
 
                 foreach( Tree tree in ResearchTree.Trees )
                 {
@@ -46,11 +45,6 @@ namespace FluffyResearchTree
                 }
                 Log.Message( ResearchTree.Orphans.ToString() );
 #endif
-
-                // create detour
-                MethodInfo source = typeof (ResearchManager).GetMethod( "MakeProgress" );
-                MethodInfo destination = typeof (Queue).GetMethod( "MakeProgress" );
-                Detours.TryDetourFromTo( source, destination );
             }
 
             // set to topleft (for some reason core alignment overlaps bottom buttons). 
@@ -110,16 +104,15 @@ namespace FluffyResearchTree
             foreach ( Tree tree in ResearchTree.Trees )
             {
 #if DEBUG
-                Rect treeRect = new Rect( tree.MinDepth * (Settings.Button.x + Settings.Margin.x),
-                                          tree.StartY * (Settings.Button.y + Settings.Margin.y),
-                                          (tree.MaxDepth - tree.MinDepth) * (Settings.Button.x + Settings.Button.x ),
+                Rect treeRect = new Rect( 0f,
+                                          tree.StartY * (Settings.Button.y + Settings.Margin.y) - Settings.Margin.y / 2f,
+                                          view.width,
                                           tree.Width * (Settings.Button.y + Settings.Margin.y));
                 Color color = GUI.color;
                 GUI.color = tree.MediumColor;
                 GUI.DrawTexture( treeRect, TexUI.HighlightTex );
-                Widgets.DrawBox( treeRect, 1 );
-                GUI.color = color;
-                TooltipHandler.TipRegion( treeRect, tree.Genus );
+                Widgets.DrawBox( treeRect );
+                GUI.color = color; 
 #endif
 
                 foreach ( Node node in tree.Trunk.Concat( tree.Leaves ) )

@@ -91,11 +91,13 @@ namespace FluffyResearchTree
         public float AffinityWith( Tree otherTree )
         {
             // get the number of relations between the two extended families.
-            List<Node> family = Children().Concat( Parents() ).Distinct().ToList();
+            List<Node> family = new List<Node>();
+            family.AddRange( Leaves );
+            family.AddRange( Trunk );
             List<Node> otherFamily = otherTree.Children().Concat( otherTree.Parents() ).Distinct().ToList();
 
-            // count of nodes that are a member of both families, divided by family size
-            return (float)family.Intersect( otherFamily ).Count() / (float)family.Count();
+            // count of nodes that are a member of both families, divided by family size to get small child trees to be closer to 'main' tree.
+            return (float)family.Intersect( otherFamily ).Count() / (float)Math.Sqrt( otherFamily.Count() );
         }
 
         public void AddLeaf( Node leaf )

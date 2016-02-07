@@ -52,6 +52,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Bootstrap.cs" />
     <Compile Include="Queue.cs" />
     <Compile Include="MainTabWindow_ResearchTree.cs" />
     <Compile Include="Node.cs" />
@@ -63,14 +64,14 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>echo Copy to vanilla install dir.
-copy $(TargetPath) "C:\Users\Karel\Desktop\RimWorld914Win\Mods\RW_ResearchTree\Assemblies"
+    <PostBuildEvent>echo Copy to Vanilla dir
+xcopy "$(TargetDir).." "C:\Users\Karel\Desktop\RimWorld914Win\Mods\RW_ResearchTree\" /S /Y /Q
 
-echo Copy to HCSK install dir.
-copy $(TargetPath) "C:\Users\Karel\Desktop\Hardcore SK\Mods\RW_ResearchTree\Assemblies"
+echo Copy to HCSK dir
+xcopy "$(TargetDir).." "C:\Users\Karel\Desktop\Hardcore SK\Mods\RW_ResearchTree\" /S /Y /Q
 
 rem echo Copy to MVP install dir
-rem copy $(TargetPath) "C:\Users\Karel\Desktop\ModVarietyPack\Mods\RW_ResearchTree\Assemblies"
+rem xcopy "$(TargetDir).." "C:\Users\Karel\Desktop\ModVarietyPack\Mods\RW_ResearchTree\" /S /Y /Q
 </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

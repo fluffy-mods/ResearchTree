@@ -7,5 +7,8 @@
         <MapComponents>
             <li>FluffyResearchTree.Queue</li>
         </MapComponents>
+        <SpecialInjectors>
+        	<li>FluffyResearchTree.Bootstrap</li>
+        </SpecialInjectors>
     </ModHelperDef>
 </Defs>
