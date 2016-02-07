@@ -159,9 +159,21 @@ namespace FluffyResearchTree
         public Node( ResearchProjectDef research )
         {
             Research = research;
-            List<string> parts = research.LabelCap.Split( " ".ToCharArray() ).ToList();
-            parts.Remove( parts.Last() );
-            Genus = string.Join( " ", parts.ToArray() );
+
+            // get the Genus, this is the research family name, and will be used to group research together.
+            // First see if we have a ":" in the name
+            List<string> parts = research.LabelCap.Split( ":".ToCharArray() ).ToList();
+            if ( parts.Count > 1 )
+            {
+                Genus = parts.First();
+            }
+            else
+            // otherwise, strip the last word (intended to catch 1,2,3/ I,II,III,IV suffixes)
+            {
+                parts = research.LabelCap.Split( " ".ToCharArray() ).ToList();
+                parts.Remove( parts.Last() );
+                Genus = string.Join( " ", parts.ToArray() );
+            }
             Parents = new List<Node>();
             Children = new List<Node>();
         }
@@ -422,7 +434,7 @@ namespace FluffyResearchTree
             Text.WordWrap = true;
 
             // attach description and further info to a tooltip
-            TooltipHandler.TipRegion( Rect, new TipSignal( GetResearchTooltipString(), Settings.TipID ) );
+            TooltipHandler.TipRegion( Rect, GetResearchTooltipString() ); // new TipSignal( GetResearchTooltipString(), Settings.TipID ) );
 
             // draw unlock icons
             List<Pair<Texture2D, string>> unlocks = Research.GetUnlockIconsAndDescs();
@@ -440,7 +452,7 @@ namespace FluffyResearchTree
                     iconRect.x = IconsRect.x + 4f;
                     ResearchTree.MoreIcon.DrawFittedIn( iconRect );
                     string tip = string.Join( "\n", unlocks.GetRange( i, unlocks.Count - i ).Select( p => p.Second ).ToArray() );
-                    TooltipHandler.TipRegion( iconRect, new TipSignal( tip, Settings.TipID, TooltipPriority.Pawn ) );
+                    TooltipHandler.TipRegion( iconRect, tip ); // new TipSignal( tip, Settings.TipID, TooltipPriority.Pawn ) );
                     break;
                 }
 
@@ -448,7 +460,7 @@ namespace FluffyResearchTree
                 unlocks[i].First.DrawFittedIn( iconRect );
 
                 // tooltip
-                TooltipHandler.TipRegion( iconRect, new TipSignal( unlocks[i].Second, Settings.TipID, TooltipPriority.Pawn ) );
+                TooltipHandler.TipRegion( iconRect, unlocks[i].Second ); // new TipSignal( unlocks[i].Second, Settings.TipID, TooltipPriority.Pawn ) );
             }
             
             // if clicked and not yet finished, queue up this research and all prereqs.

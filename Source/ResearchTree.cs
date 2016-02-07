@@ -77,12 +77,12 @@ namespace FluffyResearchTree
                 GUI.DrawTexture( curveToCurve, NS );
 
                 // curve to right
-                Rect curveToRight = new Rect( right.x - Settings.Margin.x / 4f, right.y - 2f, Settings.Margin.x / 4f, 4f );
+                Rect curveToRight = new Rect( left.x + Settings.Margin.x / 4f * 3, right.y - 2f, right.x - left.x - Settings.Margin.x / 4f * 3, 4f );
                 GUI.DrawTexture( curveToRight, EW );
                 
                 // curve positions
-                Rect curveLeft = new Rect(left.x + Settings.Margin.x / 4f, left.y - Settings.Margin.x / 4f, Settings.Margin.x / 2f, Settings.Margin.x / 2f);
-                Rect curveRight = new Rect(right.x - Settings.Margin.x * 3f / 4f, right.y - Settings.Margin.x / 4f, Settings.Margin.x / 2f, Settings.Margin.x / 2f);
+                Rect curveLeft = new Rect( left.x + Settings.Margin.x / 4f, left.y - Settings.Margin.x / 4f, Settings.Margin.x / 2f, Settings.Margin.x / 2f);
+                Rect curveRight = new Rect( left.x + Settings.Margin.x / 4f, right.y - Settings.Margin.x / 4f, Settings.Margin.x / 2f, Settings.Margin.x / 2f);
 
                 // going down
                 if( left.y < right.y )
@@ -121,8 +121,11 @@ namespace FluffyResearchTree
                 {
                     var ancestors = node.Research.prerequisites.SelectMany( r => r.GetPrerequisitesRecursive() );
 #if DEBUG
-                    Log.Message( "ResearchTree :: redundant prerequisites for " + node.Research.LabelCap + " removed: " +
-                        string.Join( ", ", node.Research.prerequisites.Intersect( ancestors ).Select( r => r.LabelCap ).ToArray() ) );
+                    if( !node.Research.prerequisites.Intersect( ancestors ).ToList().NullOrEmpty() )
+                    {
+                        Log.Message( "ResearchTree :: redundant prerequisites for " + node.Research.LabelCap + " removed: " +
+                            string.Join( ", ", node.Research.prerequisites.Intersect( ancestors ).Select( r => r.LabelCap ).ToArray() ) );
+                    }
 #endif
                     node.Research.prerequisites = node.Research.prerequisites.Except( ancestors ).ToList();
                 }
@@ -204,14 +207,14 @@ namespace FluffyResearchTree
             List<Tree> trees = Trees.OrderBy( tree => - tree.Leaves.Count ).ToList();
             Trees.Clear();
 
-            // initialize list of Trees with the deepest Trunk
+            // initialize list of Trees with the largest
             Tree first = trees.First();
             Trees.Add( first );
             trees.Remove( first );
 
             // Set up a weighting system to keep 2nd highest affinity closer to 1st highest affinity
-            Dictionary<Tree, int> weights =
-                new Dictionary<Tree, int>( trees.ToDictionary( tree => tree, tree => first.AffinityWith( tree ) ) );
+            Dictionary<Tree, float> weights =
+                new Dictionary<Tree, float>( trees.ToDictionary( tree => tree, tree => first.AffinityWith( tree ) ) );
 
             // add other Trees
             while ( trees.Count > 0 )
@@ -240,7 +243,16 @@ namespace FluffyResearchTree
                 
                 foreach( Node node in tree.Trunk )
                 {
-                    node.Pos = new IntVec2( node.Depth, curY );
+                    int bestPos = curY;
+                    // trunks can have (but shouldn't have) more than one node at each depth.
+                    while( tree.Trunk.Any( otherNode => otherNode.Pos.z == bestPos && otherNode.Depth == node.Depth ) )
+                    {
+                        bestPos++;
+                    }
+                    node.Pos = new IntVec2( node.Depth, bestPos );
+
+                    // extend tree width if necessary
+                    tree.Width = Math.Max( tree.Width, bestPos - curY + 1 );
                 }
 
                 // position child nodes as close to their parents as possible
@@ -248,20 +260,23 @@ namespace FluffyResearchTree
                 {
                     // put nodes that are children of the trunk first.
                     List<Node> nodes = tree.NodesAtDepth( x ).OrderBy( node => node.Parents.Any( parent => node.Tree.Trunk.Contains( parent )) ? 0 : 1 ).ToList();
+                    List<Node> allNodesAtCurrentDepth = tree.NodesAtDepth( x, true );
 
                     foreach ( Node node in nodes )
                     {
-                        // try find the closest matching position
+                        // try find the closest matching position, default to right below trunk
                         int bestPos = curY + 1;
-                        if (node.Parents.Any())
-                            bestPos = node.Parents.Select( parent => parent.Pos.z ).Min();
 
-                        // bump down if taken or trunk level
-                        while ( nodes.Any( n => n.Pos.z == bestPos ) || bestPos == curY )
+                        // if we have any parent research in this trunk, try to get positioned next to it.
+                        if (node.Parents.Any( parent => parent.Tree == node.Tree ))
+                            bestPos = node.Parents.Where( parent => parent.Tree == node.Tree ).Select( parent => parent.Pos.z ).Min();
+
+                        // bump down if taken by any node in tree
+                        while ( allNodesAtCurrentDepth.Any( n => n.Pos.z == bestPos ) || bestPos == curY )
                             bestPos++;
 
                         // extend tree width if necessary
-                        tree.Width = Math.Max( tree.Width, bestPos - curY + 1 );
+                        tree.Width = Math.Max( tree.Width, bestPos - tree.StartY + 1 );
 
                         // set position
                         node.Pos = new IntVec2( node.Depth, bestPos );
@@ -275,48 +290,44 @@ namespace FluffyResearchTree
                 for ( int x = tree.MaxDepth; x >= tree.MinDepth; x-- )
                 {
                     List<Node> nodes = tree.NodesAtDepth( x );
+                    List<Node> allNodesAtCurrentDepth = tree.NodesAtDepth( x, true );
+                    
                     foreach ( Node node in nodes )
                     {
-                        Log.Message( "Try: " + node.Research.LabelCap );
                         // if this node has children;
                         if ( node.Children.Count > 0 )
                         {
-                            Log.Message( "Do: " + node.Research.LabelCap );
-                            // ideal position would be right next to top child
+                            // ideal position would be right next to top child, but we won't allow it to go out of tree bounds
                             Node topChild = node.Children.OrderBy( child => child.Pos.z ).First();
-                            int bestPos = topChild.Pos.z;
+                            int bestPos = Math.Max( topChild.Pos.z, node.Tree.StartY + 1 );
 
                             // keep checking until we have a decent position
                             // if that is indeed the current position, great, move to next
                             if ( bestPos == node.Pos.z )
                                 continue;
-
-                            // we're only checking leaves - don't allow them to be on trunk positions.
-                            if ( bestPos == node.Tree.StartY )
-                                bestPos++;
-                           
-                            // otherwise, check if position is taken (exclude this node itself from matches
-                            while ( nodes.Any( n => n.Pos.z == bestPos && n != node ) )
+                                                       
+                            // otherwise, check if position is taken by any node, or if the new position falls outside of tree bounds (exclude this node itself from matches)
+                            while ( allNodesAtCurrentDepth.Any( n => n.Pos.z == bestPos && n != node ) )
                             {
-                                Log.Message( "Pos: " + bestPos );
-                                // does the node at that position have the same child?
-                                Node otherNode = nodes.First(n => n.Pos.z == bestPos);
-                                if ( !otherNode.Children.Contains( topChild ) )
-                                {
-                                    // if not, switch them around
-                                    bestPos = otherNode.Pos.z;
-                                    otherNode.Pos.z = node.Pos.z;
-                                }
-                                // or just bump it down otherwise
-                                else
-                                {
+                                //Log.Message( "Pos: " + bestPos );
+                                //// does the node at that position have the same child, and is it part of the same tree?
+                                //Node otherNode = nodes.First(n => n.Pos.z == bestPos);
+                                //if ( !otherNode.Children.Contains( topChild ) && otherNode.Tree == node.Tree )
+                                //{
+                                //    // if not, switch them around
+                                //    bestPos = otherNode.Pos.z;
+                                //    otherNode.Pos.z = node.Pos.z;
+                                //}
+                                //// or just bump it down otherwise
+                                //else
+                                //{
                                     bestPos++;
-                                }
+                                //}
                             }
 
                             // we should now have a decent position
                             // extend tree width if necessary
-                            tree.Width = Math.Max( tree.Width, bestPos - curY + 1 );
+                            tree.Width = Math.Max( tree.Width, bestPos - tree.StartY + 1 );
 
                             // set position
                             node.Pos = new IntVec2( node.Depth, bestPos );

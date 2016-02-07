@@ -63,10 +63,11 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>
-
-echo Copy to vanilla install dir.
+    <PostBuildEvent>echo Copy to vanilla install dir.
 copy $(TargetPath) "C:\Users\Karel\Desktop\RimWorld914Win\Mods\RW_ResearchTree\Assemblies"
+
+echo Copy to HCSK install dir.
+copy $(TargetPath) "C:\Users\Karel\Desktop\Hardcore SK\Mods\RW_ResearchTree\Assemblies"
 
 rem echo Copy to MVP install dir
 rem copy $(TargetPath) "C:\Users\Karel\Desktop\ModVarietyPack\Mods\RW_ResearchTree\Assemblies"
