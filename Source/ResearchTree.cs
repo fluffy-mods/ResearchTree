@@ -26,6 +26,7 @@ namespace FluffyResearchTree
         public static Texture2D EW = ContentFinder<Texture2D>.Get( "ew" );
         public static Texture2D NS = ContentFinder<Texture2D>.Get( "ns" );
         public static Texture2D End = ContentFinder<Texture2D>.Get( "end" );
+        public static Texture2D MoreIcon = ContentFinder<Texture2D>.Get( "more" );
 
         public static bool Initialized;
         public const int MinTrunkSize = 2;
@@ -112,6 +113,20 @@ namespace FluffyResearchTree
                                         // exclude hidden projects (prereq of itself is a common trick to hide research).
                                         .Where( def => !def.prerequisites.Contains( def ) )
                                         .Select( def => new Node( def ) ) );
+
+            // remove redundant prerequisites.
+            foreach( Node node in Forest )
+            {
+                if ( !node.Research.prerequisites.NullOrEmpty() )
+                {
+                    var ancestors = node.Research.prerequisites.SelectMany( r => r.GetPrerequisitesRecursive() );
+#if DEBUG
+                    Log.Message( "ResearchTree :: redundant prerequisites for " + node.Research.LabelCap + " removed: " +
+                        string.Join( ", ", node.Research.prerequisites.Intersect( ancestors ).Select( r => r.LabelCap ).ToArray() ) );
+#endif
+                    node.Research.prerequisites = node.Research.prerequisites.Except( ancestors ).ToList();
+                }
+            }
 
             // create links between nodes
             foreach ( Node node in Forest )

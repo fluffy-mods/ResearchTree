@@ -426,16 +426,21 @@ namespace FluffyResearchTree
 
             // draw unlock icons
             List<Pair<Texture2D, string>> unlocks = Research.GetUnlockIconsAndDescs();
-            for (int i = 0; i < unlocks.Count(); i++ )
+            for (int i = 0; i < unlocks.Count; i++ )
             {
                 Rect iconRect = new Rect( IconsRect.xMax - (i + 1) * ( Settings.Icon.x + 4f ),
                                           IconsRect.yMin + (IconsRect.height - Settings.Icon.y) / 2f,
                                           Settings.Icon.x,
                                           Settings.Icon.y);
 
-                if (iconRect.xMin < IconsRect.xMin )
+                if (iconRect.xMin - Settings.Icon.x < IconsRect.xMin &&
+                    i + 1 < unlocks.Count )
                 {
-                    // stop the loop if we're overflowing.
+                    // stop the loop if we're about to overflow and have 2 or more unlocks yet to print.
+                    iconRect.x = IconsRect.x + 4f;
+                    ResearchTree.MoreIcon.DrawFittedIn( iconRect );
+                    string tip = string.Join( "\n", unlocks.GetRange( i, unlocks.Count - i ).Select( p => p.Second ).ToArray() );
+                    TooltipHandler.TipRegion( iconRect, new TipSignal( tip, Settings.TipID, TooltipPriority.Pawn ) );
                     break;
                 }
 
@@ -472,9 +477,10 @@ namespace FluffyResearchTree
             // start with the descripton
             StringBuilder text = new StringBuilder();
             text.AppendLine( Research.description );
-            text.AppendLine( "LClickReplaceQueue".Translate() );
-            text.AppendLine( "ShiftLeftClickAddToQueue".Translate() );
-            text.AppendLine( "RClickForDetails".Translate() );
+            text.AppendLine();
+            text.AppendLine( "Fluffy.ResearchTree.LClickReplaceQueue".Translate() );
+            text.AppendLine( "Fluffy.ResearchTree.SLClickAddToQueue".Translate() );
+            text.AppendLine( "Fluffy.ResearchTree.RClickForDetails".Translate() );
             return text.ToString();
         }
 

@@ -16,6 +16,32 @@ namespace FluffyResearchTree
     {
         private static Dictionary<Def, List<Pair<Texture2D, string>>> cache = new Dictionary<Def, List<Pair<Texture2D, string>>>();
 
+        public static List<ResearchProjectDef> GetPrerequisitesRecursive( this ResearchProjectDef research )
+        {
+            List<ResearchProjectDef> result = new List<ResearchProjectDef>();
+            if( research.prerequisites.NullOrEmpty() )
+            {
+                return result;
+            }
+            Stack<ResearchProjectDef> stack = new Stack<ResearchProjectDef>( research.prerequisites );
+            
+            while ( stack.Count > 0 )
+            {
+                var parent = stack.Pop();
+                result.Add( parent );
+
+                if( !parent.prerequisites.NullOrEmpty() )
+                {
+                    foreach (var grandparent in parent.prerequisites )
+                    {
+                        stack.Push( grandparent );
+                    }
+                }
+            }
+
+            return result.Distinct().ToList();
+        }
+
         public static List<Pair<Texture2D, string>> GetUnlockIconsAndDescs( this ResearchProjectDef research )
         {
             if (cache.ContainsKey( research ) )
@@ -30,16 +56,16 @@ namespace FluffyResearchTree
 
             unlocks.AddRange( research.GetThingsUnlocked()
                                       .Where( d => d.Icon() != null )
-                                      .Select( d => new Pair<Texture2D,string>( d.Icon(), "AllowsBuildingX".Translate( d.LabelCap ) ) ) );
+                                      .Select( d => new Pair<Texture2D,string>( d.Icon(), "Fluffy.ResearchTree.AllowsBuildingX".Translate( d.LabelCap ) ) ) );
             unlocks.AddRange( research.GetTerrainUnlocked()
                                       .Where( d => d.Icon() != null )
-                                      .Select( d => new Pair<Texture2D, string>( d.Icon(), "AllowsBuildingX".Translate( d.LabelCap ) ) ) );
+                                      .Select( d => new Pair<Texture2D, string>( d.Icon(), "Fluffy.ResearchTree.AllowsBuildingX".Translate( d.LabelCap ) ) ) );
             unlocks.AddRange( research.GetRecipesUnlocked( ref dump )
                                       .Where( d => d.Icon() != null )
-                                      .Select( d => new Pair<Texture2D, string>( d.Icon(), "AllowsCraftingX".Translate( d.LabelCap ) ) ) );
-            string sowTags = string.Join( ", ", research.GetSowTagsUnlocked( ref dump ).ToArray() );
+                                      .Select( d => new Pair<Texture2D, string>( d.Icon(), "Fluffy.ResearchTree.AllowsCraftingX".Translate( d.LabelCap ) ) ) );
+            string sowTags = string.Join( " and ", research.GetSowTagsUnlocked( ref dump ).ToArray() );
             unlocks.AddRange( dump.Where( d => d.Icon() != null )
-                                  .Select( d => new Pair<Texture2D, string>( d.Icon(), "AllowsSowingXinY".Translate( d.LabelCap, sowTags ) ) ) );
+                                  .Select( d => new Pair<Texture2D, string>( d.Icon(), "Fluffy.ResearchTree.AllowsSowingXinY".Translate( d.LabelCap, sowTags ) ) ) );
             
             cache.Add( research, unlocks );
             return unlocks;
