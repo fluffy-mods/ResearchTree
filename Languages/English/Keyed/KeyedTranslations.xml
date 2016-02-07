@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<LanguageData>
+
+	<Fluffy.ResearchTree.AllowsBuildingX>Enables construction {0}.</Fluffy.ResearchTree.AllowsBuildingX>
+	<Fluffy.ResearchTree.AllowsCraftingX>Enables recipe {0}.</Fluffy.ResearchTree.AllowsCraftingX>
+	<Fluffy.ResearchTree.AllowsSowingXinY>Enables sowing {0} in {1}.</Fluffy.ResearchTree.AllowsSowingXinY>
+
+	<Fluffy.ResearchTree.LClickReplaceQueue>Left-Click to replace queue</Fluffy.ResearchTree.LClickReplaceQueue>
+	<Fluffy.ResearchTree.SLClickAddToQueue>Shift-Left-Click to add to queue</Fluffy.ResearchTree.SLClickAddToQueue>
+	<Fluffy.ResearchTree.RClickForDetails>Right click for details</Fluffy.ResearchTree.RClickForDetails>
+
+</LanguageData>
