@@ -20,7 +20,8 @@ namespace FluffyResearchTree
     {
         // tree view stuff
         internal static Vector2 _scrollPosition = Vector2.zero;
-        private bool _noBenchWarned;
+        // TODO: Implement no bench warning
+        //private bool _noBenchWarned;
 
         // collect lines to be drawn
         private static List<Pair<Node, Node>> connections = new List<Pair<Node, Node>>();

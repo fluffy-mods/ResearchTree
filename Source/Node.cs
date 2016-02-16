@@ -437,7 +437,7 @@ namespace FluffyResearchTree
             TooltipHandler.TipRegion( Rect, GetResearchTooltipString() ); // new TipSignal( GetResearchTooltipString(), Settings.TipID ) );
 
             // draw unlock icons
-            List<Pair<Texture2D, string>> unlocks = Research.GetUnlockIconsAndDescs();
+            List<Pair<Def, string>> unlocks = Research.GetUnlockDefsAndDescs();
             for (int i = 0; i < unlocks.Count; i++ )
             {
                 Rect iconRect = new Rect( IconsRect.xMax - (i + 1) * ( Settings.Icon.x + 4f ),
@@ -457,7 +457,7 @@ namespace FluffyResearchTree
                 }
 
                 // draw icon
-                unlocks[i].First.DrawFittedIn( iconRect );
+                unlocks[i].First.DrawColouredIcon( iconRect );
 
                 // tooltip
                 TooltipHandler.TipRegion( iconRect, unlocks[i].Second ); // new TipSignal( unlocks[i].Second, Settings.TipID, TooltipPriority.Pawn ) );
