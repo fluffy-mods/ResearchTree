@@ -10,4 +10,7 @@
 	<Fluffy.ResearchTree.SLClickAddToQueue>Shift-Left-Click to add to queue</Fluffy.ResearchTree.SLClickAddToQueue>
 	<Fluffy.ResearchTree.RClickForDetails>Right click for details</Fluffy.ResearchTree.RClickForDetails>
 
+	<Fluffy.ResearchTree.Requires>Requires</Fluffy.ResearchTree.Requires>
+	<Fluffy.ResearchTree.LeadsTo>Leads to</Fluffy.ResearchTree.LeadsTo>
+
 </LanguageData>

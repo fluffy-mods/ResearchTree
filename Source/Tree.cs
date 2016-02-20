@@ -1,40 +1,30 @@
+using CommunityCoreLibrary.ColorPicker;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using CommunityCoreLibrary.ColorPicker;
 using UnityEngine;
-using Verse;
 
 namespace FluffyResearchTree
 {
     public class Tree
     {
+        #region Fields
+
         public string Genus;
-        public List<Node> Trunk;
-        public List<Node> Leaves;
-        public int MinDepth;
-        public int MaxDepth;
-        public int Width;
-        public int StartY;
-        private Color _color;
         public Color GreyedColor;
+        public List<Node> Leaves;
+        public int MaxDepth;
         public Color MediumColor;
+        public int MinDepth;
+        public int StartY;
+        public List<Node> Trunk;
+        public int Width;
+        private Color _color;
 
-        public Color Color
-        {
-            get { return _color; }
-            set
-            {
-                _color = value;
+        #endregion Fields
 
-                float h, s, v;
-
-                ColorHelper.RGBtoHSV( value, out h, out s, out v );
-                GreyedColor = ColorHelper.HSVtoRGB( h, 0.1f, 0.25f );
-                MediumColor = ColorHelper.HSVtoRGB( h, 0.7f, 0.8f );
-            }
-        }
+        #region Constructors
 
         public Tree( string genus, List<Node> trunk )
         {
@@ -60,45 +50,28 @@ namespace FluffyResearchTree
             }
         }
 
-        public List<Node> Children( int depth = 2 )
-        {
-            List<Node> children = new List<Node>( Trunk );
-            List<Node> curLevel = new List<Node>( Trunk );
+        #endregion Constructors
 
-            while ( depth -- > 0 )
+        #region Properties
+
+        public Color Color
+        {
+            get { return _color; }
+            set
             {
-                curLevel = curLevel.SelectMany( node => node.Children ).Distinct().ToList();
-                children.AddRange( curLevel );
+                _color = value;
+
+                float h, s, v;
+
+                ColorHelper.RGBtoHSV( value, out h, out s, out v );
+                GreyedColor = ColorHelper.HSVtoRGB( h, 0.1f, 0.25f );
+                MediumColor = ColorHelper.HSVtoRGB( h, 0.7f, 0.8f );
             }
-
-            return children;
         }
 
-        public List<Node> Parents( int depth = 2 )
-        {
-            List<Node> parents = new List<Node>( Trunk );
-            List<Node> curLevel = new List<Node>( Trunk );
+        #endregion Properties
 
-            while( depth-- > 0 )
-            {
-                curLevel = curLevel.SelectMany( node => node.Parents ).Distinct().ToList();
-                parents.AddRange( curLevel );
-            }
-
-            return parents;
-        }
-
-        public float AffinityWith( Tree otherTree )
-        {
-            // get the number of relations between the two extended families.
-            List<Node> family = new List<Node>();
-            family.AddRange( Leaves );
-            family.AddRange( Trunk );
-            List<Node> otherFamily = otherTree.Children().Concat( otherTree.Parents() ).Distinct().ToList();
-
-            // count of nodes that are a member of both families, divided by family size to get small child trees to be closer to 'main' tree.
-            return (float)family.Intersect( otherFamily ).Count() / (float)Math.Sqrt( otherFamily.Count() );
-        }
+        #region Methods
 
         public void AddLeaf( Node leaf )
         {
@@ -114,12 +87,53 @@ namespace FluffyResearchTree
             MaxDepth = Math.Max( MaxDepth, leaf.Depth );
         }
 
+        public float AffinityWith( Tree otherTree )
+        {
+            // get the number of relations between the two extended families.
+            List<Node> family = new List<Node>();
+            family.AddRange( Leaves );
+            family.AddRange( Trunk );
+            List<Node> otherFamily = otherTree.Children().Concat( otherTree.Parents() ).Distinct().ToList();
+
+            // count of nodes that are a member of both families, divided by family size to get small child trees to be closer to 'main' tree.
+            return (float)family.Intersect( otherFamily ).Count() / (float)Math.Sqrt( otherFamily.Count() );
+        }
+
+        public List<Node> Children( int depth = 2 )
+        {
+            List<Node> children = new List<Node>( Trunk );
+            List<Node> curLevel = new List<Node>( Trunk );
+
+            while ( depth-- > 0 )
+            {
+                curLevel = curLevel.SelectMany( node => node.Children ).Distinct().ToList();
+                children.AddRange( curLevel );
+            }
+
+            return children;
+        }
+
         public List<Node> NodesAtDepth( int depth, bool includeTrunk = false )
         {
             List<Node> nodes = new List<Node>();
-            if (includeTrunk) nodes.AddRange( Trunk.Where( node => node.Depth == depth ) );
+            if ( includeTrunk )
+                nodes.AddRange( Trunk.Where( node => node.Depth == depth ) );
             nodes.AddRange( Leaves.Where( node => node.Depth == depth ) );
             return nodes;
+        }
+
+        public List<Node> Parents( int depth = 2 )
+        {
+            List<Node> parents = new List<Node>( Trunk );
+            List<Node> curLevel = new List<Node>( Trunk );
+
+            while ( depth-- > 0 )
+            {
+                curLevel = curLevel.SelectMany( node => node.Parents ).Distinct().ToList();
+                parents.AddRange( curLevel );
+            }
+
+            return parents;
         }
 
         public override string ToString()
@@ -134,7 +148,7 @@ namespace FluffyResearchTree
             }
 
             text.AppendLine( "\n\nLeaves:" );
-            foreach( Node node in Leaves )
+            foreach ( Node node in Leaves )
             {
                 text.AppendFormat( node.ToString() + ", " );
             }
@@ -150,5 +164,7 @@ namespace FluffyResearchTree
 
             return text.ToString();
         }
+
+        #endregion Methods
     }
 }

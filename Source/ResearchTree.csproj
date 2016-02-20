@@ -65,13 +65,13 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>echo Copy to Vanilla dir
-xcopy "$(TargetDir).." "C:\Users\Karel\Desktop\RimWorld914Win\Mods\RW_ResearchTree\" /S /Y /Q
+xcopy "$(TargetDir).." "C:\Users\Karel\Desktop\RimWorlds\RimWorld914Win\Mods\RW_ResearchTree\" /S /Y /Q
 
 echo Copy to HCSK dir
-xcopy "$(TargetDir).." "C:\Users\Karel\Desktop\Hardcore SK\Mods\RW_ResearchTree\" /S /Y /Q
+xcopy "$(TargetDir).." "C:\Users\Karel\Desktop\RimWorlds\Hardcore SK\Mods\RW_ResearchTree\" /S /Y /Q
 
 rem echo Copy to MVP install dir
-rem xcopy "$(TargetDir).." "C:\Users\Karel\Desktop\ModVarietyPack\Mods\RW_ResearchTree\" /S /Y /Q
+rem xcopy "$(TargetDir).." "C:\Users\Karel\Desktop\RimWorlds\ModVarietyPack\Mods\RW_ResearchTree\" /S /Y /Q
 </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
