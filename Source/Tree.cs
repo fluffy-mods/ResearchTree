@@ -11,16 +11,16 @@ namespace FluffyResearchTree
     {
         #region Fields
 
-        public string Genus;
-        public Color GreyedColor;
+        public string     Genus;
+        public Color      GreyedColor;
         public List<Node> Leaves;
-        public int MaxDepth;
-        public Color MediumColor;
-        public int MinDepth;
-        public int StartY;
+        public int        MaxDepth;
+        public Color      MediumColor;
+        public int        MinDepth;
+        public int        StartY;
         public List<Node> Trunk;
-        public int Width;
-        private Color _color;
+        public int        Width;
+        private Color     _color;
 
         #endregion Fields
 

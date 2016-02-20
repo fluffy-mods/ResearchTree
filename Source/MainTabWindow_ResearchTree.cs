@@ -16,18 +16,11 @@ namespace FluffyResearchTree
 {
     public class MainTabWindow_ResearchTree : MainTabWindow
     {
-        // tree view stuff
-        internal static Vector2 _scrollPosition = Vector2.zero;
-
-        // TODO: Implement no bench warning
-        //private bool _noBenchWarned;
-
-        // collect things to be drawn
-
-        public static List<Pair<Node, Node>> connections = new List<Pair<Node, Node>>();
+        internal static Vector2 _scrollPosition                     = Vector2.zero;
+        public static List<Pair<Node, Node>> connections            = new List<Pair<Node, Node>>();
         public static List<Pair<Node, Node>> highlightedConnections = new List<Pair<Node, Node>>();
-        public static Dictionary<Rect, List<String>> hubTips = new Dictionary<Rect, List<string>>();
-        public static List<Node> nodes = new List<Node>();
+        public static Dictionary<Rect, List<String>> hubTips        = new Dictionary<Rect, List<string>>();
+        public static List<Node> nodes                              = new List<Node>();
 
         public override void PreOpen()
         {

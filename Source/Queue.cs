@@ -14,8 +14,8 @@ namespace FluffyResearchTree
     {
         #region Fields
 
-        internal static readonly Texture2D CircleFill = ContentFinder<Texture2D>.Get("circle-fill");
-        private static readonly List<Node> _queue = new List<Node>();
+        internal static readonly Texture2D      CircleFill = ContentFinder<Texture2D>.Get("circle-fill");
+        private static readonly List<Node>      _queue     = new List<Node>();
         private static List<ResearchProjectDef> _saveableQueue;
 
         #endregion Fields

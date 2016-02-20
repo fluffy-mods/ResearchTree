@@ -18,43 +18,29 @@ namespace FluffyResearchTree
     {
         #region Fields
 
-        // research icon
-        public static Texture2D ResearchIcon = ContentFinder<Texture2D>.Get( "Research" );
+        public static Texture2D       ResearchIcon     = ContentFinder<Texture2D>.Get( "Research" );
+        public List<Node>             Children         = new List<Node>();
+        public int                    Depth;
+        public string                 Genus;
+        public List<Node>             Parents          = new List<Node>();
+        public IntVec2                Pos;
+        public ResearchProjectDef     Research;
+        public Tree                   Tree;
+        private const float           LabSize          = 30f;
+        private const float           Offset           = 2f;
+        private bool                  _largeLabel      = false;
+        private Vector2               _left            = Vector2.zero;
 
-        public List<Node> Children = new List<Node>();
+        private Rect                  _queueRect,
+                                      _rect,
+                                      _labelRect,
+                                      _costLabelRect,
+                                      _costIconRect,
+                                      _iconsRect;
 
-        public int Depth;
-
-        public string Genus;
-
-        // node relations
-        public List<Node> Parents = new List<Node>();
-
-        // further offsets and positional variables
-        public IntVec2 Pos;
-
-        // what it's all about - the research project.
-        public ResearchProjectDef Research;
-
-        public Tree Tree;
-
-        private const float LabSize = 30f;
-
-        private const float Offset = 2f;
-
-        private bool _largeLabel = false;
-
-        // left/right edges of Rects
-        private Vector2 _left = Vector2.zero;
-
-        // shortcuts to UI rects (these are only generated once and accessed through properties)
-        private Rect _queueRect, _rect, _labelRect, _costLabelRect, _costIconRect, _iconsRect;
-
-        private bool _rectSet;
-        private Vector2 _right = Vector2.zero;
-
-        // enable linking to CCL help tab for details
-        private MainTabWindow_ModHelp helpWindow = DefDatabase<MainTabDef>.GetNamed( "CCL_ModHelp", false ).Window as MainTabWindow_ModHelp;
+        private bool                  _rectSet;
+        private Vector2               _right           = Vector2.zero;
+        private MainTabWindow_ModHelp helpWindow       = DefDatabase<MainTabDef>.GetNamed( "CCL_ModHelp", false ).Window as MainTabWindow_ModHelp;
 
         #endregion Fields
 
