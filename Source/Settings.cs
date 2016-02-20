@@ -6,7 +6,7 @@ namespace FluffyResearchTree
     {
         #region tuning parameters
 
-        public static int     LineMaxLengthNodes = (int)(Screen.height / NodeSize.y * .8f);
+        public static int     LineMaxLengthNodes = 10;
         public static int     MinTrunkSize       = 2;
 
         #endregion tuning parameters
