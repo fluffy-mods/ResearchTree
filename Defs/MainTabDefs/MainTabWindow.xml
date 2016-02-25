@@ -2,11 +2,11 @@
 <MainTabDefs>
 
   <MainTabDef>
-    <defName>Research</defName>
-    <label>research</label>
+    <defName>ResearchTree</defName>
+    <label>research tree</label>
     <description>Examine and decide on research projects.</description>
     <windowClass>FluffyResearchTree.MainTabWindow_ResearchTree</windowClass>
-    <order>90</order>
+    <order>91</order>
   </MainTabDef>
 
 </MainTabDefs>

@@ -15,11 +15,43 @@ namespace FluffyResearchTree
     {
         #region Fields
 
-        private static Dictionary<Def, List<Pair<Def, string>>> cache = new Dictionary<Def, List<Pair<Def, string>>>();
+        private static Dictionary<Def, List<Pair<Def, string>>> _unlocksCache = new Dictionary<Def, List<Pair<Def, string>>>();
 
         #endregion Fields
 
         #region Methods
+
+        public static List<ResearchProjectDef> ExclusiveDescendants( this ResearchProjectDef research )
+        {
+            List<ResearchProjectDef> descendants = new List<ResearchProjectDef>();
+
+            // recursively go through all children
+            // populate initial queue
+            Queue<ResearchProjectDef> queue = new Queue<ResearchProjectDef>( DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where( res => res.prerequisites.Contains( research ) ) );
+
+            // for each item in queue, determine if there's something unlocking it
+            // if not, add to the list, and queue up children.
+            while ( queue.Count > 0 )
+            {
+                ResearchProjectDef current = queue.Dequeue();
+
+                if ( !ResearchController.AdvancedResearch.Any(
+                        ard => ard.IsResearchToggle &&
+                               !ard.HideDefs &&
+                               !ard.IsLockedOut() &&
+                               ard.effectedResearchDefs.Contains( current ) ) &&
+                     !descendants.Contains( current ) )
+                {
+                    descendants.Add( current );
+                    foreach ( ResearchProjectDef descendant in DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where( res => res.prerequisites.Contains( current ) ) )
+                    {
+                        queue.Enqueue( descendant );
+                    }
+                }
+            }
+
+            return descendants;
+        }
 
         public static List<ResearchProjectDef> GetPrerequisitesRecursive( this ResearchProjectDef research )
         {
@@ -28,7 +60,7 @@ namespace FluffyResearchTree
             {
                 return result;
             }
-            Stack<ResearchProjectDef> stack = new Stack<ResearchProjectDef>( research.prerequisites );
+            Stack<ResearchProjectDef> stack = new Stack<ResearchProjectDef>( research.prerequisites.Where( parent => parent != research ) );
 
             while ( stack.Count > 0 )
             {
@@ -39,7 +71,8 @@ namespace FluffyResearchTree
                 {
                     foreach ( var grandparent in parent.prerequisites )
                     {
-                        stack.Push( grandparent );
+                        if ( grandparent != parent )
+                            stack.Push( grandparent );
                     }
                 }
             }
@@ -49,9 +82,9 @@ namespace FluffyResearchTree
 
         public static List<Pair<Def, string>> GetUnlockDefsAndDescs( this ResearchProjectDef research )
         {
-            if ( cache.ContainsKey( research ) )
+            if ( _unlocksCache.ContainsKey( research ) )
             {
-                return cache[research];
+                return _unlocksCache[research];
             }
 
             List<Pair<Def, string>> unlocks = new List<Pair<Def, string>>();
@@ -72,8 +105,13 @@ namespace FluffyResearchTree
             unlocks.AddRange( dump.Where( d => d.IconTexture() != null )
                                   .Select( d => new Pair<Def, string>( d, "Fluffy.ResearchTree.AllowsSowingXinY".Translate( d.LabelCap, sowTags ) ) ) );
 
-            cache.Add( research, unlocks );
+            _unlocksCache.Add( research, unlocks );
             return unlocks;
+        }
+
+        public static Node Node( this ResearchProjectDef research )
+        {
+            return ResearchTree.Forest.FirstOrDefault( node => node.Research == research );
         }
 
         #endregion Methods

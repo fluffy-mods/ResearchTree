@@ -1,4 +1,5 @@
-﻿using RimWorld;
+﻿using CommunityCoreLibrary;
+using RimWorld;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -61,20 +62,45 @@ namespace FluffyResearchTree
             // if we're not adding, clear the current queue and current research project
             if ( !add )
             {
+                NotifyAll();
                 _queue.Clear();
                 Find.ResearchManager.currentProj = null;
+            }
+            else
+            {
+                foreach ( Node queuedNode in _queue )
+                {
+                    if ( queuedNode.Locks.Contains( node ) )
+                    {
+                        Messages.Message( "Fluffy.ResearchTree.CannotQueueXLocksY".Translate(
+                                "Fluffy.ResearchTree.QueuedNode".Translate() + " " + queuedNode.Research.LabelCap,
+                                node.Research.LabelCap ) + " " +
+                                "Fluffy.ResearchTree.CannotQueueDequeue".Translate(),
+                            MessageSound.RejectInput );
+                        return;
+                    }
+                    if ( node.Locks.Contains( queuedNode ) && !_queue.Contains( node ) )
+                    {
+                        Messages.Message( "Fluffy.ResearchTree.CannotQueueXLocksY".Translate(
+                                node.Research.LabelCap,
+                                "Fluffy.ResearchTree.QueuedNode".Translate() + " " + queuedNode.Research.LabelCap ) + " " +
+                                "Fluffy.ResearchTree.CannotQueueDequeue".Translate(),
+                            MessageSound.RejectInput );
+                        return;
+                    }
+                }
             }
 
             // add to the queue if not already in it
             if ( !_queue.Contains( node ) )
             {
+                node.Locks.ForEach( n => n.Notify_WillBeLockedOut( true ) );
                 _queue.Add( node );
             }
 
             // try set the first research in the queue to be the current project.
-            ResearchManager researchManager = Find.ResearchManager;
             Node next = _queue.First();
-            researchManager.currentProj = next?.Research; // null if next is null.
+            Find.ResearchManager.currentProj = next?.Research; // null if next is null.
         }
 
         public static void EnqueueRange( IEnumerable<Node> nodes, bool add )
@@ -82,26 +108,58 @@ namespace FluffyResearchTree
             // clear current Queue if not adding
             if ( !add )
             {
+                NotifyAll();
                 _queue.Clear();
                 Find.ResearchManager.currentProj = null;
+            }
+            else
+            {
+                foreach ( Node queuedNode in _queue )
+                {
+                    foreach ( Node newNode in nodes )
+                    {
+                        if ( queuedNode.Locks.Contains( newNode ) )
+                        {
+                            Messages.Message( "Fluffy.ResearchTree.CannotQueueXLocksY".Translate(
+                                    "Fluffy.ResearchTree.QueuedNode".Translate() + " " + queuedNode.Research.LabelCap,
+                                    newNode.Research.LabelCap ) + " " +
+                                    "Fluffy.ResearchTree.CannotQueueDequeue".Translate(),
+                                MessageSound.RejectInput );
+                            return;
+                        }
+                        if ( newNode.Locks.Contains( queuedNode ) && !_queue.Contains( newNode ) )
+                        {
+                            Messages.Message( "Fluffy.ResearchTree.CannotQueueXLocksY".Translate(
+                                    newNode.Research.LabelCap,
+                                    "Fluffy.ResearchTree.QueuedNode".Translate() + " " + queuedNode.Research.LabelCap ) + " " +
+                                    "Fluffy.ResearchTree.CannotQueueDequeue".Translate(),
+                                MessageSound.RejectInput );
+                            return;
+                        }
+                    }
+                }
             }
 
             // sorting by depth ensures prereqs are met - cost is just a bonus thingy.
             foreach ( Node node in nodes.OrderBy( node => node.Depth ).ThenBy( node => node.Research.totalCost ) )
             {
-                if ( !_queue.Contains( node ) )
-                {
-                    _queue.Add( node );
-                }
+                Enqueue( node, true );
             }
-            ResearchManager researchManager = Find.ResearchManager;
             Node first = _queue.First();
-            researchManager.currentProj = first?.Research;
+            Find.ResearchManager.currentProj = first?.Research;
         }
 
         public static bool IsQueued( Node node )
         {
             return _queue.Contains( node );
+        }
+
+        public static void NotifyAll()
+        {
+            foreach ( Node node in _queue )
+            {
+                node.Locks.ForEach( n => n.Notify_WillBeLockedOut( false ) );
+            }
         }
 
         /// <summary>
@@ -193,6 +251,9 @@ namespace FluffyResearchTree
 
                     // remove from queue
                     Pop();
+
+                    // if the completed research locks anything, notify it.
+                    researchManager.currentProj.Node().Locks.ForEach( node => { node.Notify_LockedOut( true ); node.Notify_WillBeLockedOut( false ); } );
 
                     // if there's something on the queue start it, and push an appropriate message
                     if ( _queue.Count > 0 )
