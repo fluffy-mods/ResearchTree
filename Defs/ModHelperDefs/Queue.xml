@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Defs>
-    <ModHelperDef>
+    <CommunityCoreLibrary.ModHelperDef>
         <defName>FluffyResearchTree_Queue_MapComponent</defName>
         <ModName>Research Tree</ModName>
-        <version>0.12.5</version>
-        <MapComponents>
-            <li>FluffyResearchTree.Queue</li>
-        </MapComponents>
+        <minCCLVersion>0.14.0</minCCLVersion>
         <SpecialInjectors>
         	<li>FluffyResearchTree.Bootstrap</li>
         </SpecialInjectors>
-    </ModHelperDef>
+        <MapComponents>
+            <li>FluffyResearchTree.Queue</li>
+        </MapComponents>
+    </CommunityCoreLibrary.ModHelperDef>
 </Defs>

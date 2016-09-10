@@ -11,17 +11,23 @@ using Verse;
 
 namespace FluffyResearchTree
 {
+    [StaticConstructorOnStartup]
     public class Queue : MapComponent
     {
         #region Fields
 
-        internal static readonly Texture2D      CircleFill = ContentFinder<Texture2D>.Get("circle-fill");
+        internal static readonly Texture2D      CircleFill;
         private static readonly List<Node>      _queue     = new List<Node>();
         private static List<ResearchProjectDef> _saveableQueue;
 
         #endregion Fields
 
         #region Methods
+
+        static Queue()
+        {
+            CircleFill = ContentFinder<Texture2D>.Get("circle-fill");
+        }
 
         public static void Dequeue( Node node )
         {
@@ -141,7 +147,7 @@ namespace FluffyResearchTree
             }
 
             // sorting by depth ensures prereqs are met - cost is just a bonus thingy.
-            foreach ( Node node in nodes.OrderBy( node => node.Depth ).ThenBy( node => node.Research.totalCost ) )
+            foreach ( Node node in nodes.OrderBy( node => node.Depth ).ThenBy( node => node.Research.CostApparent ) )
             {
                 Enqueue( node, true );
             }
@@ -214,7 +220,7 @@ namespace FluffyResearchTree
         /// Changes default pop-up when research is complete to an inbox message, and starts the next research in the queue - if available.
         /// </summary>
         /// <param name="amount"></param>
-        public void MakeProgress( float amount )
+        public void ResearchPerformed(float amount, Pawn researcher)
         {
             // get research manager instance
             ResearchManager researchManager = Find.ResearchManager;
@@ -239,7 +245,7 @@ namespace FluffyResearchTree
                 {
                     amount *= 500f;
                 }
-                float curProgress = researchManager.ProgressOf( researchManager.currentProj );
+                float curProgress = researchManager.GetProgress( researchManager.currentProj );
                 curProgress += amount;
                 progress[researchManager.currentProj] = curProgress;
 

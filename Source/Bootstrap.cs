@@ -8,12 +8,15 @@ namespace FluffyResearchTree
     {
         #region Methods
 
-        public override void Inject()
+        public override bool Inject()
         {
+			Verse.Log.Message("Inject");
             // create detour
-            MethodInfo source = typeof( ResearchManager ).GetMethod( "MakeProgress" );
-            MethodInfo destination = typeof( Queue ).GetMethod( "MakeProgress" );
+            MethodInfo source = typeof( ResearchManager ).GetMethod( "ResearchPerformed" );
+            MethodInfo destination = typeof( Queue ).GetMethod( "ResearchPerformed" );
             Detours.TryDetourFromTo( source, destination );
+
+			return true;
         }
 
         #endregion Methods

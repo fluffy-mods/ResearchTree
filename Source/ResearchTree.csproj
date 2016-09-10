@@ -13,14 +13,21 @@
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>false</DebugSymbols>
-    <DebugType>none</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType></DebugType>
     <Optimize>false</Optimize>
     <OutputPath>..\Assemblies\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CodeAnalysisIgnoreGeneratedCode>true</CodeAnalysisIgnoreGeneratedCode>
+    <CustomCommands>
+      <CustomCommands>
+        <Command type="AfterBuild" command="&quot;C:\Program Files (x86)\Mono\bin\pdb2mdb.bat&quot; &quot;${TargetPath}&quot;" />
+        <Command type="Execute" command="${SolutionDir}\..\..\..\RimWorld1249Win.exe" />
+      </CustomCommands>
+    </CustomCommands>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
@@ -32,23 +39,22 @@
     <CodeAnalysisIgnoreGeneratedCode>true</CodeAnalysisIgnoreGeneratedCode>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\..\RimWorld914Win_Data\Managed\Assembly-CSharp.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Community Core Library">
-      <HintPath>..\..\..\..\CommunityCoreLibrary\_Mod\User Release\Community Core Library\Assemblies\Community Core Library.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="UnityEngine">
-      <HintPath>..\..\..\RimWorld914Win_Data\Managed\UnityEngine.dll</HintPath>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>..\..\..\RimWorld1249Win_Data\Managed\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\..\RimWorld1249Win_Data\Managed\UnityEngine.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Community Core Library">
+      <HintPath>..\..\Community Core Library\Assemblies\Community Core Library.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -64,15 +70,6 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>echo Copy to Vanilla dir
-xcopy "$(TargetDir).." "C:\Users\Karel\Desktop\RimWorlds\RimWorld914Win\Mods\RW_ResearchTree\" /S /Y /Q
-
-echo Copy to HCSK dir
-xcopy "$(TargetDir).." "C:\Users\Karel\Desktop\RimWorlds\Hardcore SK\Mods\RW_ResearchTree\" /S /Y /Q
-
-rem echo Copy to MVP install dir
-rem xcopy "$(TargetDir).." "C:\Users\Karel\Desktop\RimWorlds\ModVarietyPack\Mods\RW_ResearchTree\" /S /Y /Q
-</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
@@ -81,4 +78,21 @@ rem xcopy "$(TargetDir).." "C:\Users\Karel\Desktop\RimWorlds\ModVarietyPack\Mods
   <Target Name="AfterBuild">
   </Target>
   -->
+  <ItemGroup>
+    <None Include="..\About\About.xml">
+      <Link>About\About.xml</Link>
+    </None>
+    <None Include="..\About\Preview.png">
+      <Link>About\Preview.png</Link>
+    </None>
+    <None Include="..\Defs\MainTabDefs\MainTabWindow.xml">
+      <Link>MainTabDefs\MainTabWindow.xml</Link>
+    </None>
+    <None Include="..\Defs\ModHelperDefs\Queue.xml">
+      <Link>ModHelperDefs\Queue.xml</Link>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="MainTabDefs\" />
+  </ItemGroup>
 </Project>
