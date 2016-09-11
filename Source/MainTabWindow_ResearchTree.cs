@@ -42,6 +42,12 @@ namespace FluffyResearchTree
                 Log.Message( ResearchTree.Orphans.ToString() );
 #endif
             }
+
+            // set to topleft (for some reason vanilla alignment overlaps bottom buttons).
+            windowRect.x = 0f;
+            windowRect.y = 0f;
+            windowRect.width = Screen.width;
+            windowRect.height = Screen.height - 35f;
         }
 
         public override float TabButtonBarPercent
