@@ -55,6 +55,7 @@
     </Reference>
     <Reference Include="Community Core Library">
       <HintPath>..\..\Community Core Library\Assemblies\Community Core Library.dll</HintPath>
+      <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
