@@ -21,12 +21,13 @@ namespace FluffyResearchTree
         LockedOut
     }
 
+    [StaticConstructorOnStartup]
     public class Node
     {
         #region Fields
 
-        public static Texture2D       ResearchIcon     = ContentFinder<Texture2D>.Get( "Research" );
-        public static Texture2D       WarningIcon      = ContentFinder<Texture2D>.Get( "warning_shield" );
+        public static Texture2D       ResearchIcon;
+        public static Texture2D       WarningIcon;
         public List<Node>             Children         = new List<Node>();
         public int                    Depth;
         public string                 Genus;
@@ -58,6 +59,13 @@ namespace FluffyResearchTree
         #endregion Fields
 
         #region Constructors
+
+        static Node()
+        {
+            ResearchIcon = ContentFinder<Texture2D>.Get("Research");
+            WarningIcon = ContentFinder<Texture2D>.Get("warning_shield");
+        }
+
 
         public Node( ResearchProjectDef research )
         {
@@ -265,13 +273,14 @@ namespace FluffyResearchTree
         public void CreateLinks()
         {
             // 'vanilla' prerequisites
-            foreach ( ResearchProjectDef prerequisite in Research.prerequisites )
+            if (!Research.prerequisites.NullOrEmpty()) 
             {
-                if ( prerequisite != Research )
-                {
-                    var parent = ResearchTree.Forest.FirstOrDefault( node => node.Research == prerequisite );
-                    if ( parent != null )
-                        Parents.Add( parent );
+                foreach (ResearchProjectDef prerequisite in Research.prerequisites) {
+                    if (prerequisite != Research) {
+                        var parent = ResearchTree.Forest.FirstOrDefault (node => node.Research == prerequisite);
+                        if (parent != null)
+                            Parents.Add (parent);
+                    }
                 }
             }
 
@@ -342,7 +351,7 @@ namespace FluffyResearchTree
         public void Draw()
         {
             // set color
-            GUI.color = !Research.PrereqsFulfilled ? Tree.GreyedColor : Tree.MediumColor;
+            GUI.color = !Research.PrerequisitesCompleted ? Tree.GreyedColor : Tree.MediumColor;
             if ( LockedState == LockedState.LockedOut )
                 GUI.color = new Color( .4f, .4f, .4f );
             bool prereqLocks = false;
@@ -416,7 +425,7 @@ namespace FluffyResearchTree
             {
                 Rect progressBarRect = Rect.ContractedBy( 2f );
                 GUI.color = Tree.GreyedColor;
-                progressBarRect.xMin += Research.PercentComplete * progressBarRect.width;
+                progressBarRect.xMin += Research.ProgressPercent * progressBarRect.width;
                 GUI.DrawTexture( progressBarRect, BaseContent.WhiteTex );
             }
 
@@ -436,7 +445,7 @@ namespace FluffyResearchTree
             }
             else
             {
-                Widgets.Label( CostLabelRect, Research.totalCost.ToStringByStyle( ToStringStyle.Integer ) );
+                Widgets.Label( CostLabelRect, Research.CostApparent.ToStringByStyle( ToStringStyle.Integer ) );
                 GUI.DrawTexture( CostIconRect, ResearchIcon );
             }
             Text.WordWrap = true;
@@ -481,7 +490,7 @@ namespace FluffyResearchTree
             }
 
             // if clicked and not yet finished, queue up this research and all prereqs.
-            if ( LockedState != LockedState.LockedOut && Widgets.InvisibleButton( Rect ) )
+            if ( LockedState != LockedState.LockedOut && Widgets.ButtonInvisible( Rect ) )
             {
                 // LMB is queue operations, RMB is info
                 if ( Event.current.button == 0 && !Research.IsFinished )
@@ -531,7 +540,7 @@ namespace FluffyResearchTree
                 if ( current.LockedState != LockedState.LockedOut )
                 {
                     // check advanced researches
-                    List<AdvancedResearchDef> advancedResearches = ResearchController.AdvancedResearch.Where( ard =>
+                    List<AdvancedResearchDef> advancedResearches = CommunityCoreLibrary.Controller.Data.AdvancedResearchDefs.Where( ard =>
                        ard.IsResearchToggle &&
                        !ard.IsLockedOut() &&
                        !ard.HideDefs &&

@@ -35,7 +35,7 @@ namespace FluffyResearchTree
             {
                 ResearchProjectDef current = queue.Dequeue();
 
-                if ( !ResearchController.AdvancedResearch.Any(
+                if ( !CommunityCoreLibrary.Controller.Data.AdvancedResearchDefs.Any(
                         ard => ard.IsResearchToggle &&
                                !ard.HideDefs &&
                                !ard.IsLockedOut() &&
