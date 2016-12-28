@@ -4,28 +4,29 @@
 //
 // Created 2015-12-21 13:45
 
-using CommunityCoreLibrary.ColorPicker;
+using ResearchEngine.ColorPicker;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Verse;
 
-namespace FluffyResearchTree
+namespace ResearchTree
 {
+    [StaticConstructorOnStartup]
     public class ResearchTree
     {
         #region Fields
 
-        public static Texture2D  Button       = ContentFinder<Texture2D>.Get( "button" );
-        public static Texture2D  ButtonActive = ContentFinder<Texture2D>.Get( "button-active" );
-        public static Texture2D  Circle       = ContentFinder<Texture2D>.Get( "circle" );
-        public static Texture2D  End          = ContentFinder<Texture2D>.Get( "end" );
-        public static Texture2D  EW           = ContentFinder<Texture2D>.Get( "ew" );
+        public static Texture2D  Button;
+        public static Texture2D  ButtonActive;
+        public static Texture2D  Circle;
+        public static Texture2D  End;
+        public static Texture2D  EW;
         public static List<Node> Forest;
         public static bool       Initialized;
-        public static Texture2D  MoreIcon     = ContentFinder<Texture2D>.Get( "more" );
-        public static Texture2D  NS           = ContentFinder<Texture2D>.Get( "ns" );
+        public static Texture2D  MoreIcon;
+        public static Texture2D  NS;           
         public static IntVec2    OrphanDepths;
         public static Tree       Orphans;
         public static int        OrphanWidth;
@@ -34,6 +35,17 @@ namespace FluffyResearchTree
         #endregion Fields
 
         #region Methods
+
+        static ResearchTree()
+        {
+            Button = ContentFinder<Texture2D>.Get("button");
+            ButtonActive = ContentFinder<Texture2D>.Get("button-active");
+            Circle = ContentFinder<Texture2D>.Get("circle");
+            End = ContentFinder<Texture2D>.Get("end");
+            EW = ContentFinder<Texture2D>.Get("ew");
+            MoreIcon = ContentFinder<Texture2D>.Get("more");
+            NS = ContentFinder<Texture2D>.Get("ns");
+        }
 
         public static void DrawLine( Pair<Node, Node> connection, Color color, bool reverseDirection = false )
         {
@@ -325,7 +337,10 @@ namespace FluffyResearchTree
                 }
 
                 // next root
-                rootYOffset += widthAtDepth.Select( p => p.Value ).Max();
+                if (widthAtDepth.Count > 0)
+                {
+                    rootYOffset += widthAtDepth.Select (p => p.Value).Max ();
+                }
             }
 
             // update orphan width for mini tree(s)
@@ -352,7 +367,7 @@ namespace FluffyResearchTree
             // populate all nodes
             Forest = new List<Node>( DefDatabase<ResearchProjectDef>.AllDefsListForReading
                                         // exclude hidden projects (prereq of itself is a common trick to hide research).
-                                        .Where( def => !def.prerequisites.Contains( def ) )
+                                        .Where( def => def.prerequisites.NullOrEmpty() || !def.prerequisites.Contains( def ) )
                                         .Select( def => new Node( def ) ) );
 
             // mark, but do not remove redundant prerequisites.

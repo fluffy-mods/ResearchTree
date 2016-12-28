@@ -13,14 +13,23 @@
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>false</DebugSymbols>
-    <DebugType>none</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>
+    </DebugType>
     <Optimize>false</Optimize>
     <OutputPath>..\Assemblies\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CodeAnalysisIgnoreGeneratedCode>true</CodeAnalysisIgnoreGeneratedCode>
+    <CustomCommands>
+      <CustomCommands>
+        <Command type="AfterBuild" command="&quot;C:\Program Files (x86)\Mono\bin\pdb2mdb.bat&quot; &quot;${TargetPath}&quot;" />
+        <Command type="Execute" command="${SolutionDir}\..\..\..\RimWorld1249Win.exe" />
+      </CustomCommands>
+    </CustomCommands>
+    <DebugSymbols>true</DebugSymbols>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
@@ -32,13 +41,9 @@
     <CodeAnalysisIgnoreGeneratedCode>true</CodeAnalysisIgnoreGeneratedCode>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\..\RimWorld914Win_Data\Managed\Assembly-CSharp.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Community Core Library">
-      <HintPath>..\..\..\..\CommunityCoreLibrary\_Mod\User Release\Community Core Library\Assemblies\Community Core Library.dll</HintPath>
-      <Private>False</Private>
+    <Reference Include="Assembly-CSharp, Version=0.14.6054.28275, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\Program Files (x86)\Steam\steamapps\common\RimWorld\RimWorldWin_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -46,33 +51,63 @@
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="UnityEngine">
-      <HintPath>..\..\..\RimWorld914Win_Data\Managed\UnityEngine.dll</HintPath>
-      <Private>False</Private>
+    <Reference Include="UnityEngine, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\Program Files (x86)\Steam\steamapps\common\RimWorld\RimWorldWin_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Bootstrap.cs" />
-    <Compile Include="Queue.cs" />
-    <Compile Include="MainTabWindow_ResearchTree.cs" />
-    <Compile Include="Node.cs" />
+    <Compile Include="CCL\DefStringTriplet.cs" />
+    <Compile Include="CCL\Controller.cs" />
+    <Compile Include="CCL\Def_Extensions.cs" />
+    <Compile Include="CCL\Vector3_Extensions.cs" />
+    <Compile Include="CCL\HelpDetailSection_Extensions.cs" />
+    <Compile Include="CCL\MainTab_HelpMenuDef.cs" />
+    <Compile Include="CCL\Icon.cs" />
+    <Compile Include="CCL\BiomeDef_Extensions.cs" />
+    <Compile Include="CCL\BuildableDef_Extensions.cs" />
+    <Compile Include="CCL\DesignationCategoryDef_Extensions.cs" />
+    <Compile Include="CCL\TerrainWithComps.cs" />
+    <Compile Include="CCL\Thing_Extensions.cs" />
+    <Compile Include="CCL\ThingDef_Extensions.cs" />
+    <Compile Include="CCL\RecipeDef_Extensions.cs" />
+    <Compile Include="CCL\SpecialInjector.cs" />
+    <Compile Include="CCL\Detours.cs" />
+    <Compile Include="CCL\Texture2D_Extensions.cs" />
+    <Compile Include="CCL\MainMonoBehaviour.cs" />
+    <Compile Include="CCL\HelpDetailSectionHelper.cs" />
+    <Compile Include="CCL\HelpDetailSection.cs" />
+    <Compile Include="CCL\HelpSubController.cs" />
+    <Compile Include="CCL\SubController.cs" />
+    <Compile Include="CCL\StringDescTriplet.cs" />
+    <Compile Include="CCL\List_Extensions.cs" />
+    <Compile Include="CCL\AdvancedResearchDef.cs" />
+    <Compile Include="CCL\Find_Extensions.cs" />
+    <Compile Include="CCL\ResearchProjectDef_Extensions.cs" />
+    <Compile Include="CCL\ResearchSubController.cs" />
+    <Compile Include="CCL\ResearchEnableMode.cs" />
+    <Compile Include="CCL\Research.cs" />
+    <Compile Include="CCL\HelpCategoryDefOf.cs" />
+    <Compile Include="CCL\HelpBuilder.cs" />
+    <Compile Include="CCL\HelpCategoryDef.cs" />
+    <Compile Include="CCL\HelpDef.cs" />
+    <Compile Include="CCL\IHelpDefView.cs" />
+    <Compile Include="CCL\MainTabWindow_ModHelp.cs" />
+    <Compile Include="CCL\ColorHelper.cs" />
+    <Compile Include="Injectors\MapComponentInjector.cs" />
+    <Compile Include="Injectors\AmmoInjector.cs" />
+    <Compile Include="Injectors\Bootstrap.cs" />
+    <Compile Include="ResearchTree\Queue.cs" />
+    <Compile Include="ResearchTree\MainTabWindow_ResearchTree.cs" />
+    <Compile Include="ResearchTree\Node.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ResearchProjectDef_Extensions.cs" />
-    <Compile Include="ResearchTree.cs" />
-    <Compile Include="Settings.cs" />
-    <Compile Include="Tree.cs" />
+    <Compile Include="ResearchTree\ResearchProjectDef_Extensions.cs" />
+    <Compile Include="ResearchTree\ResearchTree.cs" />
+    <Compile Include="ResearchTree\Settings.cs" />
+    <Compile Include="ResearchTree\Tree.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>echo Copy to Vanilla dir
-xcopy "$(TargetDir).." "C:\Users\Karel\Desktop\RimWorlds\RimWorld914Win\Mods\RW_ResearchTree\" /S /Y /Q
-
-echo Copy to HCSK dir
-xcopy "$(TargetDir).." "C:\Users\Karel\Desktop\RimWorlds\Hardcore SK\Mods\RW_ResearchTree\" /S /Y /Q
-
-rem echo Copy to MVP install dir
-rem xcopy "$(TargetDir).." "C:\Users\Karel\Desktop\RimWorlds\ModVarietyPack\Mods\RW_ResearchTree\" /S /Y /Q
-</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
@@ -81,4 +116,19 @@ rem xcopy "$(TargetDir).." "C:\Users\Karel\Desktop\RimWorlds\ModVarietyPack\Mods
   <Target Name="AfterBuild">
   </Target>
   -->
+  <ItemGroup>
+    <None Include="..\About\About.xml">
+      <Link>About\About.xml</Link>
+    </None>
+    <None Include="..\About\Preview.png">
+      <Link>About\Preview.png</Link>
+    </None>
+    <None Include="..\Defs\MainTabDefs\MainTabWindow.xml">
+      <Link>MainTabDefs\MainTabWindow.xml</Link>
+    </None>
+    <None Include="..\Defs\ModHelperDefs\Queue.xml">
+      <Link>ModHelperDefs\Queue.xml</Link>
+    </None>
+  </ItemGroup>
+  <ItemGroup />
 </Project>

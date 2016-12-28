@@ -1,11 +1,11 @@
-using CommunityCoreLibrary.ColorPicker;
+using ResearchEngine.ColorPicker;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEngine;
 
-namespace FluffyResearchTree
+namespace ResearchTree
 {
     public class Tree
     {
