@@ -4,12 +4,12 @@
 //
 // Created 2016-02-06 20:09
 
-using CommunityCoreLibrary;
+using ResearchEngine;
 using System.Collections.Generic;
 using System.Linq;
 using Verse;
 
-namespace FluffyResearchTree
+namespace ResearchTree
 {
     public static class ResearchProjectDef_Extensions
     {
@@ -35,7 +35,7 @@ namespace FluffyResearchTree
             {
                 ResearchProjectDef current = queue.Dequeue();
 
-                if ( !ResearchController.AdvancedResearch.Any(
+                if ( !ResearchEngine.Controller.Data.AdvancedResearchDefs.Any(
                         ard => ard.IsResearchToggle &&
                                !ard.HideDefs &&
                                !ard.IsLockedOut() &&

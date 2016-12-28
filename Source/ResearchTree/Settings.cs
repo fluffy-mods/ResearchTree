@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace FluffyResearchTree
+namespace ResearchTree
 {
     public static class Settings
     {

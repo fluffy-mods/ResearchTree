@@ -4,7 +4,7 @@
 //
 // Created 2015-12-21 13:30
 
-using CommunityCoreLibrary;
+using ResearchEngine;
 using RimWorld;
 using System;
 using System.Collections.Generic;
@@ -12,7 +12,7 @@ using System.Linq;
 using UnityEngine;
 using Verse;
 
-namespace FluffyResearchTree
+namespace ResearchTree
 {
     public class MainTabWindow_ResearchTree : MainTabWindow
     {
@@ -42,12 +42,10 @@ namespace FluffyResearchTree
                 Log.Message( ResearchTree.Orphans.ToString() );
 #endif
             }
-
-            // set to topleft (for some reason vanilla alignment overlaps bottom buttons).
-            currentWindowRect.x = 0f;
-            currentWindowRect.y = 0f;
-            currentWindowRect.width = Screen.width;
-            currentWindowRect.height = Screen.height - 35f;
+            this.windowRect.x = 0f;
+            this.windowRect.y = 0f;
+            this.windowRect.width = (float)Screen.width;
+            this.windowRect.height = (float)Screen.height - 35f;
         }
 
         public override float TabButtonBarPercent
@@ -56,7 +54,7 @@ namespace FluffyResearchTree
             {
                 if ( Find.ResearchManager.currentProj != null )
                 {
-                    return Find.ResearchManager.currentProj.PercentComplete;
+                    return Find.ResearchManager.currentProj.ProgressPercent;
                 }
                 return 0;
             }
@@ -73,18 +71,6 @@ namespace FluffyResearchTree
             // loop through trees
             foreach ( Tree tree in ResearchTree.Trees )
             {
-#if DEBUG
-                Rect treeRect = new Rect( 0f,
-                                          tree.StartY * (Settings.Button.y + Settings.Margin.y) - Settings.Margin.y / 2f,
-                                          view.width,
-                                          tree.Width * (Settings.Button.y + Settings.Margin.y));
-                Color color = GUI.color;
-                GUI.color = tree.MediumColor;
-                GUI.DrawTexture( treeRect, TexUI.HighlightTex );
-                Widgets.DrawBox( treeRect );
-                GUI.color = color;
-#endif
-
                 foreach ( Node node in tree.Trunk.Concat( tree.Leaves ) )
                 {
                     nodes.Add( node );
