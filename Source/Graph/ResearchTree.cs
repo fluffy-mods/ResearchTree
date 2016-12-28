@@ -1,15 +1,13 @@
-﻿// ResearchTree/ResearchTree.cs
-//
-// Copyright Karel Kroeze, 2015.
-//
-// Created 2015-12-21 13:45
+﻿// Karel Kroeze
+// ResearchTree.cs
+// 2016-12-28
 
-using CommunityCoreLibrary.ColorPicker;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Verse;
+using static FluffyResearchTree.Assets;
 
 namespace FluffyResearchTree
 {
@@ -17,18 +15,11 @@ namespace FluffyResearchTree
     {
         #region Fields
 
-        public static Texture2D  Button       = ContentFinder<Texture2D>.Get( "button" );
-        public static Texture2D  ButtonActive = ContentFinder<Texture2D>.Get( "button-active" );
-        public static Texture2D  Circle       = ContentFinder<Texture2D>.Get( "circle" );
-        public static Texture2D  End          = ContentFinder<Texture2D>.Get( "end" );
-        public static Texture2D  EW           = ContentFinder<Texture2D>.Get( "ew" );
         public static List<Node> Forest;
-        public static bool       Initialized;
-        public static Texture2D  MoreIcon     = ContentFinder<Texture2D>.Get( "more" );
-        public static Texture2D  NS           = ContentFinder<Texture2D>.Get( "ns" );
-        public static IntVec2    OrphanDepths;
-        public static Tree       Orphans;
-        public static int        OrphanWidth;
+        public static bool Initialized;
+        public static IntVec2 OrphanDepths;
+        public static Tree Orphans;
+        public static int OrphanWidth;
         public static List<Tree> Trees;
 
         #endregion Fields
@@ -51,7 +42,7 @@ namespace FluffyResearchTree
             }
 
             GUI.color = color;
-            bool isHubLink = false;
+            var isHubLink = false;
 
             Vector2 left, right;
             // make sure line goes left -> right
@@ -69,7 +60,7 @@ namespace FluffyResearchTree
             // if left and right are on the same level, just draw a straight line.
             if ( Math.Abs( left.y - right.y ) < 0.1f )
             {
-                Rect line = new Rect( left.x, left.y - 2f, right.x - left.x, 4f );
+                var line = new Rect( left.x, left.y - 2f, right.x - left.x, 4f );
                 GUI.DrawTexture( line, EW );
             }
 
@@ -86,19 +77,20 @@ namespace FluffyResearchTree
                     isHubLink = true;
 
                     // left to hub
-                    Rect leftToHub = new Rect( left.x, left.y + 15f, Settings.NodeMargins.x / 4f, 4f );
+                    var leftToHub = new Rect( left.x, left.y + 15f, Settings.NodeMargins.x / 4f, 4f );
                     GUI.DrawTexture( leftToHub, EW );
 
                     // hub to right
-                    Rect hubToRight = new Rect( right.x - Settings.NodeMargins.x / 4f, right.y + 15f, Settings.NodeMargins.x / 4f, 4f );
+                    var hubToRight = new Rect( right.x - Settings.NodeMargins.x / 4f, right.y + 15f,
+                                               Settings.NodeMargins.x / 4f, 4f );
                     GUI.DrawTexture( hubToRight, EW );
 
                     // left hub
-                    Rect hub = new Rect( left.x + Settings.NodeMargins.x / 4f - Settings.HubSize / 2f,
-                                         left.y + 17f - Settings.HubSize / 2f,
-                                         Settings.HubSize,
-                                         Settings.HubSize );
-                    GUI.DrawTexture( hub, Queue.CircleFill );
+                    var hub = new Rect( left.x + Settings.NodeMargins.x / 4f - Settings.HubSize / 2f,
+                                        left.y + 17f - Settings.HubSize / 2f,
+                                        Settings.HubSize,
+                                        Settings.HubSize );
+                    GUI.DrawTexture( hub, CircleFill );
 
                     // add tooltip
                     if ( !MainTabWindow_ResearchTree.hubTips.ContainsKey( hub ) )
@@ -111,7 +103,7 @@ namespace FluffyResearchTree
                     // right hub
                     hub.position = new Vector2( right.x - Settings.NodeMargins.x / 4f - Settings.HubSize / 2f,
                                                 right.y + 17f - Settings.HubSize / 2f );
-                    GUI.DrawTexture( hub, Queue.CircleFill );
+                    GUI.DrawTexture( hub, CircleFill );
 
                     // add tooltip
                     if ( !MainTabWindow_ResearchTree.hubTips.ContainsKey( hub ) )
@@ -125,38 +117,46 @@ namespace FluffyResearchTree
                 else
                 {
                     // left to curve
-                    Rect leftToCurve = new Rect( left.x, left.y - 2f, Settings.NodeMargins.x / 4f, 4f );
+                    var leftToCurve = new Rect( left.x, left.y - 2f, Settings.NodeMargins.x / 4f, 4f );
                     GUI.DrawTexture( leftToCurve, EW );
 
                     // curve to curve
-                    Rect curveToCurve = new Rect( left.x + Settings.NodeMargins.x / 2f - 2f, top, 4f, bottom - top );
+                    var curveToCurve = new Rect( left.x + Settings.NodeMargins.x / 2f - 2f, top, 4f, bottom - top );
                     GUI.DrawTexture( curveToCurve, NS );
 
                     // curve to right
-                    Rect curveToRight = new Rect( left.x + Settings.NodeMargins.x / 4f * 3, right.y - 2f, right.x - left.x - Settings.NodeMargins.x / 4f * 3, 4f );
+                    var curveToRight = new Rect( left.x + Settings.NodeMargins.x / 4f * 3, right.y - 2f,
+                                                 right.x - left.x - Settings.NodeMargins.x / 4f * 3, 4f );
                     GUI.DrawTexture( curveToRight, EW );
 
                     // curve positions
-                    Rect curveLeft = new Rect( left.x + Settings.NodeMargins.x / 4f, left.y - Settings.NodeMargins.x / 4f, Settings.NodeMargins.x / 2f, Settings.NodeMargins.x / 2f );
-                    Rect curveRight = new Rect( left.x + Settings.NodeMargins.x / 4f, right.y - Settings.NodeMargins.x / 4f, Settings.NodeMargins.x / 2f, Settings.NodeMargins.x / 2f );
+                    var curveLeft = new Rect( left.x + Settings.NodeMargins.x / 4f, left.y - Settings.NodeMargins.x / 4f,
+                                              Settings.NodeMargins.x / 2f, Settings.NodeMargins.x / 2f );
+                    var curveRight = new Rect( left.x + Settings.NodeMargins.x / 4f,
+                                               right.y - Settings.NodeMargins.x / 4f, Settings.NodeMargins.x / 2f,
+                                               Settings.NodeMargins.x / 2f );
 
                     // going down
                     if ( left.y < right.y )
                     {
-                        GUI.DrawTextureWithTexCoords( curveLeft, Circle, new Rect( 0.5f, 0.5f, 0.5f, 0.5f ) ); // bottom right quadrant
-                        GUI.DrawTextureWithTexCoords( curveRight, Circle, new Rect( 0f, 0f, 0.5f, 0.5f ) ); // top left quadrant
+                        GUI.DrawTextureWithTexCoords( curveLeft, Circle, new Rect( 0.5f, 0.5f, 0.5f, 0.5f ) );
+                        // bottom right quadrant
+                        GUI.DrawTextureWithTexCoords( curveRight, Circle, new Rect( 0f, 0f, 0.5f, 0.5f ) );
+                        // top left quadrant
                     }
                     // going up
                     else
                     {
-                        GUI.DrawTextureWithTexCoords( curveLeft, Circle, new Rect( 0.5f, 0f, 0.5f, 0.5f ) ); // top right quadrant
-                        GUI.DrawTextureWithTexCoords( curveRight, Circle, new Rect( 0f, 0.5f, 0.5f, 0.5f ) ); // bottom left quadrant
+                        GUI.DrawTextureWithTexCoords( curveLeft, Circle, new Rect( 0.5f, 0f, 0.5f, 0.5f ) );
+                        // top right quadrant
+                        GUI.DrawTextureWithTexCoords( curveRight, Circle, new Rect( 0f, 0.5f, 0.5f, 0.5f ) );
+                        // bottom left quadrant
                     }
                 }
             }
 
             // draw the end arrow (if not hub link)
-            Rect end = new Rect( right.x - 16f, right.y - 8f, 16f, 16f );
+            var end = new Rect( right.x - 16f, right.y - 8f, 16f, 16f );
 
             if ( !isHubLink )
                 GUI.DrawTexture( end, End );
@@ -167,7 +167,7 @@ namespace FluffyResearchTree
 
         public static void FixPositions()
         {
-            int curY = 0;
+            var curY = 0;
 
             foreach ( Tree tree in Trees )
             {
@@ -181,6 +181,7 @@ namespace FluffyResearchTree
                     {
                         bestPos++;
                     }
+
                     node.Pos = new IntVec2( node.Depth, bestPos );
 
                     // extend tree width if necessary
@@ -191,7 +192,10 @@ namespace FluffyResearchTree
                 for ( int x = tree.MinDepth; x <= tree.MaxDepth; x++ )
                 {
                     // put nodes that are children of the trunk first.
-                    List<Node> nodes = tree.NodesAtDepth( x ).OrderBy( node => node.Parents.Any( parent => node.Tree.Trunk.Contains( parent ) ) ? 0 : 1 ).ToList();
+                    List<Node> nodes =
+                        tree.NodesAtDepth( x )
+                            .OrderBy( node => node.Parents.Any( parent => node.Tree.Trunk.Contains( parent ) ) ? 0 : 1 )
+                            .ToList();
                     List<Node> allNodesAtCurrentDepth = tree.NodesAtDepth( x, true );
 
                     foreach ( Node node in nodes )
@@ -201,7 +205,10 @@ namespace FluffyResearchTree
 
                         // if we have any parent research in this trunk, try to get positioned next to it.
                         if ( node.Parents.Any( parent => parent.Tree == node.Tree ) )
-                            bestPos = node.Parents.Where( parent => parent.Tree == node.Tree ).Select( parent => parent.Pos.z ).Min();
+                            bestPos =
+                                node.Parents.Where( parent => parent.Tree == node.Tree )
+                                    .Select( parent => parent.Pos.z )
+                                    .Min();
 
                         // bump down if taken by any node in tree
                         while ( allNodesAtCurrentDepth.Any( n => n.Pos.z == bestPos ) || bestPos == curY )
@@ -224,17 +231,17 @@ namespace FluffyResearchTree
                 // do a reverse pass to position parent nodes next to their children
                 for ( int x = tree.MaxDepth; x >= tree.MinDepth; x-- )
                 {
-                    Queue<Node> nodes = new Queue<Node>( tree.NodesAtDepth( x ) );
+                    var nodes = new Queue<Node>( tree.NodesAtDepth( x ) );
                     List<Node> allNodesAtCurrentDepth = tree.NodesAtDepth( x, true );
-                    Dictionary<Node, int> switched = new Dictionary<Node, int>();
+                    var switched = new Dictionary<Node, int>();
 
                     while ( nodes.Count > 0 )
                     {
                         Node node = nodes.Dequeue();
 
                         // if this node has non-trunk children in the same tree;
-                        var children = node.Children.Where( child => child.Tree == node.Tree &&
-                                                                     !child.Tree.Trunk.Contains( child ) );
+                        IEnumerable<Node> children = node.Children.Where( child => child.Tree == node.Tree &&
+                                                                                   !child.Tree.Trunk.Contains( child ) );
                         if ( children.Count() > 0 )
                         {
                             // ideal position would be right next to top child, but we won't allow it to go out of tree bounds
@@ -252,7 +259,7 @@ namespace FluffyResearchTree
                                 // do we have a child at this location, and does the node at that position not have the same child?
                                 Node otherNode = allNodesAtCurrentDepth.First( n => n.Pos.z == bestPos && n != node );
                                 if ( bestPos == topChild.Pos.z &&
-                                    !otherNode.Children.Contains( topChild ) )
+                                     !otherNode.Children.Contains( topChild ) )
                                 {
                                     // if not, switch the nodes and re-do the other node.
                                     if ( !switched.ContainsKey( node ) )
@@ -261,7 +268,8 @@ namespace FluffyResearchTree
                                     }
                                     if ( switched[node] < 5 )
                                     {
-                                        Log.Message( "switched " + node.Research.LabelCap + "(" + node.Pos.z + ") and " + otherNode.Research.LabelCap + "(" + otherNode.Pos.z + ")" );
+                                        Log.Message( "switched " + node.Research.LabelCap + "(" + node.Pos.z + ") and " +
+                                                     otherNode.Research.LabelCap + "(" + otherNode.Pos.z + ")" );
                                         otherNode.Pos.z = node.Pos.z;
                                         nodes.Enqueue( otherNode );
                                         switched[node]++;
@@ -281,12 +289,14 @@ namespace FluffyResearchTree
                         }
                     }
                 }
+
                 curY += tree.Width;
             }
 
             // try and get root nodes first
-            IEnumerable<Node> roots = Orphans.Leaves.Where( node => node.Children.Any() && !node.Parents.Any() ).OrderBy( node => node.Depth );
-            int rootYOffset = 0;
+            IEnumerable<Node> roots =
+                Orphans.Leaves.Where( node => node.Children.Any() && !node.Parents.Any() ).OrderBy( node => node.Depth );
+            var rootYOffset = 0;
 
             foreach ( Node root in roots )
             {
@@ -295,8 +305,8 @@ namespace FluffyResearchTree
 
                 // recursively go through all children
                 // width at depths
-                Dictionary<int, int> widthAtDepth = new Dictionary<int, int>();
-                Stack<Node> children = new Stack<Node>( root.Children );
+                var widthAtDepth = new Dictionary<int, int>();
+                var children = new Stack<Node>( root.Children );
                 while ( children.Any() )
                 {
                     // get node
@@ -329,21 +339,24 @@ namespace FluffyResearchTree
             }
 
             // update orphan width for mini tree(s)
-            ResearchTree.Orphans.Width = rootYOffset;
+            Orphans.Width = rootYOffset;
             curY += rootYOffset;
 
             // create orphan grid
-            int nodesPerRow = (int)( Screen.width / ( Settings.NodeSize.x + Settings.NodeMargins.x ) );
-            List<Node> orphans = Orphans.Leaves.Where( node => !node.Parents.Any() && !node.Children.Any() ).OrderBy( node => node.Research.LabelCap ).ToList();
+            var nodesPerRow = (int)( Screen.width / ( Settings.NodeSize.x + Settings.NodeMargins.x ) );
+            List<Node> orphans =
+                Orphans.Leaves.Where( node => !node.Parents.Any() && !node.Children.Any() )
+                       .OrderBy( node => node.Research.LabelCap )
+                       .ToList();
 
             // set positions
-            for ( int i = 0; i < orphans.Count; i++ )
+            for ( var i = 0; i < orphans.Count; i++ )
             {
                 orphans[i].Pos = new IntVec2( i % nodesPerRow, i / nodesPerRow + curY );
             }
 
             // update width + depth
-            Orphans.Width += Mathf.CeilToInt( (float)orphans.Count / (float)nodesPerRow );
+            Orphans.Width += Mathf.CeilToInt( orphans.Count / (float)nodesPerRow );
             Orphans.MaxDepth = Math.Max( Orphans.MaxDepth, nodesPerRow - 1 ); // zero-based
         }
 
@@ -351,21 +364,26 @@ namespace FluffyResearchTree
         {
             // populate all nodes
             Forest = new List<Node>( DefDatabase<ResearchProjectDef>.AllDefsListForReading
-                                        // exclude hidden projects (prereq of itself is a common trick to hide research).
-                                        .Where( def => !def.prerequisites.Contains( def ) )
-                                        .Select( def => new Node( def ) ) );
+                                                                    // exclude hidden projects (prereq of itself is a common trick to hide research).
+                                                                    .Where( def => def.prerequisites.NullOrEmpty() || !def.prerequisites.Contains( def ) )
+                                                                    .Select( def => new Node( def ) ) );
 
             // mark, but do not remove redundant prerequisites.
             foreach ( Node node in Forest )
             {
                 if ( !node.Research.prerequisites.NullOrEmpty() )
                 {
-                    var ancestors = node.Research.prerequisites.SelectMany( r => r.GetPrerequisitesRecursive() ).ToList();
+                    List<ResearchProjectDef> ancestors =
+                        node.Research.prerequisites?.SelectMany( r => r.GetPrerequisitesRecursive() ).ToList();
                     if ( !ancestors.NullOrEmpty() &&
-                        ( !node.Research.prerequisites?.Intersect( ancestors ).ToList().NullOrEmpty() ?? false ) )
+                         ( !node.Research.prerequisites?.Intersect( ancestors ).ToList().NullOrEmpty() ?? false ) )
                     {
-                        Log.Warning( "ResearchTree :: redundant prerequisites for " + node.Research.LabelCap + " the following research: " +
-                            string.Join( ", ", node.Research.prerequisites.Intersect( ancestors ).Select( r => r.LabelCap ).ToArray() ) );
+                        Log.Warning( "ResearchTree :: redundant prerequisites for " + node.Research.LabelCap +
+                                     " the following research: " +
+                                     string.Join( ", ",
+                                                  node.Research.prerequisites?.Intersect( ancestors )
+                                                      .Select( r => r.LabelCap )
+                                                      .ToArray() ) );
                     }
                 }
             }
@@ -384,8 +402,8 @@ namespace FluffyResearchTree
 
             // get the main 'Trees', looping over all defs, find strings of Research named similarly.
             // We're aiming for finding things like Construction I/II/III/IV/V here.
-            Dictionary<string, List<Node>> trunks = new Dictionary<string, List<Node>>();
-            List<Node> orphans = new List<Node>(); // temp
+            var trunks = new Dictionary<string, List<Node>>();
+            var orphans = new List<Node>(); // temp
             foreach ( Node node in Forest )
             {
                 // try to remove the amount of random hits by requiring Trees to be directly linked.
@@ -406,11 +424,13 @@ namespace FluffyResearchTree
 
             // Assign the working dictionary to Tree objects, culling stumps.
             Trees = trunks.Where( trunk => trunk.Value.Count >= Settings.MinTrunkSize )
-                            .Select( trunk => new Tree( trunk.Key, trunk.Value ) )
-                            .ToList();
+                          .Select( trunk => new Tree( trunk.Key, trunk.Value ) )
+                          .ToList();
 
             // add too small Trees back into orphan list
-            orphans.AddRange( trunks.Where( trunk => trunk.Value.Count < Settings.MinTrunkSize ).SelectMany( trunk => trunk.Value ) );
+            orphans.AddRange(
+                             trunks.Where( trunk => trunk.Value.Count < Settings.MinTrunkSize )
+                                   .SelectMany( trunk => trunk.Value ) );
 
             // The order in which Trees should appear; ideally we want Trees with lots of cross-references to appear together.
             OrderTrunks();
@@ -425,10 +445,8 @@ namespace FluffyResearchTree
 
             // Assign colors to trunks
             int n = Trees.Count;
-            for ( int i = 1; i <= Trees.Count; i++ )
-            {
-                Trees[i - 1].Color = ColorHelper.HSVtoRGB( (float)i / n, 1, 1 );
-            }
+            for ( var i = 1; i <= Trees.Count; i++ )
+                Trees[i - 1].Color = Color.HSVToRGB( (float)i / n, 1, 1 );
 
             // update nodes with position info
             FixPositions();
@@ -453,7 +471,7 @@ namespace FluffyResearchTree
             trees.Remove( first );
 
             // Set up a weighting system to keep 2nd highest affinity closer to 1st highest affinity
-            Dictionary<Tree, float> weights =
+            var weights =
                 new Dictionary<Tree, float>( trees.ToDictionary( tree => tree, tree => first.AffinityWith( tree ) ) );
 
             // add other Trees
@@ -466,9 +484,7 @@ namespace FluffyResearchTree
 
                 // add weights for next set
                 foreach ( Tree tree in trees )
-                {
                     weights[tree] += next.AffinityWith( tree );
-                }
             }
         }
 

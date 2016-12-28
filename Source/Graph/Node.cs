@@ -1,59 +1,44 @@
-// ResearchTree/Node.cs
-//
-// Copyright Karel Kroeze, 2015.
-//
-// Created 2015-12-28 17:55
+// Karel Kroeze
+// Node.cs
+// 2016-12-28
 
-using CommunityCoreLibrary;
-using RimWorld;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using RimWorld;
 using UnityEngine;
 using Verse;
 
 namespace FluffyResearchTree
 {
-    public enum LockedState
-    {
-        notLockedOut,
-        willBeLockedOut,
-        LockedOut
-    }
-
     public class Node
     {
         #region Fields
 
-        public static Texture2D       ResearchIcon     = ContentFinder<Texture2D>.Get( "Research" );
-        public static Texture2D       WarningIcon      = ContentFinder<Texture2D>.Get( "warning_shield" );
-        public List<Node>             Children         = new List<Node>();
-        public int                    Depth;
-        public string                 Genus;
-        public List<Node>             Locks            = new List<Node>();
-        public List<Node>             Parents          = new List<Node>();
-        public IntVec2                Pos;
-        public ResearchProjectDef     Research;
-        public Tree                   Tree;
-        private const float           LabSize          = 30f;
-        private const float           Offset           = 2f;
+        public List<Node> Children = new List<Node>();
+        public int Depth;
+        public string Genus;
+        public List<Node> Parents = new List<Node>();
+        public IntVec2 Pos;
+        public ResearchProjectDef Research;
+        public Tree Tree;
+        private const float LabSize = 30f;
+        private const float Offset = 2f;
 
-        private bool                  _isLockedOut     = false,
-                                      _willBeLockedOut = false;
+        private bool _largeLabel;
+        private Vector2 _left = Vector2.zero;
 
-        private bool                  _largeLabel      = false;
-        private Vector2               _left            = Vector2.zero;
+        private Rect _queueRect,
+                     _rect,
+                     _labelRect,
+                     _costLabelRect,
+                     _costIconRect,
+                     _iconsRect;
 
-        private Rect                  _queueRect,
-                                      _rect,
-                                      _labelRect,
-                                      _costLabelRect,
-                                      _costIconRect,
-                                      _iconsRect;
+        private static Dictionary<ResearchProjectDef, bool> _buildingPresentCache = new Dictionary<ResearchProjectDef, bool>();
 
-        private bool                  _rectSet;
-        private Vector2               _right           = Vector2.zero;
-        private MainTabWindow_ModHelp helpWindow       = DefDatabase<MainTabDef>.GetNamed( "CCL_ModHelp", false ).Window as MainTabWindow_ModHelp;
+        private bool _rectsSet;
+        private Vector2 _right = Vector2.zero;
 
         #endregion Fields
 
@@ -89,10 +74,9 @@ namespace FluffyResearchTree
         {
             get
             {
-                if ( !_rectSet )
-                {
+                if ( !_rectsSet )
                     CreateRects();
-                }
+
                 return _costIconRect;
             }
         }
@@ -101,10 +85,9 @@ namespace FluffyResearchTree
         {
             get
             {
-                if ( !_rectSet )
-                {
+                if ( !_rectsSet )
                     CreateRects();
-                }
+
                 return _costLabelRect;
             }
         }
@@ -113,10 +96,9 @@ namespace FluffyResearchTree
         {
             get
             {
-                if ( !_rectSet )
-                {
+                if ( !_rectsSet )
                     CreateRects();
-                }
+
                 return _iconsRect;
             }
         }
@@ -125,10 +107,9 @@ namespace FluffyResearchTree
         {
             get
             {
-                if ( !_rectSet )
-                {
+                if ( !_rectsSet )
                     CreateRects();
-                }
+
                 return _labelRect;
             }
         }
@@ -143,21 +124,10 @@ namespace FluffyResearchTree
                 if ( _left == Vector2.zero )
                 {
                     _left = new Vector2( Pos.x * ( Settings.NodeSize.x + Settings.NodeMargins.x ) + Offset,
-                                         Pos.z * ( Settings.NodeSize.y + Settings.NodeMargins.y ) + Offset + Settings.NodeSize.y / 2 );
+                                         Pos.z * ( Settings.NodeSize.y + Settings.NodeMargins.y ) + Offset +
+                                         Settings.NodeSize.y / 2 );
                 }
                 return _left;
-            }
-        }
-
-        public LockedState LockedState
-        {
-            get
-            {
-                if ( _isLockedOut )
-                    return LockedState.LockedOut;
-                if ( _willBeLockedOut )
-                    return LockedState.willBeLockedOut;
-                return LockedState.notLockedOut;
             }
         }
 
@@ -168,10 +138,9 @@ namespace FluffyResearchTree
         {
             get
             {
-                if ( !_rectSet )
-                {
+                if ( !_rectsSet )
                     CreateRects();
-                }
+
                 return _queueRect;
             }
         }
@@ -183,10 +152,9 @@ namespace FluffyResearchTree
         {
             get
             {
-                if ( !_rectSet )
-                {
+                if ( !_rectsSet )
                     CreateRects();
-                }
+
                 return _rect;
             }
         }
@@ -200,8 +168,10 @@ namespace FluffyResearchTree
             {
                 if ( _right == Vector2.zero )
                 {
-                    _right = new Vector2( Pos.x * ( Settings.NodeSize.x + Settings.NodeMargins.x ) + Offset + Settings.NodeSize.x,
-                                          Pos.z * ( Settings.NodeSize.y + Settings.NodeMargins.y ) + Offset + Settings.NodeSize.y / 2 );
+                    _right =
+                        new Vector2(
+                            Pos.x * ( Settings.NodeSize.x + Settings.NodeMargins.x ) + Offset + Settings.NodeSize.x,
+                            Pos.z * ( Settings.NodeSize.y + Settings.NodeMargins.y ) + Offset + Settings.NodeSize.y / 2 );
                 }
                 return _right;
             }
@@ -218,41 +188,33 @@ namespace FluffyResearchTree
         public Tree ClosestTree()
         {
             // go up through all Parents until we find a parent that is in a Tree
-            Queue<Node> parents = new Queue<Node>();
+            var parents = new Queue<Node>();
             parents.Enqueue( this );
 
             while ( parents.Count > 0 )
             {
                 Node current = parents.Dequeue();
                 if ( current.Tree != null )
-                {
                     return current.Tree;
-                }
 
                 // otherwise queue up the Parents to be checked
                 foreach ( Node parent in current.Parents )
-                {
                     parents.Enqueue( parent );
-                }
             }
 
             // if that didn't work, try seeing if a child is in a Tree (unlikely, but whateva).
-            Queue<Node> children = new Queue<Node>();
+            var children = new Queue<Node>();
             children.Enqueue( this );
 
             while ( children.Count > 0 )
             {
                 Node current = children.Dequeue();
                 if ( current.Tree != null )
-                {
                     return current.Tree;
-                }
 
                 // otherwise queue up the Children to be checked.
                 foreach ( Node child in current.Children )
-                {
                     children.Enqueue( child );
-                }
             }
 
             // finally, if nothing stuck, return null
@@ -264,51 +226,21 @@ namespace FluffyResearchTree
         /// </summary>
         public void CreateLinks()
         {
+            if ( Research.prerequisites.NullOrEmpty() )
+                return;
+
             // 'vanilla' prerequisites
             foreach ( ResearchProjectDef prerequisite in Research.prerequisites )
             {
+                // skip self prerequisite
                 if ( prerequisite != Research )
                 {
-                    var parent = ResearchTree.Forest.FirstOrDefault( node => node.Research == prerequisite );
+                    Node parent = ResearchTree.Forest.FirstOrDefault( node => node.Research == prerequisite );
                     if ( parent != null )
                         Parents.Add( parent );
                 }
             }
-
-            // CCL advanced research, inclusive unlocks.
-            foreach ( AdvancedResearchDef ard in DefDatabase<AdvancedResearchDef>.AllDefsListForReading
-                .Where( ard => ard.IsResearchToggle &&
-                               !ard.HideDefs &&
-                               ard.effectedResearchDefs.Contains( Research ) ) )
-            {
-                foreach ( ResearchProjectDef prerequisite in ard.researchDefs )
-                {
-                    if ( prerequisite != Research )
-                    {
-                        var parent = ResearchTree.Forest.FirstOrDefault( node => node.Research == prerequisite );
-                        if ( parent != null )
-                            Parents.Add( parent );
-                    }
-                }
-            }
-
-            // CCL advanced research, locks.
-            foreach ( AdvancedResearchDef ard in DefDatabase<AdvancedResearchDef>.AllDefsListForReading
-                .Where( ard => ard.IsResearchToggle &&
-                   ard.HideDefs &&
-                   ard.researchDefs.Contains( Research ) ) )
-            {
-                foreach ( ResearchProjectDef locked in ard.effectedResearchDefs )
-                {
-                    if ( locked != Research )
-                    {
-                        var lockedNode = ResearchTree.Forest.FirstOrDefault( node => node.Research == locked );
-                        if ( lockedNode != null )
-                            Locks.Add( lockedNode );
-                    }
-                }
-            }
-
+            
             foreach ( Node parent in Parents )
             {
                 parent.Children.Add( this );
@@ -320,20 +252,108 @@ namespace FluffyResearchTree
         /// </summary>
         public void Debug()
         {
-            StringBuilder text = new StringBuilder();
+            var text = new StringBuilder();
             text.AppendLine( Research.LabelCap + " (" + Depth + ", " + Genus + "):" );
             text.AppendLine( "- Parents" );
             foreach ( Node parent in Parents )
             {
                 text.AppendLine( "-- " + parent.Research.LabelCap );
             }
+
             text.AppendLine( "- Children" );
             foreach ( Node child in Children )
             {
                 text.AppendLine( "-- " + child.Research.LabelCap );
             }
+
             text.AppendLine( "" );
             Log.Message( text.ToString() );
+        }
+
+        public static void ClearCaches()
+        {
+            _buildingPresentCache.Clear();
+            _missingFacilitiesCache.Clear();
+        }
+
+        private static Dictionary<ResearchProjectDef, List<ThingDef>> _missingFacilitiesCache =
+            new Dictionary<ResearchProjectDef, List<ThingDef>>();
+
+        public List<ThingDef> MissingFacilities() { return MissingFacilities( Research ); }
+
+        public static List<ThingDef> MissingFacilities( ResearchProjectDef research )
+        {
+            // try get from cache
+            Log.Message( research.LabelCap );
+            List<ThingDef> missing;
+            if ( _missingFacilitiesCache.TryGetValue( research, out missing ) )
+                return missing;
+
+            // get list of all researches required before this
+            List<ResearchProjectDef> thisAndPrerequisites = research.GetPrerequisitesRecursive().Where( rpd => !rpd.IsFinished ).ToList();
+            thisAndPrerequisites.Add( research );
+                        
+            // get list of all available research benches
+            var availableBenches = Find.Maps.SelectMany( map => map.listerBuildings.allBuildingsColonist )
+                                       .OfType<Building_ResearchBench>();
+            var availableBenchDefs = availableBenches.Select( b => b.def ).Distinct();
+            missing = new List<ThingDef>();
+            
+            // check each for prerequisites
+            // TODO: We should really build this list recursively so we can re-use results for prerequisites.
+            foreach ( ResearchProjectDef rpd in thisAndPrerequisites )
+            {
+                if ( rpd.requiredResearchBuilding == null )
+                    continue;
+
+                if ( !availableBenchDefs.Contains( rpd.requiredResearchBuilding ) )
+                    missing.Add( rpd.requiredResearchBuilding );
+            
+                if ( rpd.requiredResearchFacilities.NullOrEmpty() )
+                    continue;
+
+                foreach ( ThingDef facility in rpd.requiredResearchFacilities )
+                    if ( !availableBenches.Any( b => b.HasFacility( facility ) ) )
+                        missing.Add( facility );
+            }
+
+            // add to cache
+            missing = missing.Distinct().ToList();
+            _missingFacilitiesCache.Add( research, missing );
+            return missing;
+        }
+
+        public bool BuildingPresent() { return BuildingPresent( Research ); }
+
+        public static bool BuildingPresent( ResearchProjectDef research )
+        {
+            // try get from cache
+            bool result;
+            if ( _buildingPresentCache.TryGetValue( research, out result ) )
+                return result;
+
+            // do the work manually
+            if ( research.requiredResearchBuilding == null )
+                result = true;
+            else
+                result = Find.Maps.SelectMany( map => map.listerBuildings.allBuildingsColonist )
+                             .OfType<Building_ResearchBench>()
+                             .Any( b => research.CanBeResearchedAt( b, true ) );
+
+            if ( result )
+                result = research.GetPrerequisitesRecursive().All( BuildingPresent );
+
+            // update cache
+            _buildingPresentCache.Add( research, result );
+            return result;
+        }
+
+        public Color DrawColor
+        {
+            get
+            {
+                return Research.IsFinished || ( BuildingPresent() && Research.PrerequisitesCompleted ) ? Tree.MediumColor : Tree.GreyedColor;
+            }
         }
 
         /// <summary>
@@ -341,52 +361,33 @@ namespace FluffyResearchTree
         /// </summary>
         public void Draw()
         {
-            // set color
-            GUI.color = !Research.PrereqsFulfilled ? Tree.GreyedColor : Tree.MediumColor;
-            if ( LockedState == LockedState.LockedOut )
-                GUI.color = new Color( .4f, .4f, .4f );
-            bool prereqLocks = false;
-
             // cop out if off-screen
-            Rect screen = new Rect( MainTabWindow_ResearchTree._scrollPosition.x, MainTabWindow_ResearchTree._scrollPosition.y, Screen.width, Screen.height - 35 );
+            var screen = new Rect( MainTabWindow_ResearchTree._scrollPosition.x,
+                                   MainTabWindow_ResearchTree._scrollPosition.y, Screen.width, Screen.height - 35 );
             if ( Rect.xMin > screen.xMax ||
-                Rect.xMax < screen.xMin ||
-                Rect.yMin > screen.yMax ||
-                Rect.yMax < screen.yMin )
+                 Rect.xMax < screen.xMin ||
+                 Rect.yMin > screen.yMax ||
+                 Rect.yMax < screen.yMin )
             {
                 return;
             }
 
+            // researches that are completed or could be started immediately, and that have the required building(s) available
+            GUI.color = DrawColor;
+
             // mouseover highlights
-            if ( Mouse.IsOver( Rect ) && LockedState != LockedState.LockedOut )
+            if ( Mouse.IsOver( Rect ) && BuildingPresent() )
             {
                 // active button
-                GUI.DrawTexture( Rect, ResearchTree.ButtonActive );
+                GUI.DrawTexture( Rect, Assets.ButtonActive );
 
                 // highlight this and all prerequisites if research not completed
                 if ( !Research.IsFinished )
                 {
                     List<Node> prereqs = GetMissingRequiredRecursive();
                     Highlight( GenUI.MouseoverColor, true, false );
-                    if ( !Locks.NullOrEmpty() )
-                    {
-                        foreach ( Node locked in Locks )
-                        {
-                            locked.Highlight( Color.red, false, true );
-                        }
-                    }
                     foreach ( Node prerequisite in prereqs )
-                    {
                         prerequisite.Highlight( GenUI.MouseoverColor, true, false );
-                        if ( !prerequisite.Locks.NullOrEmpty() )
-                        {
-                            prereqLocks = true;
-                            foreach ( Node locked in prerequisite.Locks )
-                            {
-                                locked.Highlight( Color.red, false, false );
-                            }
-                        }
-                    }
                 }
                 else // highlight followups
                 {
@@ -394,29 +395,21 @@ namespace FluffyResearchTree
                     {
                         MainTabWindow_ResearchTree.highlightedConnections.Add( new Pair<Node, Node>( this, child ) );
                         child.Highlight( GenUI.MouseoverColor, false, false );
-
-                        if ( !child.Locks.NullOrEmpty() )
-                        {
-                            foreach ( Node locked in child.Locks )
-                            {
-                                locked.Highlight( Color.red, false, false );
-                            }
-                        }
                     }
                 }
             }
             // if not moused over, just draw the default button state
             else
             {
-                GUI.DrawTexture( Rect, ResearchTree.Button );
+                GUI.DrawTexture( Rect, Assets.Button );
             }
 
             // grey out center to create a progress bar effect, completely greying out research not started.
-            if ( !Research.IsFinished && LockedState != LockedState.LockedOut )
+            if ( !Research.IsFinished )
             {
                 Rect progressBarRect = Rect.ContractedBy( 2f );
                 GUI.color = Tree.GreyedColor;
-                progressBarRect.xMin += Research.PercentComplete * progressBarRect.width;
+                progressBarRect.xMin += Research.ProgressPercent * progressBarRect.width;
                 GUI.DrawTexture( progressBarRect, BaseContent.WhiteTex );
             }
 
@@ -430,37 +423,39 @@ namespace FluffyResearchTree
             // draw research cost and icon
             Text.Anchor = TextAnchor.UpperRight;
             Text.Font = GameFont.Small;
-            if ( LockedState == LockedState.LockedOut )
-            {
-                Widgets.Label( CostLabelRect, "Fluffy.ResearchTree.LockedOut".Translate() );
-            }
-            else
-            {
-                Widgets.Label( CostLabelRect, Research.totalCost.ToStringByStyle( ToStringStyle.Integer ) );
-                GUI.DrawTexture( CostIconRect, ResearchIcon );
-            }
+            Widgets.Label( CostLabelRect, Research.CostApparent.ToStringByStyle( ToStringStyle.Integer ) );
+            GUI.DrawTexture( CostIconRect, Assets.ResearchIcon );
             Text.WordWrap = true;
 
             // attach description and further info to a tooltip
-            TooltipHandler.TipRegion( Rect, GetResearchTooltipString() ); // new TipSignal( GetResearchTooltipString(), Settings.TipID ) );
+            TooltipHandler.TipRegion( Rect, GetResearchTooltipString() );
+            if ( !BuildingPresent() )
+            {
+                TooltipHandler
+                    .TipRegion( Rect, 
+                                "Fluffy.ResearchTree.MissingFacilities".Translate( string.Join( ", ", MissingFacilities().Select( td => td.LabelCap ).ToArray() ) ) );
+            }
+            // new TipSignal( GetResearchTooltipString(), Settings.TipID ) );
 
             // draw unlock icons
             List<Pair<Def, string>> unlocks = Research.GetUnlockDefsAndDescs();
-            for ( int i = 0; i < unlocks.Count; i++ )
+            for ( var i = 0; i < unlocks.Count; i++ )
             {
-                Rect iconRect = new Rect( IconsRect.xMax - ( i + 1 ) * ( Settings.IconSize.x + 4f ),
-                                          IconsRect.yMin + ( IconsRect.height - Settings.IconSize.y ) / 2f,
-                                          Settings.IconSize.x,
-                                          Settings.IconSize.y );
+                var iconRect = new Rect( IconsRect.xMax - ( i + 1 ) * ( Settings.IconSize.x + 4f ),
+                                         IconsRect.yMin + ( IconsRect.height - Settings.IconSize.y ) / 2f,
+                                         Settings.IconSize.x,
+                                         Settings.IconSize.y );
 
                 if ( iconRect.xMin - Settings.IconSize.x < IconsRect.xMin &&
-                    i + 1 < unlocks.Count )
+                     i + 1 < unlocks.Count )
                 {
                     // stop the loop if we're about to overflow and have 2 or more unlocks yet to print.
                     iconRect.x = IconsRect.x + 4f;
-                    ResearchTree.MoreIcon.DrawFittedIn( iconRect );
-                    string tip = string.Join( "\n", unlocks.GetRange( i, unlocks.Count - i ).Select( p => p.Second ).ToArray() );
-                    TooltipHandler.TipRegion( iconRect, tip ); // new TipSignal( tip, Settings.TipID, TooltipPriority.Pawn ) );
+                    GUI.DrawTexture( iconRect, Assets.MoreIcon, ScaleMode.ScaleToFit );
+                    string tip = string.Join( "\n",
+                                              unlocks.GetRange( i, unlocks.Count - i ).Select( p => p.Second ).ToArray() );
+                    TooltipHandler.TipRegion( iconRect, tip );
+                    // new TipSignal( tip, Settings.TipID, TooltipPriority.Pawn ) );
                     break;
                 }
 
@@ -468,52 +463,26 @@ namespace FluffyResearchTree
                 unlocks[i].First.DrawColouredIcon( iconRect );
 
                 // tooltip
-                TooltipHandler.TipRegion( iconRect, unlocks[i].Second ); // new TipSignal( unlocks[i].Second, Settings.TipID, TooltipPriority.Pawn ) );
-            }
-
-            // draw a big warning label if about to be locked.
-            if ( LockedState == LockedState.willBeLockedOut )
-            {
-                Color color = GUI.color;
-                GUI.color = Color.red;
-                GUI.DrawTexture( Rect, WarningIcon, ScaleMode.ScaleToFit );
-                GUI.color = color;
+                TooltipHandler.TipRegion( iconRect, unlocks[i].Second );
+                // new TipSignal( unlocks[i].Second, Settings.TipID, TooltipPriority.Pawn ) );
             }
 
             // if clicked and not yet finished, queue up this research and all prereqs.
-            if ( LockedState != LockedState.LockedOut && Widgets.InvisibleButton( Rect ) )
+            if ( Widgets.ButtonInvisible( Rect ) && BuildingPresent() )
             {
                 // LMB is queue operations, RMB is info
                 if ( Event.current.button == 0 && !Research.IsFinished )
                 {
                     if ( !Queue.IsQueued( this ) )
                     {
-                        if ( prereqLocks )
-                        {
-                            foreach ( Node node in GetMissingRequiredRecursive() )
-                            {
-                                if ( !node.Locks.NullOrEmpty() && !( Event.current.shift && Queue.IsQueued( node ) ) )
-                                {
-                                    Messages.Message( "Fluffy.ResearchTree.CannotQueueXLocksY".Translate( node.Research.LabelCap,
-                                                        string.Join( ", ", node.Locks.Select( n => n.Research.LabelCap ).ToArray() ) ) + " " +
-                                                        "Fluffy.ResearchTree.CannotQueueOneByOne".Translate(),
-                                                      MessageSound.RejectInput );
-                                    return;
-                                }
-                            }
-                        }
                         // if shift is held, add to queue, otherwise replace queue
-                        Queue.EnqueueRange( GetMissingRequiredRecursive().Concat( new List<Node>( new[] { this } ) ), Event.current.shift );
+                        Queue.EnqueueRange( GetMissingRequiredRecursive().Concat( new List<Node>( new[] { this } ) ),
+                                            Event.current.shift );
                     }
                     else
                     {
                         Queue.Dequeue( this );
                     }
-                }
-                else if ( Event.current.button == 1 )
-                {
-                    // right click links to CCL help def.
-                    helpWindow.JumpTo( Research.GetHelpDef() );
                 }
             }
         }
@@ -524,34 +493,11 @@ namespace FluffyResearchTree
         /// <returns>List<Node> prerequisites</Node></returns>
         public List<Node> GetMissingRequiredRecursive()
         {
-            List<Node> parents = new List<Node>( Parents.Where( node => !node.Research.IsFinished ) );
-            List<Node> allParents = new List<Node>( parents );
-            foreach ( Node current in parents )
-            {
-                if ( current.LockedState != LockedState.LockedOut )
-                {
-                    // check advanced researches
-                    List<AdvancedResearchDef> advancedResearches = ResearchController.AdvancedResearch.Where( ard =>
-                       ard.IsResearchToggle &&
-                       !ard.IsLockedOut() &&
-                       !ard.HideDefs &&
-                       ard.effectedResearchDefs.Contains( current.Research ) ).ToList();
+            var parents = new List<Node>( Parents.Where( node => !node.Research.IsFinished ) );
+            var allParents = new List<Node>( parents );
+            foreach ( Node parent in parents )
+                allParents.AddRange( parent.GetMissingRequiredRecursive() );
 
-                    if ( !advancedResearches.NullOrEmpty() )
-                    {
-                        Dictionary<Node, List<Node>> options = new Dictionary<Node, List<Node>>();
-                        foreach ( ResearchProjectDef option in advancedResearches.SelectMany( ard => ard.researchDefs ).Where( rd => rd.Node() != null ) )
-                        {
-                            options.Add( option.Node(), option.Node().GetMissingRequiredRecursive() );
-                        }
-                        allParents.AddRange( options.MinBy( option => option.Value.Count ).Value );
-                    }
-                    else
-                    {
-                        allParents.AddRange( current.GetMissingRequiredRecursive() );
-                    }
-                }
-            }
             return allParents.Distinct().ToList();
         }
 
@@ -582,24 +528,12 @@ namespace FluffyResearchTree
             }
         }
 
-        public void Notify_LockedOut( bool state )
-        {
-            _isLockedOut = state;
-            Research.ExclusiveDescendants().Select( res => res.Node() ).ToList().ForEach( node => node.Notify_LockedOut( state ) );
-        }
-
-        public void Notify_WillBeLockedOut( bool state )
-        {
-            _willBeLockedOut = state;
-            Research.ExclusiveDescendants().Select( res => res.Node() ).ToList().ForEach( node => node.Notify_WillBeLockedOut( state ) );
-        }
-
         /// <summary>
         /// Recursively determine the depth of this node.
         /// </summary>
         public void SetDepth()
         {
-            List<Node> level = new List<Node>();
+            var level = new List<Node>();
             level.Add( this );
             while ( level.Count > 0 &&
                     level.Any( node => node.Parents.Count > 0 ) )
@@ -621,7 +555,7 @@ namespace FluffyResearchTree
 
         public override string ToString()
         {
-            return this.Research.LabelCap + this.Pos;
+            return Research.LabelCap + Pos;
         }
 
         private void CreateRects()
@@ -634,9 +568,9 @@ namespace FluffyResearchTree
 
             // queue rect
             _queueRect = new Rect( _rect.xMax - LabSize / 2f,
-                                 _rect.yMin + ( _rect.height - LabSize ) / 2f,
-                                 LabSize,
-                                 LabSize );
+                                   _rect.yMin + ( _rect.height - LabSize ) / 2f,
+                                   LabSize,
+                                   LabSize );
 
             // label rect
             _labelRect = new Rect( _rect.xMin + 6f,
@@ -646,9 +580,9 @@ namespace FluffyResearchTree
 
             // research cost rect
             _costLabelRect = new Rect( _rect.xMin + _rect.width * 2f / 3f,
-                                  _rect.yMin + 3f,
-                                  _rect.width * 1f / 3f - 16f - 3f,
-                                  _rect.height * .5f - 3f );
+                                       _rect.yMin + 3f,
+                                       _rect.width * 1f / 3f - 16f - 3f,
+                                       _rect.height * .5f - 3f );
 
             // research icon rect
             _costIconRect = new Rect( _costLabelRect.xMax,
@@ -666,7 +600,7 @@ namespace FluffyResearchTree
             _largeLabel = Text.CalcHeight( Research.LabelCap, _labelRect.width ) > _labelRect.height;
 
             // done
-            _rectSet = true;
+            _rectsSet = true;
         }
 
         /// <summary>
@@ -676,31 +610,21 @@ namespace FluffyResearchTree
         private string GetResearchTooltipString()
         {
             // start with the descripton
-            StringBuilder text = new StringBuilder();
+            var text = new StringBuilder();
             text.AppendLine( Research.description );
             text.AppendLine();
 
-            if ( LockedState != LockedState.LockedOut )
+            if ( Queue.IsQueued( this ) )
             {
-                if ( LockedState == LockedState.willBeLockedOut )
-                {
-                    text.AppendLine( "Fluffy.ResearchTree.WillBeLockedOut".Translate() );
-                }
-                if ( Queue.IsQueued( this ) )
-                {
-                    text.AppendLine( "Fluffy.ResearchTree.LClickRemoveFromQueue".Translate() );
-                }
-                else
-                {
-                    text.AppendLine( "Fluffy.ResearchTree.LClickReplaceQueue".Translate() );
-                    text.AppendLine( "Fluffy.ResearchTree.SLClickAddToQueue".Translate() );
-                }
-                text.AppendLine( "Fluffy.ResearchTree.RClickForDetails".Translate() );
+                text.AppendLine( "Fluffy.ResearchTree.LClickRemoveFromQueue".Translate() );
             }
             else
             {
-                text.AppendLine( "Fluffy.ResearchTree.LockedOut".Translate().ToUpper() );
+                text.AppendLine( "Fluffy.ResearchTree.LClickReplaceQueue".Translate() );
+                text.AppendLine( "Fluffy.ResearchTree.SLClickAddToQueue".Translate() );
             }
+            text.AppendLine( "Fluffy.ResearchTree.RClickForDetails".Translate() );
+
             return text.ToString();
         }
 

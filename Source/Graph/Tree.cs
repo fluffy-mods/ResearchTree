@@ -1,4 +1,3 @@
-using CommunityCoreLibrary.ColorPicker;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,7 +29,7 @@ namespace FluffyResearchTree
         {
             Genus = genus;
             Trunk = trunk.OrderBy( node => node.Depth ).ToList();
-            Leaves     = new List<Node>();
+            Leaves = new List<Node>();
 
             if ( trunk.Any() )
             {
@@ -63,9 +62,9 @@ namespace FluffyResearchTree
 
                 float h, s, v;
 
-                ColorHelper.RGBtoHSV( value, out h, out s, out v );
-                GreyedColor = ColorHelper.HSVtoRGB( h, 0.1f, 0.25f );
-                MediumColor = ColorHelper.HSVtoRGB( h, 0.7f, 0.8f );
+                Color.RGBToHSV( value, out h, out s, out v );
+                GreyedColor = Color.HSVToRGB( h, 0.1f, 0.25f );
+                MediumColor = Color.HSVToRGB( h, 0.7f, 0.8f );
             }
         }
 

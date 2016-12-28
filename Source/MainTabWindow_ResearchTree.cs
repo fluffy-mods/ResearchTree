@@ -4,7 +4,6 @@
 //
 // Created 2015-12-21 13:30
 
-using CommunityCoreLibrary;
 using RimWorld;
 using System;
 using System.Collections.Generic;
@@ -35,7 +34,7 @@ namespace FluffyResearchTree
 #if DEBUG
                 Log.Message( "ResearchTree :: duplicated positions:\n " + string.Join( "\n", ResearchTree.Forest.Where( n => ResearchTree.Forest.Any( n2 => n.Pos == n2.Pos && n != n2 ) ).Select( n => n.Pos + n.Research.LabelCap + " (" + n.Genus + ")" ).ToArray() ) );
 
-                foreach( Tree tree in ResearchTree.Trees )
+                foreach ( Tree tree in ResearchTree.Trees )
                 {
                     Log.Message( tree.ToString() );
                 }
@@ -43,11 +42,14 @@ namespace FluffyResearchTree
 #endif
             }
 
+            // clear node availability caches
+            Node.ClearCaches();
+
             // set to topleft (for some reason vanilla alignment overlaps bottom buttons).
-            currentWindowRect.x = 0f;
-            currentWindowRect.y = 0f;
-            currentWindowRect.width = Screen.width;
-            currentWindowRect.height = Screen.height - 35f;
+            windowRect.x = 0f;
+            windowRect.y = 0f;
+            windowRect.width = Screen.width;
+            windowRect.height = Screen.height - 35f;
         }
 
         public override float TabButtonBarPercent
@@ -56,7 +58,7 @@ namespace FluffyResearchTree
             {
                 if ( Find.ResearchManager.currentProj != null )
                 {
-                    return Find.ResearchManager.currentProj.PercentComplete;
+                    return Find.ResearchManager.currentProj.ProgressPercent;
                 }
                 return 0;
             }
@@ -73,18 +75,6 @@ namespace FluffyResearchTree
             // loop through trees
             foreach ( Tree tree in ResearchTree.Trees )
             {
-#if DEBUG
-                Rect treeRect = new Rect( 0f,
-                                          tree.StartY * (Settings.Button.y + Settings.Margin.y) - Settings.Margin.y / 2f,
-                                          view.width,
-                                          tree.Width * (Settings.Button.y + Settings.Margin.y));
-                Color color = GUI.color;
-                GUI.color = tree.MediumColor;
-                GUI.DrawTexture( treeRect, TexUI.HighlightTex );
-                Widgets.DrawBox( treeRect );
-                GUI.color = color;
-#endif
-
                 foreach ( Node node in tree.Trunk.Concat( tree.Leaves ) )
                 {
                     nodes.Add( node );
@@ -140,23 +130,17 @@ namespace FluffyResearchTree
 
             // draw connections from completed nodes
             foreach ( Pair<Node, Node> connection in connections.Where( pair => pair.Second.Research.IsFinished ) )
-            {
                 ResearchTree.DrawLine( connection, connection.First.Tree.MediumColor );
-            }
             connections.Clear();
 
             // draw highlight connections on top
             foreach ( Pair<Node, Node> connection in highlightedConnections )
-            {
                 ResearchTree.DrawLine( connection, GenUI.MouseoverColor, true );
-            }
             highlightedConnections.Clear();
 
             // draw nodes on top of lines
             foreach ( Node node in nodes )
-            {
                 node.Draw();
-            }
             nodes.Clear();
 
             // register hub tooltips
