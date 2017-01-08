@@ -1,169 +1,824 @@
+// Karel Kroeze
+// Tree.cs
+// 2016-12-28
+//#define TRACE_CONFLICTS
+#define TRACE_ALIGNMENT
+//#define TRACE_COMPACTION
+using RimWorld;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEngine;
+using Verse;
+using static FluffyResearchTree.Assets;
+using Color = UnityEngine.Color;
 
 namespace FluffyResearchTree
 {
-    public class Tree
+    public static class Tree
     {
         #region Fields
 
-        public string     Genus;
-        public Color      GreyedColor;
-        public List<Node> Leaves;
-        public int        MaxDepth;
-        public Color      MediumColor;
-        public int        MinDepth;
-        public int        StartY;
-        public List<Node> Trunk;
-        public int        Width;
-        private Color     _color;
+        public static bool Initialized;
+        public static IntVec2 Size = IntVec2.Zero;
+        public static List<Node> _leaves;
 
         #endregion Fields
 
-        #region Constructors
-
-        public Tree( string genus, List<Node> trunk )
+        public static List<Node> Leaves
         {
-            Genus = genus;
-            Trunk = trunk.OrderBy( node => node.Depth ).ToList();
-            Leaves = new List<Node>();
-
-            if ( trunk.Any() )
+            get
             {
-                MinDepth = trunk.Select( node => node.Depth ).Min();
-                MaxDepth = trunk.Select( node => node.Depth ).Max();
-                Width = 1;
+                if (_leaves == null)
+                    throw new Exception( "Trying to access leaves before they are initialized." );
+
+                return _leaves;
+            }
+        }
+        
+        #region Methods
+        
+        public static void DrawLine( Pair<ResearchNode, ResearchNode> connection, Color color, bool reverseDirection = false )
+        {
+            Vector2 a, b;
+
+            if ( reverseDirection )
+            {
+                a = connection.First.Right;
+                b = connection.Second.Left;
             }
             else
             {
-                MinDepth = MaxDepth = Width = 0;
+                a = connection.First.Left;
+                b = connection.Second.Right;
             }
 
-            // make all Trunk nodes a part of this Tree
-            foreach ( Node node in trunk )
+            GUI.color = color;
+            var isHubLink = false;
+
+            Vector2 left, right;
+            // make sure line goes left -> right
+            if ( a.x < b.x )
             {
-                node.Tree = this;
+                left = a;
+                right = b;
             }
-        }
-
-        #endregion Constructors
-
-        #region Properties
-
-        public Color Color
-        {
-            get { return _color; }
-            set
+            else
             {
-                _color = value;
-
-                float h, s, v;
-
-                Color.RGBToHSV( value, out h, out s, out v );
-                GreyedColor = Color.HSVToRGB( h, 0.1f, 0.25f );
-                MediumColor = Color.HSVToRGB( h, 0.7f, 0.8f );
-            }
-        }
-
-        #endregion Properties
-
-        #region Methods
-
-        public void AddLeaf( Node leaf )
-        {
-            // add it
-            Leaves.Add( leaf );
-
-            // mark it a part of this Tree
-            leaf.Tree = this;
-
-            // update depths and Width if necessary
-            Width = Math.Max( Width, NodesAtDepth( leaf.Depth, true ).Count );
-            MinDepth = Math.Min( MinDepth, leaf.Depth );
-            MaxDepth = Math.Max( MaxDepth, leaf.Depth );
-        }
-
-        public float AffinityWith( Tree otherTree )
-        {
-            // get the number of relations between the two extended families.
-            List<Node> family = new List<Node>();
-            family.AddRange( Leaves );
-            family.AddRange( Trunk );
-            List<Node> otherFamily = otherTree.Children().Concat( otherTree.Parents() ).Distinct().ToList();
-
-            // count of nodes that are a member of both families, divided by family size to get small child trees to be closer to 'main' tree.
-            return (float)family.Intersect( otherFamily ).Count() / (float)Math.Sqrt( otherFamily.Count() );
-        }
-
-        public List<Node> Children( int depth = 2 )
-        {
-            List<Node> children = new List<Node>( Trunk );
-            List<Node> curLevel = new List<Node>( Trunk );
-
-            while ( depth-- > 0 )
-            {
-                curLevel = curLevel.SelectMany( node => node.Children ).Distinct().ToList();
-                children.AddRange( curLevel );
+                left = b;
+                right = a;
             }
 
-            return children;
-        }
-
-        public List<Node> NodesAtDepth( int depth, bool includeTrunk = false )
-        {
-            List<Node> nodes = new List<Node>();
-            if ( includeTrunk )
-                nodes.AddRange( Trunk.Where( node => node.Depth == depth ) );
-            nodes.AddRange( Leaves.Where( node => node.Depth == depth ) );
-            return nodes;
-        }
-
-        public List<Node> Parents( int depth = 2 )
-        {
-            List<Node> parents = new List<Node>( Trunk );
-            List<Node> curLevel = new List<Node>( Trunk );
-
-            while ( depth-- > 0 )
+            // if left and right are on the same level, just draw a straight line.
+            if ( Math.Abs( left.y - right.y ) < 0.1f )
             {
-                curLevel = curLevel.SelectMany( node => node.Parents ).Distinct().ToList();
-                parents.AddRange( curLevel );
+                var line = new Rect( left.x, left.y - 2f, right.x - left.x, 4f );
+                GUI.DrawTexture( line, EW );
             }
 
-            return parents;
-        }
-
-        public override string ToString()
-        {
-            StringBuilder text = new StringBuilder();
-
-            text.AppendLine( Genus.ToUpper() );
-            text.AppendLine( "Trunk:" );
-            foreach ( Node node in Trunk )
+            // draw three line pieces and two curves.
+            else
             {
-                text.AppendFormat( node.ToString() );
-            }
+                // determine top and bottom y positions
+                float top = Math.Min( left.y, right.y ) + Settings.NodeMargins.x / 4f;
+                float bottom = Math.Max( left.y, right.y ) - Settings.NodeMargins.x / 4f;
 
-            text.AppendLine( "\n\nLeaves:" );
-            foreach ( Node node in Leaves )
-            {
-                text.AppendFormat( node.ToString() + ", " );
-            }
-
-            text.AppendLine( "\n\nAffinities:" );
-            foreach ( Tree tree in ResearchTree.Trees )
-            {
-                if ( tree != this )
+                // if these positions are more than X nodes apart, draw an invisible 'hub' link.
+                if ( false ) // TODO: commented out for debug. Math.Abs( top - bottom ) > Settings.LineMaxLengthNodes * Settings.NodeSize.y )
                 {
-                    text.AppendLine( tree.Genus + ": " + AffinityWith( tree ) );
+                    isHubLink = true;
+
+                    // left to hub
+                    var leftToHub = new Rect( left.x, left.y + 15f, Settings.NodeMargins.x / 4f, 4f );
+                    GUI.DrawTexture( leftToHub, EW );
+
+                    // hub to right
+                    var hubToRight = new Rect( right.x - Settings.NodeMargins.x / 4f, right.y + 15f,
+                                               Settings.NodeMargins.x / 4f, 4f );
+                    GUI.DrawTexture( hubToRight, EW );
+
+                    // left hub
+                    var hub = new Rect( left.x + Settings.NodeMargins.x / 4f - Settings.HubSize / 2f,
+                                        left.y + 17f - Settings.HubSize / 2f,
+                                        Settings.HubSize,
+                                        Settings.HubSize );
+                    GUI.DrawTexture( hub, CircleFill );
+
+                    // add tooltip
+                    if ( !MainTabWindow_ResearchTree.hubTips.ContainsKey( hub ) )
+                    {
+                        MainTabWindow_ResearchTree.hubTips.Add( hub, new List<string>() );
+                        MainTabWindow_ResearchTree.hubTips[hub].Add( "Fluffy.ResearchTree.LeadsTo".Translate() );
+                    }
+                    MainTabWindow_ResearchTree.hubTips[hub].Add( connection.First.Research.LabelCap );
+
+                    // right hub
+                    hub.position = new Vector2( right.x - Settings.NodeMargins.x / 4f - Settings.HubSize / 2f,
+                                                right.y + 17f - Settings.HubSize / 2f );
+                    GUI.DrawTexture( hub, CircleFill );
+
+                    // add tooltip
+                    if ( !MainTabWindow_ResearchTree.hubTips.ContainsKey( hub ) )
+                    {
+                        MainTabWindow_ResearchTree.hubTips.Add( hub, new List<string>() );
+                        MainTabWindow_ResearchTree.hubTips[hub].Add( "Fluffy.ResearchTree.Requires".Translate() );
+                    }
+                    MainTabWindow_ResearchTree.hubTips[hub].Add( connection.Second.Research.LabelCap );
+                }
+                // but when nodes are close together, just draw the link as usual.
+                else
+                {
+                    // left to curve
+                    var leftToCurve = new Rect( left.x, left.y - 2f, Settings.NodeMargins.x / 4f, 4f );
+                    GUI.DrawTexture( leftToCurve, EW );
+
+                    // curve to curve
+                    var curveToCurve = new Rect( left.x + Settings.NodeMargins.x / 2f - 2f, top, 4f, bottom - top );
+                    GUI.DrawTexture( curveToCurve, NS );
+
+                    // curve to right
+                    var curveToRight = new Rect( left.x + Settings.NodeMargins.x / 4f * 3, right.y - 2f,
+                                                 right.x - left.x - Settings.NodeMargins.x / 4f * 3, 4f );
+                    GUI.DrawTexture( curveToRight, EW );
+
+                    // curve positions
+                    var curveLeft = new Rect( left.x + Settings.NodeMargins.x / 4f, left.y - Settings.NodeMargins.x / 4f,
+                                              Settings.NodeMargins.x / 2f, Settings.NodeMargins.x / 2f );
+                    var curveRight = new Rect( left.x + Settings.NodeMargins.x / 4f,
+                                               right.y - Settings.NodeMargins.x / 4f, Settings.NodeMargins.x / 2f,
+                                               Settings.NodeMargins.x / 2f );
+
+                    // going down
+                    if ( left.y < right.y )
+                    {
+                        GUI.DrawTextureWithTexCoords( curveLeft, Circle, new Rect( 0.5f, 0.5f, 0.5f, 0.5f ) );
+                        // bottom right quadrant
+                        GUI.DrawTextureWithTexCoords( curveRight, Circle, new Rect( 0f, 0f, 0.5f, 0.5f ) );
+                        // top left quadrant
+                    }
+                    // going up
+                    else
+                    {
+                        GUI.DrawTextureWithTexCoords( curveLeft, Circle, new Rect( 0.5f, 0f, 0.5f, 0.5f ) );
+                        // top right quadrant
+                        GUI.DrawTextureWithTexCoords( curveRight, Circle, new Rect( 0f, 0.5f, 0.5f, 0.5f ) );
+                        // bottom left quadrant
+                    }
                 }
             }
 
+            // draw the end arrow (if not hub link)
+            var end = new Rect( right.x - 16f, right.y - 8f, 16f, 16f );
+
+            if ( !isHubLink )
+                GUI.DrawTexture( end, End );
+
+            // reset color
+            GUI.color = Color.white;
+        }
+
+        //public static void GraphSharpTests()
+        //{
+        //    var graph = new GraphSharp.HierarchicalGraph<>();
+        //}
+        public static void Initialize()
+        {
+            // populate all nodes
+            _leaves = new List<Node>( DefDatabase<ResearchProjectDef>.AllDefsListForReading
+                                                                    // exclude hidden projects (prereq of itself is a common trick to hide research).
+                                                                    .Where(
+                                                                           def =>
+                                                                           def.prerequisites.NullOrEmpty() ||
+                                                                           !def.prerequisites.Contains( def ) )
+                                                                    .Select( def => new ResearchNode( def ) as Node ) );
+
+            // mark, but do not remove redundant prerequisites.
+            foreach ( ResearchNode node in Leaves.OfType<ResearchNode>() )
+            {
+                if ( !node.Research.prerequisites.NullOrEmpty() )
+                {
+                    List<ResearchProjectDef> ancestors =
+                        node.Research.prerequisites?.SelectMany( r => r.GetPrerequisitesRecursive() ).ToList();
+                    if ( !ancestors.NullOrEmpty() &&
+                         ( !node.Research.prerequisites?.Intersect( ancestors ).ToList().NullOrEmpty() ?? false ) )
+                    {
+                        Log.Warning( "ResearchTree :: redundant prerequisites for " + node.Research.LabelCap +
+                                     " the following research: " +
+                                     string.Join( ", ",
+                                                  node.Research.prerequisites?.Intersect( ancestors )
+                                                      .Select( r => r.LabelCap )
+                                                      .ToArray() ) );
+                    }
+                    if ( node.Research.prerequisites.Any( r => r.techLevel > node.Research.techLevel ) )
+                        Log.Error( "ResearchTree :: " + node.Research.defName +
+                                   " has a lower techlevel than (one of) it's dependenc(y/ies)" );
+                }
+            }
+
+            // create links between nodes
+            foreach ( ResearchNode node in Leaves.OfType<ResearchNode>() )
+                node.CreateLinks();
+            
+            // calculate Depth of each node
+            // NOTE: These are the layers in graph terminology 
+            foreach ( ResearchNode node in Leaves.OfType<ResearchNode>())
+                node.SetDepth();
+            
+            // create dummy vertices for edges that span multiple layers
+            List<Node> dummies = new List<Node>();
+            foreach ( ResearchNode node in Leaves.OfType<ResearchNode>() )
+                foreach ( ResearchNode child in node.Children.Where( child => child.X - node.X > 1 ) )
+                    dummies.AddRange( CreateDummyNodes( node, child ) );
+
+            // add dummy vertices to tree (can't do this in iteration because we'd be modifying the iteratee)
+            Leaves.AddRange( dummies );
+
+            // arrange nodes within layers to minimize edge crossings
+            MinimizeCrossings();
+
+            // create a visually pleasing layout, with a minimum of bends in long edges
+            CreateLayout();
+
+            // Done!
+            Initialized = true;
+        }
+        
+        // data structures used in vertical alignment and compaction
+        private static HashSet<Pair<Node, Node>> marks;
+        private static Dictionary<Node, Node> roots;
+        private static Dictionary<Node, Node> align;
+        private static Dictionary<Node, Node> sink;
+        private static Dictionary<Node, int> shift;
+        private static Dictionary<Node, bool> positioned;
+
+        private static void CreateLayout()
+        {
+            // three things happen;
+            // mark type 1 (crossing between long and short edge)
+            // create blocks of aligned vertices
+            // collapse blocks to minimize vertical space used
+            // Brandes, U., & Köpf, B. (2001, September). Fast and simple horizontal coordinate assignment. In International Symposium on Graph Drawing (pp. 31-44). Springer Berlin Heidelberg.
+
+            int before = Crossings();
+            
+            MarkTypeIConflicts();
+
+#if DEBUG
+            Log.Message( $"Conflicts: \n\t{string.Join( "\n\t", marks.Select( p => $"{p.First} -> {p.Second}" ).ToArray() )} " );
+#endif
+
+            HorizontalAlignment();
+
+#if DEBUG
+            var blocks = roots.Where( p => p.Key == p.Value );
+            var root_msg = new StringBuilder();
+            foreach ( var root in blocks.Select( p => p.Key ) )
+            {
+                root_msg.AppendLine( $"Block: {root}" );
+                foreach ( var node in roots.Where( p => p.Value == root ) )
+                    root_msg.AppendLine( $"\t{node}" );
+            }
+            Log.Message( root_msg.ToString() );
+            Log.Message( $"Align: \n\t{string.Join( "\n\t", align.Select( p => $"{p.Key} -> {p.Value}" ).ToArray() )} " );
+
+#endif
+
+//            VerticalCompaction();
+
+//#if DEBUG
+//            Log.Message( $"Sink: \n\t{string.Join( "\n\t", sink.Select( p => $"{p.Key} -> {p.Value}" ).ToArray() )} " );
+//            Log.Message( $"Shift: \n\t{string.Join( "\n\t", shift.Select( p => $"{p.Key} -> {p.Value}" ).ToArray() )} " );
+//#endif
+
+            //foreach ( var leaf in Leaves )
+            //    leaf.Y = roots[leaf].Y;
+
+            var Yoffset = Leaves.Min( n => n.Y ) - 1;
+            foreach ( var leaf in Leaves )
+                leaf.Y -= Yoffset;
+
+
+            int after = Crossings();
+            Log.Message( $"CreateLayout: {before} -> {after}" );
+        }
+
+        internal static void DrawDebug( )
+        {
+            foreach ( Node v in Leaves )
+            {
+                //if ( v != roots[v] )
+                //    Widgets.DrawLine( v.Center, roots[v].Center, Color.red, 1 );
+                if ( v != align[v] && Math.Abs( align[v].X - v.X ) <= 1 )
+                    Widgets.DrawLine( v.Center, align[v].Center, Color.blue, 4 );
+                foreach ( Node w in v.Below )
+                    Widgets.DrawLine( v.Right, w.Left, Color.white, 1 );
+            }
+        }
+        
+        private static void HorizontalAlignment()
+        {
+            // Brandes & Kopf, 2001, p37 (Alg 2).
+            roots = Leaves.ToDictionary( n => n, n => n );
+            align = Leaves.ToDictionary( n => n, n => n );
+
+            var msg = new StringBuilder();
+            msg.AppendLine( "Horizontal alignment log" );
+
+            // loop over layers
+            for ( int l = Size.x - 1; l > 0; l-- )
+            {
+                msg.AppendLine( $"Layer {l}" );
+                int r = -1;
+                var layer = Layer( l, true );
+                var below = Layer( l + 1, true );
+
+                // loop over nodes in layer
+                for ( int pos_v = 0; pos_v < layer.Count; pos_v++ )
+                {
+                    Node v = layer[pos_v];
+                    msg.AppendLine( $"\tChecking {v}" );
+
+                    // if node has any neighbours on layer l+1
+                    if ( v.Below.Any() )
+                    {
+                        var neighbours = v.Below;
+                        neighbours.SortBy( n => n.Y );
+                        var d = neighbours.Count;
+                        msg.AppendLine( $"\t\thas {d} neighbours" );
+                        int[] medians = {(int) Math.Floor( ( d - 1f ) / 2f ), (int) Math.Ceiling( ( d - 1f ) / 2f )};
+                        foreach ( int m in medians )
+                        {
+                            msg.AppendLine( "\t\t" + ( align[v] == v ? "not yet aligned" : "already aligned" ) );
+                            // if not yet aligned, and m is a valid node index
+                            if ( align[v] == v )
+                            {
+                                // if the median node is not marked as type 1
+                                Node u = neighbours[m];
+                                msg.AppendLine( $"\t\ttrying to align with {u}" );
+                                var pos_u = below.IndexOf( u );
+                                var edge = new Pair<Node, Node>( v, u );
+                                if ( marks.Contains( edge ) )
+                                    msg.AppendLine( $"\t\t{v} -> {u} is marked as a type I conflict" );
+                                if ( r >= pos_u )
+                                    msg.AppendLine( $"\t\tpos(u) = {pos_u}, >= r = {r}" );
+                                if ( !marks.Contains( edge )
+                                     && r < pos_u )
+                                {
+                                    msg.AppendLine( $"\t\t aligning {u} to {v} " );
+                                    align[u] = v;
+                                    roots[v] = roots[u];
+                                    align[v] = roots[v];
+                                    r = pos_u;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+#if DEBUG
+            Log.Message( msg.ToString() );
+#endif
+        }
+
+        private static void VerticalCompaction()
+        {
+            // Brandes & Kopf, 2001, p38 (Alg 3).
+
+            var msg = new StringBuilder( "Vertical compaction log" );
+            sink = Leaves.ToDictionary( n => n, n => n );
+            shift = Leaves.ToDictionary( n => n, n => int.MaxValue );
+            positioned = Leaves.ToDictionary( n => n, n => false );
+            
+            foreach ( Node v in Leaves )
+                if ( roots[v] == v )
+                    PlaceBlock( v, ref msg, 1 );
+
+            Log.Message( msg.ToString() );
+
+            foreach ( Node v in Leaves )
+            {
+                PositionNode( v, roots[v].Y );
+                if (shift[sink[roots[v]]] < int.MaxValue )
+                    PositionNode( v, v.Y + shift[sink[roots[v]]] );
+            }
+            
+            // done!
+        }
+
+        private static string Tabs( int n ) { return new String( '\t', n ); }
+
+        private static void PlaceBlock( Node v, ref StringBuilder msg, int d )
+        {
+            // function place_block, Brandes & Kopf, 2001, p38 (Alg 3).
+            msg.AppendLine( $"{Tabs( d )}placing block of {v}" );
+            if ( positioned[v] )
+            {
+                msg.AppendLine( $"{Tabs( d )}already positioned" );
+                return;
+            }
+
+            // I have absolutely zero idea of what's going on here.
+            Node w = v;
+            do
+            {
+                var layer = Layer( w.X, true );
+                var index = layer.IndexOf( w );
+                msg.AppendLine( $"{Tabs( d )}index: {index}" );
+                if ( index > 0 )
+                {
+                    Node u = roots[layer[index - 1]];
+                    PlaceBlock( u, ref msg, d + 1 );
+
+                    if ( sink[v] == v )
+                    {
+                        msg.AppendLine( $"{Tabs( d )}sink(v) == v [{v}]" );
+                        msg.AppendLine( $"{Tabs( d )}setting sink(v) -> sink(u) [{sink[u]}]" );
+                        sink[v] = sink[u];
+                    }
+                    if ( sink[v] != sink[u] )
+                    {
+                        msg.AppendLine( $"{Tabs( d )}sink(v) != sink(u) [{sink[v]} != {sink[u]}]" );
+                        msg.AppendLine( $"{Tabs( d )}setting shift(sink(u)) = Min( shift(sink(u)), y(v) - y(u) - 1) [Min({shift[sink[u]]}, {v.Y} - {u.Y} - 1]" );
+                        shift[sink[u]] = Math.Min( shift[sink[u]], v.Y - u.Y - 1 );
+                    }
+                    else
+                    {
+                        msg.AppendLine( $"{Tabs( d )}sink(v) == sink(u) [{sink[v]} == {sink[u]}]" );
+                        msg.AppendLine( $"{Tabs( d )}setting y(v) to Max( y(v), y(u) + 1 [{v.Y}, {u.Y + 1}" );
+                        PositionNode( v, Math.Max( v.Y, u.Y + 1 ) );
+                    }
+                }
+
+                msg.AppendLine( $"{Tabs( d )}moving from {w} to {align[w]}" );
+                w = align[w];
+            } while ( w != v );
+        }
+
+        // small wrapper for positioning to keep track of defined positions in the horizontal compaction stage.
+        private static void PositionNode( Node node, int Y )
+        {
+            node.Y = Y;
+            positioned[node] = true;
+        }
+
+        private static void MarkTypeIConflicts()
+        {
+            // Brandes & Kopf, 2001, p36 (Alg 1).
+            marks = new HashSet<Pair<Node, Node>>();
+            for ( int l = 1; l < Size.x; l++ )
+            {
+                int left_inner = 1, right_inner = 1;
+                var layer = Layer( l, true );
+                var next_layer = Layer( l + 1, true );
+                int layer_size = layer.Max( n => n.Y );
+                int next_layer_size = next_layer.Max( n => n.Y );
+
+                for ( int i = 1, i1 = 1; i1 <= next_layer_size; i1++ )
+                {
+                    Node node = NodeAtPos( l+1, i1 );
+                    // find vertices that are part of an inner (long) edge
+                    if ( node is DummyNode || node == next_layer.Last() )
+                    {
+                        // right_inner position is the endpoint of the edge on the 
+                        // current layer.
+                        if ( node is DummyNode )
+                            right_inner = node.Above.First().Y;
+                        else 
+                            right_inner = layer_size;
+
+                        // keeping track of nodes already checked, mark edges that 
+                        // cross nearest inner boundaries.
+                        while( i < i1 )
+                        {
+                            Node check = NodeAtPos( l+1, i++ );
+                            if ( check?.Above?.Any() ?? false )
+                                foreach ( Node neighbour in check.Above )
+                                    if ( neighbour.Y < left_inner || neighbour.Y > right_inner )
+                                    {
+#if TRACE_CONFLICTS
+                                        Log.Message( $"Conflict: {neighbour} -> {check}, @{node} ({l}; {left_inner}-{right_inner})" );
+#endif
+                                        marks.Add( new Pair<Node, Node>( neighbour, check ) );
+                                    }
+                        }
+
+                        // right inner is now left inner.
+                        left_inner = right_inner;
+                    } 
+                }
+            }
+        }
+
+        private static Node NodeAtPos( int X, int Y )
+        {
+            return Leaves.FirstOrDefault(n => n.X == X && n.Y == Y);
+        }
+
+        public static List<Node> CreateDummyNodes( ResearchNode parent, ResearchNode child )
+        {
+            // decouple parent and child
+            parent.Below.Remove( child );
+            child.Above.Remove( parent );
+
+            // create dummy nodes
+            var n = child.X - parent.X;
+            List<Node> dummies = new List<Node>( n );
+            Node last = parent;
+
+            for ( int i = 1; i < n; i++ )
+            {
+                // create empty dummy
+                var dummy = new DummyNode();
+                dummies.Add( dummy );
+                
+                // hook up the chain
+                last.Below.Add( dummy );
+                dummy.Above.Add( last );
+                dummy.X = last.X + 1;
+
+                // this is now last
+                last = dummy;
+            }
+
+            // hook up child
+            last.Below.Add( child );
+            child.Above.Add( last );
+
+            // done!
+            return dummies;
+        }
+
+        public static void MinimizeCrossings()
+        { 
+            // initialize each layer by putting nodes with the most (recursive!) children on bottom
+            for ( int X = 1; X <= Size.x; X++ )
+            {
+                var nodes = Layer( X ).OrderBy( n => n.Descendants.Count ).ToList();
+                for ( int i = 0; i < nodes.Count; i++ )
+                    nodes[i].Y = i + 1;
+            }
+
+            // up-down sweeps of median reordering
+            // burnout; number of iterations without progress
+            int iteration = 0, max_iterations = 50, burnout = 2;
+            while ( burnout > 0 && iteration < max_iterations )
+                if ( !MedianSweep( iteration++ ) )
+                    burnout--;
+
+            // (note that the last iteration without progress often _increases_ the amount of crossings,
+            // hence, we run one last iteration, hopefully resetting crossings to the previous minimum.
+            MedianSweep( iteration );
+
+            // perform sweeps of adjacent node reorderings
+            iteration = 0;
+            max_iterations = 50;
+            burnout = 2;
+            while ( burnout > 0 && iteration < max_iterations )
+                if ( !GreedySweep( iteration++ ) )
+                    burnout--;
+        }
+
+        private static bool GreedySweep( int iteration )
+        {
+            // count number of crossings before sweep
+            int before = Crossings();
+
+            // do up/down sweep on aternating iterations
+            if ( iteration % 2 == 0 )
+                for ( int l = 1; l <= Size.x; l++ )
+                    GreedySweep_Layer( l );
+            else
+                for ( int l = Size.x; l >= 1; l-- )
+                    GreedySweep_Layer( l );
+
+            // count number of crossings after sweep
+            int after = Crossings();
+
+#if DEBUG
+            Log.Message( $"GreedySweep: {before} -> {after}" );
+#endif
+
+            // return progress
+            return after < before;
+        }
+
+        private static void GreedySweep_Layer( int l )
+        {
+            // The objective here is twofold;
+            // 1: Swap nodes to reduce the number of crossings
+            // 2: Swap nodes so that inner edges (edges between dummies) 
+            //    avoid crossings at all costs.
+            //
+            // If I'm reasoning this out right, both objectives should be served by 
+            // minimizing the amount of crossings between each pair of nodes. 
+            var layer = Layer( l, true );
+            for ( int i = 0; i < layer.Count - 1; i++ )
+                if ( Crossings( layer[i + 1], layer[i] ) < Crossings( layer[i], layer[i + 1] ) )
+                    Swap( layer[i], layer[i + 1] );
+        }
+        
+        private static void Swap( Node A, Node B )
+        {
+            if ( A.X != B.X )
+                throw new Exception( "Can't swap nodes on different layers" );
+
+            // swap Y positions of adjacent nodes
+            var tmp = A.Y;
+            A.Y = B.Y;
+            B.Y = tmp;
+        }
+
+        private static bool MedianSweep( int iteration )
+        {
+            // count number of crossings before sweep
+            int before = Crossings();
+
+            // do up/down sweep on alternating iterations
+            if ( iteration % 2 == 0 )
+            {
+                for ( int i = 1; i < Size.x; i++ )
+                {
+                    var nodes = Layer( i );
+                    var medians = nodes.Select( n => new Pair<Node, float>( n, GetMedianY( n.Above ) ) ).ToList();
+                    SetLayerPositions( medians );
+                }
+            }
+            else
+            {
+                for ( int i = Size.x; i > 1; i-- )
+                {
+                    var nodes = Layer( i );
+                    var medians = nodes.Select( n => new Pair<Node, float>( n, GetMedianY( n.Below ) ) ).ToList();
+                    SetLayerPositions( medians );
+                }
+            }
+
+            // count number of crossings after sweep
+            int after = Crossings();
+
+#if DEBUG
+            Log.Message( $"MedianSweep: {before} -> {after}" );
+#endif
+
+            // did we make progress? please?
+            return after < before;
+        }
+
+        private static float GetMedianY( List<Node> nodes )
+        {
+            if ( nodes.NullOrEmpty() )
+                return -1;
+            return (float) nodes.Sum( n => n.Y ) / (float) nodes.Count;
+        }
+        
+        private static void SetLayerPositions( List<Pair<Node, float>> nodeMedianPairs )
+        {
+            // we can be fairly straightforward here, as we're only concerned with crossing edges.
+            // determining the best Y coordinates for a pretty graph will be handled later.
+            var nodes = nodeMedianPairs.OrderBy( p => p.Second )
+                                       .ThenBy( p => p.First.Descendants.Count )
+                                       .Select( p => p.First );
+
+            // set Y positions 1, |nodes|
+            int Y = 1;
+            foreach ( Node node in nodes )
+                node.Y = Y++;
+        }
+        
+        private static int UpperCrossings( Node a, Node b )
+        {
+            if (a.X != b.X)
+                throw new Exception("a and b must be on the same rank.");
+
+            var A = a.Above?.Select( n => n.Y );
+            var B = b.Above?.Select( n => n.Y );
+            
+            return Crossings( A, B );
+        }
+
+        /// <summary>
+        /// Return the total amount of crossings of edges between A and B, assuming that A and B are 
+        /// Y coordinates of vertices adjacent to A and B, and that Y(A) \lt Y(B);
+        /// </summary>
+        /// <param name="A"></param>
+        /// <param name="B"></param>
+        /// <returns></returns>
+        private static int Crossings( IEnumerable<int> A, IEnumerable<int> B )
+        {
+#if TRACE_CROSSINGS
+            Log.Message( $"Crossings( A, B ) called" );
+
+            if ( A == null )
+                Log.Message( "A NULL" );
+            else
+                Log.Message( "A: " + string.Join( ", ", A.Select( i => i.ToString() ).ToArray() ) );
+
+            if ( B == null )
+                Log.Message( "B NULL" );
+            else
+                Log.Message( "B: " + string.Join( ", ", B.Select( i => i.ToString() ).ToArray() ) );
+#endif
+
+            if ( A == null || B == null )
+                return 0;
+
+            if ( !A.Any() || !B.Any() )
+                return 0;
+
+            int crossings = 0;
+            foreach ( int a in A )
+                foreach ( int b in B )
+                    if ( a > b )
+                        crossings++;
+
+#if TRACE_CROSSINGS
+            Log.Message( "\tCrossings: " + crossings  );
+#endif
+
+            return crossings;
+        }
+
+        private static int LowerCrossings( Node a, Node b )
+        {
+            if ( a.X != b.X )
+                throw new Exception( "a and b must be on the same rank." );
+
+            var A = a.Below?.Select( n => n.Y );
+            var B = b.Below?.Select( n => n.Y );
+
+            return Crossings( A, B );
+        }
+
+        private static int Crossings()
+        {
+#if TRACE_CROSSINGS
+            Log.Message( "Crossings() called, tree size: " + Size );
+#endif
+            int crossings = 0;
+            for ( int i = 1; i < Size.x; i++ )
+                crossings += Crossings( i );
+
+            return crossings;
+        }
+
+        private static int Crossings( Node A, Node B )
+        {
+            return UpperCrossings( A, B ) + LowerCrossings( A, B );
+        }
+
+        internal static bool orderDirty = true;
+
+        private static int Crossings( int depth, bool up = false )
+        {
+#if TRACE_CROSSINGS
+            Log.Message( $"Crossings( {depth}, {up} ) called, nodes at {depth}: {NodesAtDepth(depth).Count}" );
+#endif
+            if ( up && depth - 1 < 0 )
+                throw new ArgumentOutOfRangeException( nameof( depth ) );
+            if ( !up && depth + 1 > Size.x )
+                throw new ArgumentOutOfRangeException( nameof( depth ) );
+
+            int crossings = 0;
+            List<Node> nodes = Layer( depth, true );
+            for ( var i = 0; i < nodes.Count - 1; i++ )
+                crossings += up ? UpperCrossings( nodes[i], nodes[i + 1] ) : LowerCrossings( nodes[i], nodes[i + 1] );
+
+            return crossings;
+        }
+        
+        public static List<Node> Layer( int depth, bool ordered = false )
+        {
+            if ( ordered && orderDirty )
+            {
+                _leaves = Leaves.OrderBy( n => n.X ).ThenBy( n => n.Y ).ToList();
+                orderDirty = false;
+            }
+
+            return Leaves.Where( n => n.X == depth ).ToList();
+        }
+
+        public new static string ToString()
+        {
+            var text = new StringBuilder();
+
+            for ( int l = 1; l <= Leaves.Max( n => n.X ); l++)
+            {
+                text.AppendLine( $"Layer {l}:" );
+                var layer = Layer( l, true );
+
+                foreach ( Node n in layer )
+                {
+                    text.AppendLine( $"\t{n}" );
+                    text.AppendLine( $"\t\tAbove: " + string.Join( ", ", n.Above.Select( a => a.ToString() ).ToArray() ) );
+                    text.AppendLine( $"\t\tBelow: " + string.Join( ", ", n.Below.Select( b => b.ToString() ).ToArray() ) );
+                    text.AppendLine( $"\t\tAlign: {align[n]}" );
+                    text.AppendLine( $"\t\tRoot: {roots[n]}" );
+                }
+            }
             return text.ToString();
         }
 
-        #endregion Methods
+#endregion Methods
     }
 }

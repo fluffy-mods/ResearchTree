@@ -15,7 +15,7 @@ namespace FluffyResearchTree
     {
         #region Fields
 
-        private static readonly List<Node> _queue = new List<Node>();
+        private static readonly List<ResearchNode> _queue = new List<ResearchNode>();
         private static List<ResearchProjectDef> _saveableQueue;
 
         #endregion Fields
@@ -26,13 +26,13 @@ namespace FluffyResearchTree
         /// Removes and returns the first node in the queue.
         /// </summary>
         /// <returns></returns>
-        public static Node Pop
+        public static ResearchNode Pop
         {
             get
             {
                 if ( _queue != null && _queue.Count > 0 )
                 {
-                    Node node = _queue[0];
+                    ResearchNode node = _queue[0];
                     _queue.RemoveAt( 0 );
                     return node;
                 }
@@ -45,14 +45,12 @@ namespace FluffyResearchTree
 
         #region Methods
 
-        public static void Dequeue( Node node )
+        public static void Dequeue( ResearchNode node )
         {
             _queue.Remove( node );
-            List<Node> followUps = _queue.Where( n => n.GetMissingRequiredRecursive().Contains( node ) ).ToList();
-            foreach ( Node followUp in followUps )
-            {
+            List<ResearchNode> followUps = _queue.Where( n => n.GetMissingRequiredRecursive().Contains( node ) ).ToList();
+            foreach ( ResearchNode followUp in followUps )
                 _queue.Remove( followUp );
-            }
         }
 
         public static void DrawLabels()
@@ -61,13 +59,13 @@ namespace FluffyResearchTree
             foreach ( Node node in _queue )
             {
                 // draw coloured tag
-                GUI.color = node.Tree.MediumColor;
+                GUI.color = Color.green;
                 GUI.DrawTexture( node.QueueRect, CircleFill );
 
                 // if this is not first in line, grey out centre of tag
                 if ( i > 1 )
                 {
-                    GUI.color = node.Tree.GreyedColor;
+                    GUI.color = Color.grey;
                     GUI.DrawTexture( node.QueueRect.ContractedBy( 2f ), CircleFill );
                 }
 
@@ -79,7 +77,7 @@ namespace FluffyResearchTree
             }
         }
 
-        public static void Enqueue( Node node, bool add )
+        public static void Enqueue( ResearchNode node, bool add )
         {
             // if we're not adding, clear the current queue and current research project
             if ( !add )
@@ -93,11 +91,11 @@ namespace FluffyResearchTree
                 _queue.Add( node );
 
             // try set the first research in the queue to be the current project.
-            Node next = _queue.First();
+            ResearchNode next = _queue.First();
             Find.ResearchManager.currentProj = next?.Research; // null if next is null.
         }
 
-        public static void EnqueueRange( IEnumerable<Node> nodes, bool add )
+        public static void EnqueueRange( IEnumerable<ResearchNode> nodes, bool add )
         {
             // clear current Queue if not adding
             if ( !add )
@@ -107,16 +105,16 @@ namespace FluffyResearchTree
             }
 
             // sorting by depth ensures prereqs are met - cost is just a bonus thingy.
-            foreach ( Node node in nodes.OrderBy( node => node.Depth ).ThenBy( node => node.Research.CostApparent ) )
+            foreach ( ResearchNode node in nodes.OrderBy( node => node.Y ).ThenBy( node => node.Research.CostApparent ) )
                 Enqueue( node, true );
         }
 
-        public static bool IsQueued( Node node )
+        public static bool IsQueued( ResearchNode node )
         {
             return _queue.Contains( node );
         }
 
-        public static bool TryStartNext( out Node next )
+        public static bool TryStartNext( out ResearchNode next )
         {
             if ( _queue.Count > 0 )
             {
@@ -143,14 +141,14 @@ namespace FluffyResearchTree
             if ( Scribe.mode == LoadSaveMode.PostLoadInit )
             {
                 // initialize the tree if not initialized
-                if ( !ResearchTree.Initialized )
-                    ResearchTree.Initialize();
+                if ( !Tree.Initialized )
+                    Tree.Initialize();
 
                 // initialize the queue
                 foreach ( ResearchProjectDef research in _saveableQueue )
                 {
                     // find a node that matches the research - or null if none found
-                    Node node = ResearchTree.Forest.FirstOrDefault( n => n.Research == research );
+                    ResearchNode node = research.Node();
 
                     // enqueue the node
                     if ( node != null )

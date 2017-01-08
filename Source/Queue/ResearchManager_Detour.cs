@@ -85,7 +85,7 @@ namespace FluffyResearchTree
             manager.ReapplyAllMods();
 
             // remove current from queue
-            Node completed = Queue.Pop;
+            ResearchNode completed = Queue.Pop;
 
             if ( researcher != null )
                 TaleRecorder.RecordTale( TaleDefOf.FinishedResearchProject, researcher, completed.Research );
@@ -95,7 +95,7 @@ namespace FluffyResearchTree
             string text = "ResearchFinished".Translate( completed.Research.LabelCap ) + "\n\n" + completed.Research.DescriptionDiscovered;
 
             // if there's something on the queue start it, and push an appropriate message
-            Node next;
+            ResearchNode next;
             if ( Queue.TryStartNext( out next ) )
             {
                 text += "\n\n" + "NextInQueue".Translate( next.Research.LabelCap );

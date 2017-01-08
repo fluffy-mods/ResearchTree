@@ -16,34 +16,31 @@ namespace FluffyResearchTree
     public class MainTabWindow_ResearchTree : MainTabWindow
     {
         internal static Vector2 _scrollPosition                     = Vector2.zero;
-        public static List<Pair<Node, Node>> connections            = new List<Pair<Node, Node>>();
-        public static List<Pair<Node, Node>> highlightedConnections = new List<Pair<Node, Node>>();
+        public static List<Pair<ResearchNode, ResearchNode>> connections = new List<Pair<ResearchNode, ResearchNode>>();
+        public static List<Pair<ResearchNode, ResearchNode>> highlightedConnections =
+            new List<Pair<ResearchNode, ResearchNode>>();
         public static Dictionary<Rect, List<String>> hubTips        = new Dictionary<Rect, List<string>>();
-        public static List<Node> nodes                              = new List<Node>();
+        public static List<ResearchNode> nodes = new List<ResearchNode>();
 
         public override void PreOpen()
         {
             base.PreOpen();
 
-            if ( !ResearchTree.Initialized )
+            if ( !Tree.Initialized )
             {
                 // initialize tree
-                ResearchTree.Initialize();
+                Tree.Initialize();
 
                 // spit out debug info
 #if DEBUG
-                Log.Message( "ResearchTree :: duplicated positions:\n " + string.Join( "\n", ResearchTree.Forest.Where( n => ResearchTree.Forest.Any( n2 => n.Pos == n2.Pos && n != n2 ) ).Select( n => n.Pos + n.Research.LabelCap + " (" + n.Genus + ")" ).ToArray() ) );
-
-                foreach ( Tree tree in ResearchTree.Trees )
-                {
-                    Log.Message( tree.ToString() );
-                }
-                Log.Message( ResearchTree.Orphans.ToString() );
+                Log.Message( "ResearchTree :: duplicated positions:\n " + string.Join( "\n", Tree.Leaves.Where( n => Tree.Leaves.Any( n2 => n != n2 &&  n.X == n2.X && n.Y == n2.Y ) ).Select( n => n.X + ", " + n.Y + ": " + n.Label ).ToArray() ) );
+                Log.Message( "ResearchTree :: out-of-bounds nodes:\n" + string.Join( "\n", Tree.Leaves.Where( n => n.X < 1 || n.Y < 1  ).Select( n => n.ToString() ).ToArray()  ) );
+                Log.Message( Tree.ToString() );
 #endif
             }
-
+            
             // clear node availability caches
-            Node.ClearCaches();
+            ResearchNode.ClearCaches();
 
             // set to topleft (for some reason vanilla alignment overlaps bottom buttons).
             windowRect.x = 0f;
@@ -72,48 +69,22 @@ namespace FluffyResearchTree
 
         private void PrepareTreeForDrawing()
         {
-            // loop through trees
-            foreach ( Tree tree in ResearchTree.Trees )
-            {
-                foreach ( Node node in tree.Trunk.Concat( tree.Leaves ) )
-                {
-                    nodes.Add( node );
-
-                    foreach ( Node parent in node.Parents )
-                    {
-                        connections.Add( new Pair<Node, Node>( node, parent ) );
-                    }
-                }
-            }
-
-            // add orphans
-            foreach ( Node node in ResearchTree.Orphans.Leaves )
+            foreach ( ResearchNode node in Tree.Leaves.OfType<ResearchNode>() )
             {
                 nodes.Add( node );
 
-                foreach ( Node parent in node.Parents )
+                foreach ( ResearchNode parent in node.Parents )
                 {
-                    connections.Add( new Pair<Node, Node>( node, parent ) );
+                    connections.Add( new Pair<ResearchNode, ResearchNode>( node, parent ) );
                 }
             }
         }
 
         public void DrawTree( Rect canvas )
         {
-            // get total size of Research Tree
-            int maxDepth = 0, totalWidth = 0;
-
-            if ( ResearchTree.Trees.Any() )
-            {
-                maxDepth = ResearchTree.Trees.Max( tree => tree.MaxDepth );
-                totalWidth = ResearchTree.Trees.Sum( tree => tree.Width );
-            }
-
-            maxDepth = Math.Max( maxDepth, ResearchTree.Orphans.MaxDepth );
-            totalWidth += ResearchTree.Orphans.Width;
-
-            float width = ( maxDepth + 1 ) * ( Settings.NodeSize.x + Settings.NodeMargins.x ); // zero based
-            float height = totalWidth * ( Settings.NodeSize.y + Settings.NodeMargins.y );
+            // set size of rect
+            float width = ( Tree.Size.x ) * ( Settings.NodeSize.x + Settings.NodeMargins.x ); 
+            float height = Tree.Size.z * ( Settings.NodeSize.y + Settings.NodeMargins.y );
 
             // main view rect
             Rect view = new Rect( 0f, 0f, width, height );
@@ -122,26 +93,33 @@ namespace FluffyResearchTree
 
             Text.Anchor = TextAnchor.MiddleCenter;
 
-            // draw regular connections, not done first to better highlight done.
-            foreach ( Pair<Node, Node> connection in connections.Where( pair => !pair.Second.Research.IsFinished ) )
-            {
-                ResearchTree.DrawLine( connection, connection.First.Tree.GreyedColor );
-            }
+            //// draw regular connections, not done first to better highlight done.
+            //foreach ( var connection in connections.Where( pair => !pair.Second.Research.IsFinished ) )
+            //{
+            //    Tree.DrawLine( connection, Color.grey );
+            //}
 
-            // draw connections from completed nodes
-            foreach ( Pair<Node, Node> connection in connections.Where( pair => pair.Second.Research.IsFinished ) )
-                ResearchTree.DrawLine( connection, connection.First.Tree.MediumColor );
-            connections.Clear();
+            //// draw connections from completed nodes
+            //foreach ( var connection in connections.Where( pair => pair.Second.Research.IsFinished ) )
+            //    Tree.DrawLine( connection, Color.green );
+            //connections.Clear();
 
-            // draw highlight connections on top
-            foreach ( Pair<Node, Node> connection in highlightedConnections )
-                ResearchTree.DrawLine( connection, GenUI.MouseoverColor, true );
-            highlightedConnections.Clear();
+            //// draw highlight connections on top
+            //foreach ( var connection in highlightedConnections )
+            //    Tree.DrawLine( connection, GenUI.MouseoverColor, true );
+            //highlightedConnections.Clear();
 
             // draw nodes on top of lines
-            foreach ( Node node in nodes )
+            foreach ( ResearchNode node in nodes )
                 node.Draw();
             nodes.Clear();
+
+#if DEBUG
+            foreach ( DummyNode dummyNode in Tree.Leaves.OfType<DummyNode>() )
+                dummyNode.Draw();
+
+            Tree.DrawDebug();
+#endif
 
             // register hub tooltips
             foreach ( KeyValuePair<Rect, List<string>> pair in hubTips )

@@ -2,6 +2,7 @@
 // ResearchProjectDef_Extensions.cs
 // 2016-12-28
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -163,9 +164,9 @@ namespace FluffyResearchTree
             return unlocks;
         }
 
-        public static Node Node( this ResearchProjectDef research )
+        public static ResearchNode Node( this ResearchProjectDef research )
         {
-            return ResearchTree.Forest.FirstOrDefault( node => node.Research == research );
+            return Tree.Leaves.OfType<ResearchNode>().FirstOrDefault( node => node.Research == research );
         }
 
         #endregion Methods
