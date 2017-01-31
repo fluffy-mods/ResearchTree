@@ -234,8 +234,8 @@ namespace FluffyResearchTree
         public void SetRects()
         {
             // origin
-            _topLeft = new Vector2( _pos.x * ( Settings.NodeSize.x + Settings.NodeMargins.x ),
-                                    _pos.z * ( Settings.NodeSize.y + Settings.NodeMargins.y ) );
+            _topLeft = new Vector2( ( X - 1 ) * ( Settings.NodeSize.x + Settings.NodeMargins.x ),
+                                    ( Y - 1 ) * ( Settings.NodeSize.y + Settings.NodeMargins.y ) );
 
             // main rect
             _rect = new Rect( _topLeft.x,
