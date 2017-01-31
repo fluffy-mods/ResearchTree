@@ -1,45 +1,52 @@
 // Karel Kroeze
 // Tree.cs
-// 2016-12-28
-//#define TRACE_CONFLICTS
+// 2017-01-06
+
 #define TRACE_ALIGNMENT
+
 //#define TRACE_COMPACTION
-using RimWorld;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
+using RimWorld;
 using UnityEngine;
 using Verse;
 using static FluffyResearchTree.Assets;
-using Color = UnityEngine.Color;
 
 namespace FluffyResearchTree
 {
     public static class Tree
     {
-        #region Fields
-
         public static bool Initialized;
         public static IntVec2 Size = IntVec2.Zero;
         public static List<Node> _leaves;
 
-        #endregion Fields
+        // data structures used in vertical alignment and compaction
+        private static HashSet<Pair<Node, Node>> marks;
+
+        private static Dictionary<Node, Node> roots;
+        private static Dictionary<Node, Node> align;
+        private static Dictionary<Node, Node> sink;
+        private static Dictionary<Node, int> shift;
+        private static Dictionary<Node, bool> positioned;
+
+        internal static bool orderDirty = true;
 
         public static List<Node> Leaves
         {
             get
             {
-                if (_leaves == null)
+                if ( _leaves == null )
                     throw new Exception( "Trying to access leaves before they are initialized." );
 
                 return _leaves;
             }
         }
-        
-        #region Methods
-        
-        public static void DrawLine( Pair<ResearchNode, ResearchNode> connection, Color color, bool reverseDirection = false )
+
+        public static void DrawLine( Pair<ResearchNode, ResearchNode> connection, Color color,
+                                     bool reverseDirection = false )
         {
             Vector2 a, b;
 
@@ -85,7 +92,8 @@ namespace FluffyResearchTree
                 float bottom = Math.Max( left.y, right.y ) - Settings.NodeMargins.x / 4f;
 
                 // if these positions are more than X nodes apart, draw an invisible 'hub' link.
-                if ( false ) // TODO: commented out for debug. Math.Abs( top - bottom ) > Settings.LineMaxLengthNodes * Settings.NodeSize.y )
+                if ( false )
+                    // TODO: commented out for debug. Math.Abs( top - bottom ) > Settings.LineMaxLengthNodes * Settings.NodeSize.y )
                 {
                     isHubLink = true;
 
@@ -126,45 +134,42 @@ namespace FluffyResearchTree
                     }
                     MainTabWindow_ResearchTree.hubTips[hub].Add( connection.Second.Research.LabelCap );
                 }
-                // but when nodes are close together, just draw the link as usual.
+                    // but when nodes are close together, just draw the link as usual.
+                // left to curve
+                var leftToCurve = new Rect( left.x, left.y - 2f, Settings.NodeMargins.x / 4f, 4f );
+                GUI.DrawTexture( leftToCurve, EW );
+
+                // curve to curve
+                var curveToCurve = new Rect( left.x + Settings.NodeMargins.x / 2f - 2f, top, 4f, bottom - top );
+                GUI.DrawTexture( curveToCurve, NS );
+
+                // curve to right
+                var curveToRight = new Rect( left.x + Settings.NodeMargins.x / 4f * 3, right.y - 2f,
+                                             right.x - left.x - Settings.NodeMargins.x / 4f * 3, 4f );
+                GUI.DrawTexture( curveToRight, EW );
+
+                // curve positions
+                var curveLeft = new Rect( left.x + Settings.NodeMargins.x / 4f, left.y - Settings.NodeMargins.x / 4f,
+                                          Settings.NodeMargins.x / 2f, Settings.NodeMargins.x / 2f );
+                var curveRight = new Rect( left.x + Settings.NodeMargins.x / 4f,
+                                           right.y - Settings.NodeMargins.x / 4f, Settings.NodeMargins.x / 2f,
+                                           Settings.NodeMargins.x / 2f );
+
+                // going down
+                if ( left.y < right.y )
+                {
+                    GUI.DrawTextureWithTexCoords( curveLeft, Circle, new Rect( 0.5f, 0.5f, 0.5f, 0.5f ) );
+                    // bottom right quadrant
+                    GUI.DrawTextureWithTexCoords( curveRight, Circle, new Rect( 0f, 0f, 0.5f, 0.5f ) );
+                    // top left quadrant
+                }
+                // going up
                 else
                 {
-                    // left to curve
-                    var leftToCurve = new Rect( left.x, left.y - 2f, Settings.NodeMargins.x / 4f, 4f );
-                    GUI.DrawTexture( leftToCurve, EW );
-
-                    // curve to curve
-                    var curveToCurve = new Rect( left.x + Settings.NodeMargins.x / 2f - 2f, top, 4f, bottom - top );
-                    GUI.DrawTexture( curveToCurve, NS );
-
-                    // curve to right
-                    var curveToRight = new Rect( left.x + Settings.NodeMargins.x / 4f * 3, right.y - 2f,
-                                                 right.x - left.x - Settings.NodeMargins.x / 4f * 3, 4f );
-                    GUI.DrawTexture( curveToRight, EW );
-
-                    // curve positions
-                    var curveLeft = new Rect( left.x + Settings.NodeMargins.x / 4f, left.y - Settings.NodeMargins.x / 4f,
-                                              Settings.NodeMargins.x / 2f, Settings.NodeMargins.x / 2f );
-                    var curveRight = new Rect( left.x + Settings.NodeMargins.x / 4f,
-                                               right.y - Settings.NodeMargins.x / 4f, Settings.NodeMargins.x / 2f,
-                                               Settings.NodeMargins.x / 2f );
-
-                    // going down
-                    if ( left.y < right.y )
-                    {
-                        GUI.DrawTextureWithTexCoords( curveLeft, Circle, new Rect( 0.5f, 0.5f, 0.5f, 0.5f ) );
-                        // bottom right quadrant
-                        GUI.DrawTextureWithTexCoords( curveRight, Circle, new Rect( 0f, 0f, 0.5f, 0.5f ) );
-                        // top left quadrant
-                    }
-                    // going up
-                    else
-                    {
-                        GUI.DrawTextureWithTexCoords( curveLeft, Circle, new Rect( 0.5f, 0f, 0.5f, 0.5f ) );
-                        // top right quadrant
-                        GUI.DrawTextureWithTexCoords( curveRight, Circle, new Rect( 0f, 0.5f, 0.5f, 0.5f ) );
-                        // bottom left quadrant
-                    }
+                    GUI.DrawTextureWithTexCoords( curveLeft, Circle, new Rect( 0.5f, 0f, 0.5f, 0.5f ) );
+                    // top right quadrant
+                    GUI.DrawTextureWithTexCoords( curveRight, Circle, new Rect( 0f, 0.5f, 0.5f, 0.5f ) );
+                    // bottom left quadrant
                 }
             }
 
@@ -186,12 +191,12 @@ namespace FluffyResearchTree
         {
             // populate all nodes
             _leaves = new List<Node>( DefDatabase<ResearchProjectDef>.AllDefsListForReading
-                                                                    // exclude hidden projects (prereq of itself is a common trick to hide research).
-                                                                    .Where(
-                                                                           def =>
-                                                                           def.prerequisites.NullOrEmpty() ||
-                                                                           !def.prerequisites.Contains( def ) )
-                                                                    .Select( def => new ResearchNode( def ) as Node ) );
+                                          // exclude hidden projects (prereq of itself is a common trick to hide research).
+                                                                     .Where(
+                                                                            def =>
+                                                                            def.prerequisites.NullOrEmpty() ||
+                                                                            !def.prerequisites.Contains( def ) )
+                                                                     .Select( def => new ResearchNode( def ) as Node ) );
 
             // mark, but do not remove redundant prerequisites.
             foreach ( ResearchNode node in Leaves.OfType<ResearchNode>() )
@@ -219,14 +224,14 @@ namespace FluffyResearchTree
             // create links between nodes
             foreach ( ResearchNode node in Leaves.OfType<ResearchNode>() )
                 node.CreateLinks();
-            
+
             // calculate Depth of each node
-            // NOTE: These are the layers in graph terminology 
-            foreach ( ResearchNode node in Leaves.OfType<ResearchNode>())
+            // NOTE: These are the layers in graph terminology
+            foreach ( ResearchNode node in Leaves.OfType<ResearchNode>() )
                 node.SetDepth();
-            
+
             // create dummy vertices for edges that span multiple layers
-            List<Node> dummies = new List<Node>();
+            var dummies = new List<Node>();
             foreach ( ResearchNode node in Leaves.OfType<ResearchNode>() )
                 foreach ( ResearchNode child in node.Children.Where( child => child.X - node.X > 1 ) )
                     dummies.AddRange( CreateDummyNodes( node, child ) );
@@ -243,14 +248,6 @@ namespace FluffyResearchTree
             // Done!
             Initialized = true;
         }
-        
-        // data structures used in vertical alignment and compaction
-        private static HashSet<Pair<Node, Node>> marks;
-        private static Dictionary<Node, Node> roots;
-        private static Dictionary<Node, Node> align;
-        private static Dictionary<Node, Node> sink;
-        private static Dictionary<Node, int> shift;
-        private static Dictionary<Node, bool> positioned;
 
         private static void CreateLayout()
         {
@@ -261,61 +258,62 @@ namespace FluffyResearchTree
             // Brandes, U., & Köpf, B. (2001, September). Fast and simple horizontal coordinate assignment. In International Symposium on Graph Drawing (pp. 31-44). Springer Berlin Heidelberg.
 
             int before = Crossings();
-            
+
             MarkTypeIConflicts();
 
 #if DEBUG
-            Log.Message( $"Conflicts: \n\t{string.Join( "\n\t", marks.Select( p => $"{p.First} -> {p.Second}" ).ToArray() )} " );
+            Log.Message(
+                        $"Conflicts: \n\t{string.Join( "\n\t", marks.Select( p => $"{p.First} -> {p.Second}" ).ToArray() )} " );
 #endif
 
             HorizontalAlignment();
 
 #if DEBUG
-            var blocks = roots.Where( p => p.Key == p.Value );
+            IEnumerable<KeyValuePair<Node, Node>> blocks = roots.Where( p => p.Key == p.Value );
             var root_msg = new StringBuilder();
-            foreach ( var root in blocks.Select( p => p.Key ) )
+            foreach ( Node root in blocks.Select( p => p.Key ) )
             {
                 root_msg.AppendLine( $"Block: {root}" );
-                foreach ( var node in roots.Where( p => p.Value == root ) )
+                foreach ( KeyValuePair<Node, Node> node in roots.Where( p => p.Value == root ) )
                     root_msg.AppendLine( $"\t{node}" );
             }
+
             Log.Message( root_msg.ToString() );
             Log.Message( $"Align: \n\t{string.Join( "\n\t", align.Select( p => $"{p.Key} -> {p.Value}" ).ToArray() )} " );
 
 #endif
+            // todo: this is where things go horribly wrong.
+            //            VerticalCompaction();
 
-//            VerticalCompaction();
-
-//#if DEBUG
-//            Log.Message( $"Sink: \n\t{string.Join( "\n\t", sink.Select( p => $"{p.Key} -> {p.Value}" ).ToArray() )} " );
-//            Log.Message( $"Shift: \n\t{string.Join( "\n\t", shift.Select( p => $"{p.Key} -> {p.Value}" ).ToArray() )} " );
-//#endif
+            //#if DEBUG
+            //            Log.Message( $"Sink: \n\t{string.Join( "\n\t", sink.Select( p => $"{p.Key} -> {p.Value}" ).ToArray() )} " );
+            //            Log.Message( $"Shift: \n\t{string.Join( "\n\t", shift.Select( p => $"{p.Key} -> {p.Value}" ).ToArray() )} " );
+            //#endif
 
             //foreach ( var leaf in Leaves )
             //    leaf.Y = roots[leaf].Y;
 
-            var Yoffset = Leaves.Min( n => n.Y ) - 1;
-            foreach ( var leaf in Leaves )
+            int Yoffset = Leaves.Min( n => n.Y ) - 1;
+            foreach ( Node leaf in Leaves )
                 leaf.Y -= Yoffset;
-
 
             int after = Crossings();
             Log.Message( $"CreateLayout: {before} -> {after}" );
         }
 
-        internal static void DrawDebug( )
+        internal static void DrawDebug()
         {
             foreach ( Node v in Leaves )
             {
-                //if ( v != roots[v] )
-                //    Widgets.DrawLine( v.Center, roots[v].Center, Color.red, 1 );
+                if ( v != roots[v] )
+                    Widgets.DrawLine( v.Center, roots[v].Center, Color.red, 1 );
                 if ( v != align[v] && Math.Abs( align[v].X - v.X ) <= 1 )
                     Widgets.DrawLine( v.Center, align[v].Center, Color.blue, 4 );
                 foreach ( Node w in v.Below )
                     Widgets.DrawLine( v.Right, w.Left, Color.white, 1 );
             }
         }
-        
+
         private static void HorizontalAlignment()
         {
             // Brandes & Kopf, 2001, p37 (Alg 2).
@@ -330,11 +328,11 @@ namespace FluffyResearchTree
             {
                 msg.AppendLine( $"Layer {l}" );
                 int r = -1;
-                var layer = Layer( l, true );
-                var below = Layer( l + 1, true );
+                List<Node> layer = Layer( l, true );
+                List<Node> below = Layer( l + 1, true );
 
                 // loop over nodes in layer
-                for ( int pos_v = 0; pos_v < layer.Count; pos_v++ )
+                for ( var pos_v = 0; pos_v < layer.Count; pos_v++ )
                 {
                     Node v = layer[pos_v];
                     msg.AppendLine( $"\tChecking {v}" );
@@ -342,9 +340,9 @@ namespace FluffyResearchTree
                     // if node has any neighbours on layer l+1
                     if ( v.Below.Any() )
                     {
-                        var neighbours = v.Below;
+                        List<Node> neighbours = v.Below;
                         neighbours.SortBy( n => n.Y );
-                        var d = neighbours.Count;
+                        int d = neighbours.Count;
                         msg.AppendLine( $"\t\thas {d} neighbours" );
                         int[] medians = {(int) Math.Floor( ( d - 1f ) / 2f ), (int) Math.Ceiling( ( d - 1f ) / 2f )};
                         foreach ( int m in medians )
@@ -356,7 +354,7 @@ namespace FluffyResearchTree
                                 // if the median node is not marked as type 1
                                 Node u = neighbours[m];
                                 msg.AppendLine( $"\t\ttrying to align with {u}" );
-                                var pos_u = below.IndexOf( u );
+                                int pos_u = below.IndexOf( u );
                                 var edge = new Pair<Node, Node>( v, u );
                                 if ( marks.Contains( edge ) )
                                     msg.AppendLine( $"\t\t{v} -> {u} is marked as a type I conflict" );
@@ -389,7 +387,7 @@ namespace FluffyResearchTree
             sink = Leaves.ToDictionary( n => n, n => n );
             shift = Leaves.ToDictionary( n => n, n => int.MaxValue );
             positioned = Leaves.ToDictionary( n => n, n => false );
-            
+
             foreach ( Node v in Leaves )
                 if ( roots[v] == v )
                     PlaceBlock( v, ref msg, 1 );
@@ -399,10 +397,10 @@ namespace FluffyResearchTree
             foreach ( Node v in Leaves )
             {
                 PositionNode( v, roots[v].Y );
-                if (shift[sink[roots[v]]] < int.MaxValue )
+                if ( shift[sink[roots[v]]] < int.MaxValue )
                     PositionNode( v, v.Y + shift[sink[roots[v]]] );
             }
-            
+
             // done!
         }
 
@@ -422,8 +420,8 @@ namespace FluffyResearchTree
             Node w = v;
             do
             {
-                var layer = Layer( w.X, true );
-                var index = layer.IndexOf( w );
+                List<Node> layer = Layer( w.X, true );
+                int index = layer.IndexOf( w );
                 msg.AppendLine( $"{Tabs( d )}index: {index}" );
                 if ( index > 0 )
                 {
@@ -439,7 +437,8 @@ namespace FluffyResearchTree
                     if ( sink[v] != sink[u] )
                     {
                         msg.AppendLine( $"{Tabs( d )}sink(v) != sink(u) [{sink[v]} != {sink[u]}]" );
-                        msg.AppendLine( $"{Tabs( d )}setting shift(sink(u)) = Min( shift(sink(u)), y(v) - y(u) - 1) [Min({shift[sink[u]]}, {v.Y} - {u.Y} - 1]" );
+                        msg.AppendLine(
+                                       $"{Tabs( d )}setting shift(sink(u)) = Min( shift(sink(u)), y(v) - y(u) - 1) [Min({shift[sink[u]]}, {v.Y} - {u.Y} - 1]" );
                         shift[sink[u]] = Math.Min( shift[sink[u]], v.Y - u.Y - 1 );
                     }
                     else
@@ -466,32 +465,32 @@ namespace FluffyResearchTree
         {
             // Brandes & Kopf, 2001, p36 (Alg 1).
             marks = new HashSet<Pair<Node, Node>>();
-            for ( int l = 1; l < Size.x; l++ )
+            for ( var l = 1; l < Size.x; l++ )
             {
                 int left_inner = 1, right_inner = 1;
-                var layer = Layer( l, true );
-                var next_layer = Layer( l + 1, true );
+                List<Node> layer = Layer( l, true );
+                List<Node> next_layer = Layer( l + 1, true );
                 int layer_size = layer.Max( n => n.Y );
                 int next_layer_size = next_layer.Max( n => n.Y );
 
                 for ( int i = 1, i1 = 1; i1 <= next_layer_size; i1++ )
                 {
-                    Node node = NodeAtPos( l+1, i1 );
+                    Node node = NodeAtPos( l + 1, i1 );
                     // find vertices that are part of an inner (long) edge
                     if ( node is DummyNode || node == next_layer.Last() )
                     {
-                        // right_inner position is the endpoint of the edge on the 
+                        // right_inner position is the endpoint of the edge on the
                         // current layer.
                         if ( node is DummyNode )
                             right_inner = node.Above.First().Y;
-                        else 
+                        else
                             right_inner = layer_size;
 
-                        // keeping track of nodes already checked, mark edges that 
+                        // keeping track of nodes already checked, mark edges that
                         // cross nearest inner boundaries.
-                        while( i < i1 )
+                        while ( i < i1 )
                         {
-                            Node check = NodeAtPos( l+1, i++ );
+                            Node check = NodeAtPos( l + 1, i++ );
                             if ( check?.Above?.Any() ?? false )
                                 foreach ( Node neighbour in check.Above )
                                     if ( neighbour.Y < left_inner || neighbour.Y > right_inner )
@@ -505,15 +504,12 @@ namespace FluffyResearchTree
 
                         // right inner is now left inner.
                         left_inner = right_inner;
-                    } 
+                    }
                 }
             }
         }
 
-        private static Node NodeAtPos( int X, int Y )
-        {
-            return Leaves.FirstOrDefault(n => n.X == X && n.Y == Y);
-        }
+        private static Node NodeAtPos( int X, int Y ) { return Leaves.FirstOrDefault( n => n.X == X && n.Y == Y ); }
 
         public static List<Node> CreateDummyNodes( ResearchNode parent, ResearchNode child )
         {
@@ -522,16 +518,16 @@ namespace FluffyResearchTree
             child.Above.Remove( parent );
 
             // create dummy nodes
-            var n = child.X - parent.X;
-            List<Node> dummies = new List<Node>( n );
+            int n = child.X - parent.X;
+            var dummies = new List<Node>( n );
             Node last = parent;
 
-            for ( int i = 1; i < n; i++ )
+            for ( var i = 1; i < n; i++ )
             {
                 // create empty dummy
                 var dummy = new DummyNode();
                 dummies.Add( dummy );
-                
+
                 // hook up the chain
                 last.Below.Add( dummy );
                 dummy.Above.Add( last );
@@ -550,12 +546,12 @@ namespace FluffyResearchTree
         }
 
         public static void MinimizeCrossings()
-        { 
+        {
             // initialize each layer by putting nodes with the most (recursive!) children on bottom
-            for ( int X = 1; X <= Size.x; X++ )
+            for ( var X = 1; X <= Size.x; X++ )
             {
-                var nodes = Layer( X ).OrderBy( n => n.Descendants.Count ).ToList();
-                for ( int i = 0; i < nodes.Count; i++ )
+                List<Node> nodes = Layer( X ).OrderBy( n => n.Descendants.Count ).ToList();
+                for ( var i = 0; i < nodes.Count; i++ )
                     nodes[i].Y = i + 1;
             }
 
@@ -586,7 +582,7 @@ namespace FluffyResearchTree
 
             // do up/down sweep on aternating iterations
             if ( iteration % 2 == 0 )
-                for ( int l = 1; l <= Size.x; l++ )
+                for ( var l = 1; l <= Size.x; l++ )
                     GreedySweep_Layer( l );
             else
                 for ( int l = Size.x; l >= 1; l-- )
@@ -607,24 +603,24 @@ namespace FluffyResearchTree
         {
             // The objective here is twofold;
             // 1: Swap nodes to reduce the number of crossings
-            // 2: Swap nodes so that inner edges (edges between dummies) 
+            // 2: Swap nodes so that inner edges (edges between dummies)
             //    avoid crossings at all costs.
             //
-            // If I'm reasoning this out right, both objectives should be served by 
-            // minimizing the amount of crossings between each pair of nodes. 
-            var layer = Layer( l, true );
-            for ( int i = 0; i < layer.Count - 1; i++ )
+            // If I'm reasoning this out right, both objectives should be served by
+            // minimizing the amount of crossings between each pair of nodes.
+            List<Node> layer = Layer( l, true );
+            for ( var i = 0; i < layer.Count - 1; i++ )
                 if ( Crossings( layer[i + 1], layer[i] ) < Crossings( layer[i], layer[i + 1] ) )
                     Swap( layer[i], layer[i + 1] );
         }
-        
+
         private static void Swap( Node A, Node B )
         {
             if ( A.X != B.X )
                 throw new Exception( "Can't swap nodes on different layers" );
 
             // swap Y positions of adjacent nodes
-            var tmp = A.Y;
+            int tmp = A.Y;
             A.Y = B.Y;
             B.Y = tmp;
         }
@@ -637,10 +633,11 @@ namespace FluffyResearchTree
             // do up/down sweep on alternating iterations
             if ( iteration % 2 == 0 )
             {
-                for ( int i = 1; i < Size.x; i++ )
+                for ( var i = 1; i < Size.x; i++ )
                 {
-                    var nodes = Layer( i );
-                    var medians = nodes.Select( n => new Pair<Node, float>( n, GetMedianY( n.Above ) ) ).ToList();
+                    List<Node> nodes = Layer( i );
+                    List<Pair<Node, float>> medians =
+                        nodes.Select( n => new Pair<Node, float>( n, GetMedianY( n.Above ) ) ).ToList();
                     SetLayerPositions( medians );
                 }
             }
@@ -648,8 +645,9 @@ namespace FluffyResearchTree
             {
                 for ( int i = Size.x; i > 1; i-- )
                 {
-                    var nodes = Layer( i );
-                    var medians = nodes.Select( n => new Pair<Node, float>( n, GetMedianY( n.Below ) ) ).ToList();
+                    List<Node> nodes = Layer( i );
+                    List<Pair<Node, float>> medians =
+                        nodes.Select( n => new Pair<Node, float>( n, GetMedianY( n.Below ) ) ).ToList();
                     SetLayerPositions( medians );
                 }
             }
@@ -669,36 +667,37 @@ namespace FluffyResearchTree
         {
             if ( nodes.NullOrEmpty() )
                 return -1;
-            return (float) nodes.Sum( n => n.Y ) / (float) nodes.Count;
+
+            return nodes.Sum( n => n.Y ) / (float) nodes.Count;
         }
-        
+
         private static void SetLayerPositions( List<Pair<Node, float>> nodeMedianPairs )
         {
             // we can be fairly straightforward here, as we're only concerned with crossing edges.
             // determining the best Y coordinates for a pretty graph will be handled later.
-            var nodes = nodeMedianPairs.OrderBy( p => p.Second )
-                                       .ThenBy( p => p.First.Descendants.Count )
-                                       .Select( p => p.First );
+            IEnumerable<Node> nodes = nodeMedianPairs.OrderBy( p => p.Second )
+                                                     .ThenBy( p => p.First.Descendants.Count )
+                                                     .Select( p => p.First );
 
             // set Y positions 1, |nodes|
-            int Y = 1;
+            var Y = 1;
             foreach ( Node node in nodes )
                 node.Y = Y++;
         }
-        
+
         private static int UpperCrossings( Node a, Node b )
         {
-            if (a.X != b.X)
-                throw new Exception("a and b must be on the same rank.");
+            if ( a.X != b.X )
+                throw new Exception( "a and b must be on the same rank." );
 
-            var A = a.Above?.Select( n => n.Y );
-            var B = b.Above?.Select( n => n.Y );
-            
+            IEnumerable<int> A = a.Above?.Select( n => n.Y );
+            IEnumerable<int> B = b.Above?.Select( n => n.Y );
+
             return Crossings( A, B );
         }
 
         /// <summary>
-        /// Return the total amount of crossings of edges between A and B, assuming that A and B are 
+        /// Return the total amount of crossings of edges between A and B, assuming that A and B are
         /// Y coordinates of vertices adjacent to A and B, and that Y(A) \lt Y(B);
         /// </summary>
         /// <param name="A"></param>
@@ -726,7 +725,7 @@ namespace FluffyResearchTree
             if ( !A.Any() || !B.Any() )
                 return 0;
 
-            int crossings = 0;
+            var crossings = 0;
             foreach ( int a in A )
                 foreach ( int b in B )
                     if ( a > b )
@@ -744,8 +743,8 @@ namespace FluffyResearchTree
             if ( a.X != b.X )
                 throw new Exception( "a and b must be on the same rank." );
 
-            var A = a.Below?.Select( n => n.Y );
-            var B = b.Below?.Select( n => n.Y );
+            IEnumerable<int> A = a.Below?.Select( n => n.Y );
+            IEnumerable<int> B = b.Below?.Select( n => n.Y );
 
             return Crossings( A, B );
         }
@@ -755,19 +754,14 @@ namespace FluffyResearchTree
 #if TRACE_CROSSINGS
             Log.Message( "Crossings() called, tree size: " + Size );
 #endif
-            int crossings = 0;
-            for ( int i = 1; i < Size.x; i++ )
+            var crossings = 0;
+            for ( var i = 1; i < Size.x; i++ )
                 crossings += Crossings( i );
 
             return crossings;
         }
 
-        private static int Crossings( Node A, Node B )
-        {
-            return UpperCrossings( A, B ) + LowerCrossings( A, B );
-        }
-
-        internal static bool orderDirty = true;
+        private static int Crossings( Node A, Node B ) { return UpperCrossings( A, B ) + LowerCrossings( A, B ); }
 
         private static int Crossings( int depth, bool up = false )
         {
@@ -779,14 +773,14 @@ namespace FluffyResearchTree
             if ( !up && depth + 1 > Size.x )
                 throw new ArgumentOutOfRangeException( nameof( depth ) );
 
-            int crossings = 0;
+            var crossings = 0;
             List<Node> nodes = Layer( depth, true );
             for ( var i = 0; i < nodes.Count - 1; i++ )
                 crossings += up ? UpperCrossings( nodes[i], nodes[i + 1] ) : LowerCrossings( nodes[i], nodes[i + 1] );
 
             return crossings;
         }
-        
+
         public static List<Node> Layer( int depth, bool ordered = false )
         {
             if ( ordered && orderDirty )
@@ -802,23 +796,22 @@ namespace FluffyResearchTree
         {
             var text = new StringBuilder();
 
-            for ( int l = 1; l <= Leaves.Max( n => n.X ); l++)
+            for ( var l = 1; l <= Leaves.Max( n => n.X ); l++ )
             {
                 text.AppendLine( $"Layer {l}:" );
-                var layer = Layer( l, true );
+                List<Node> layer = Layer( l, true );
 
                 foreach ( Node n in layer )
                 {
                     text.AppendLine( $"\t{n}" );
                     text.AppendLine( $"\t\tAbove: " + string.Join( ", ", n.Above.Select( a => a.ToString() ).ToArray() ) );
                     text.AppendLine( $"\t\tBelow: " + string.Join( ", ", n.Below.Select( b => b.ToString() ).ToArray() ) );
-                    text.AppendLine( $"\t\tAlign: {align[n]}" );
-                    text.AppendLine( $"\t\tRoot: {roots[n]}" );
+                    //text.AppendLine( $"\t\tAlign: {align[n]}" );
+                    //text.AppendLine( $"\t\tRoot: {roots[n]}" );
                 }
             }
+
             return text.ToString();
         }
-
-#endregion Methods
     }
 }

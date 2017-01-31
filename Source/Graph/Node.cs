@@ -12,7 +12,7 @@ using Verse;
 
 namespace FluffyResearchTree
 {
-    public abstract class Node
+    public class Node
     {
         #region Fields
 
@@ -26,7 +26,6 @@ namespace FluffyResearchTree
         
         protected bool _largeLabel;
 
-        protected Vector2 _left = Vector2.zero;
 
         protected Rect _queueRect,
                      _rect,
@@ -37,7 +36,9 @@ namespace FluffyResearchTree
 
         protected bool _rectsSet;
 
-        protected Vector2 _right = Vector2.zero;
+        protected Vector2 _topLeft = Vector2.zero,
+                            _right = Vector2.zero,
+                             _left = Vector2.zero;
 
         #endregion Fields
 
@@ -63,7 +64,7 @@ namespace FluffyResearchTree
             get
             {
                 if ( !_rectsSet )
-                    CreateRects();
+                    SetRects();
 
                 return _costIconRect;
             }
@@ -74,7 +75,7 @@ namespace FluffyResearchTree
             get
             {
                 if ( !_rectsSet )
-                    CreateRects();
+                    SetRects();
 
                 return _costLabelRect;
             }
@@ -87,7 +88,7 @@ namespace FluffyResearchTree
             get
             {
                 if ( !_rectsSet )
-                    CreateRects();
+                    SetRects();
 
                 return _iconsRect;
             }
@@ -98,7 +99,7 @@ namespace FluffyResearchTree
             get
             {
                 if ( !_rectsSet )
-                    CreateRects();
+                    SetRects();
 
                 return _labelRect;
             }
@@ -112,7 +113,7 @@ namespace FluffyResearchTree
             get
             {
                 if ( !_rectsSet )
-                    CreateRects();
+                    SetRects();
 
                 return _left;
             }
@@ -126,7 +127,7 @@ namespace FluffyResearchTree
             get
             {
                 if ( !_rectsSet )
-                    CreateRects();
+                    SetRects();
 
                 return _queueRect;
             }
@@ -140,7 +141,7 @@ namespace FluffyResearchTree
             get
             {
                 if ( !_rectsSet )
-                    CreateRects();
+                    SetRects();
 
                 return _rect;
             }
@@ -154,7 +155,7 @@ namespace FluffyResearchTree
             get
             {
                 if ( !_rectsSet )
-                    CreateRects();
+                    SetRects();
 
                 return _right;
             }
@@ -194,7 +195,7 @@ namespace FluffyResearchTree
 
         #region Methods
 
-        public abstract string Label { get; }
+        public virtual string Label { get; }
 
         public List<Node> Above => _above;
 
@@ -230,12 +231,15 @@ namespace FluffyResearchTree
             return Label + _pos;
         }
 
-
-        private void CreateRects()
+        public void SetRects()
         {
+            // origin
+            _topLeft = new Vector2( _pos.x * ( Settings.NodeSize.x + Settings.NodeMargins.x ),
+                                    _pos.z * ( Settings.NodeSize.y + Settings.NodeMargins.y ) );
+
             // main rect
-            _rect = new Rect( ( X - 1 ) * ( Settings.NodeSize.x + Settings.NodeMargins.x ) + Offset,
-                              ( Y - 1 ) * ( Settings.NodeSize.y + Settings.NodeMargins.y ) + Offset,
+            _rect = new Rect( _topLeft.x,
+                              _topLeft.y,
                               Settings.NodeSize.x,
                               Settings.NodeSize.y );
 
@@ -283,6 +287,6 @@ namespace FluffyResearchTree
 
         #endregion Methods
 
-        public abstract void Draw();
+        public virtual void Draw() { }
     }
 }
