@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using Verse;
+using static FluffyResearchTree.Constants;
 
 namespace FluffyResearchTree
 {
@@ -16,17 +17,16 @@ namespace FluffyResearchTree
     {
         #region Fields
 
-        protected IntVec2 _pos = IntVec2.Zero;
-        public List<Node> _below = new List<Node>();
-        public List<Node> _above = new List<Node>();
+        protected Vector2 _pos = Vector2.zero;
+        protected List<Edge<Node,Node>> _inEdges = new List<Edge<Node, Node>>();
+        protected List<Edge<Node,Node>> _outEdges = new List<Edge<Node, Node>>();
 
         protected const float LabSize = 30f;
 
         protected const float Offset = 2f;
         
         protected bool _largeLabel;
-
-
+        
         protected Rect _queueRect,
                      _rect,
                      _labelRect,
@@ -42,22 +42,20 @@ namespace FluffyResearchTree
 
         #endregion Fields
 
-        #region Constructors
-
-        public Node()
-        {
-            _above = new List<Node>();
-            _below = new List<Node>();
-        }
-
-        #endregion Constructors
-
         #region Properties
 
         public List<Node> Descendants
         {
-            get { return _below.Concat( _below.SelectMany( node => node.Descendants ) ).ToList(); }
+            get
+            {
+                return OutNodes.Concat( OutNodes.SelectMany( n => n.Descendants ) ).ToList();
+            }
         }
+
+        public List<Edge<Node, Node>> OutEdges => _outEdges;
+        public List<Node> OutNodes => _outEdges.Select( e => e.Out ).ToList();
+        public List<Edge<Node, Node>> InEdges => _inEdges;
+        public List<Node> InNodes => _inEdges.Select( e => e.In ).ToList();
 
         public Rect CostIconRect
         {
@@ -163,31 +161,75 @@ namespace FluffyResearchTree
 
         public Vector2 Center => ( Left + Right ) / 2f;
 
+        protected internal virtual bool SetDepth( int min = 1 )
+        {
+            // calculate desired position
+            var isRoot = InNodes.NullOrEmpty();
+            var desired = isRoot ? 1 : InNodes.Max( n => n.X ) + 1;
+            var depth = Mathf.Max( desired, min );
+
+            // no change
+            if ( depth == X )
+                return false;
+
+            // update
+            X = depth;
+            return true;
+        }
+
         public virtual int X
         {
-            get { return _pos.x; }
+            get => (int)_pos.x;
             set
             {
-#if TRACE_POS
-                Log.Message( Label + " X: " + _pos.x + " -> " + value );
-#endif
+                if ( value < 0 )
+                    throw new ArgumentOutOfRangeException( nameof( value ) );
+                if ( Math.Abs( _pos.x - value ) < Epsilon )
+                    return;
+
+                Log.Trace( "\t" + this + " X: " + _pos.x + " -> " + value );
                 _pos.x = value;
-                Tree.Size.x = Tree.Leaves.Max( n => n.X );
-                Tree.orderDirty = true;
+
+                // update caches
+                _rectsSet = false;
+                Tree.Size.x = Tree.Nodes.Max( n => n.X );
+                Tree.OrderDirty = true;
             }
         }
 
         public virtual int Y
         {
-            get { return _pos.z; }
+            get => (int)_pos.y;
             set
             {
-#if TRACE_POS
-                Log.Message( Label + " Y: " + _pos.z + " -> " + value );
-#endif
-                _pos.z = value;
-                Tree.Size.z = Tree.Leaves.Max( n => n.Y );
-                Tree.orderDirty = true;
+                if ( value < 0 )
+                    throw new ArgumentOutOfRangeException( nameof( value ) );
+                if ( Math.Abs( _pos.y - value ) < Epsilon )
+                    return;
+
+                Log.Trace("\t" + this + " Y: " + _pos.y + " -> " + value );
+                _pos.y = value;
+
+                // update caches
+                _rectsSet = false;
+                Tree.Size.z = Tree.Nodes.Max( n => n.Y );
+                Tree.OrderDirty = true;
+            }
+        }
+
+        public virtual float Yf
+        {
+            get => _pos.y;
+            set
+            {
+                if (Math.Abs(_pos.y - value) < Epsilon)
+                    return;
+
+                _pos.y = value;
+
+                // update caches
+                Tree.Size.z = Tree.Nodes.Max(n => n.Y) + 1;
+                Tree.OrderDirty = true;
             }
         }
 
@@ -196,11 +238,7 @@ namespace FluffyResearchTree
         #region Methods
 
         public virtual string Label { get; }
-
-        public List<Node> Above => _above;
-
-        public List<Node> Below => _below;
-
+        
         /// <summary>
         /// Prints debug information.
         /// </summary>
@@ -209,13 +247,13 @@ namespace FluffyResearchTree
             var text = new StringBuilder();
             text.AppendLine( Label + " (" + X + ", " + Y + "):" );
             text.AppendLine( "- Parents" );
-            foreach ( Node parent in Above )
+            foreach ( Node parent in InNodes )
             {
                 text.AppendLine( "-- " + parent.Label );
             }
 
             text.AppendLine( "- Children" );
-            foreach ( Node child in Below )
+            foreach ( Node child in OutNodes )
             {
                 text.AppendLine( "-- " + child.Label );
             }
@@ -234,14 +272,14 @@ namespace FluffyResearchTree
         public void SetRects()
         {
             // origin
-            _topLeft = new Vector2( ( X - 1 ) * ( Settings.NodeSize.x + Settings.NodeMargins.x ),
-                                    ( Y - 1 ) * ( Settings.NodeSize.y + Settings.NodeMargins.y ) );
+            _topLeft = new Vector2( ( X - 1 ) * ( NodeSize.x + NodeMargins.x ),
+                                    ( Yf - 1 ) * ( NodeSize.y + NodeMargins.y ) );
 
             // main rect
             _rect = new Rect( _topLeft.x,
                               _topLeft.y,
-                              Settings.NodeSize.x,
-                              Settings.NodeSize.y );
+                              NodeSize.x,
+                              NodeSize.y );
 
             // left and right edges
             _left = new Vector2( _rect.xMin, _rect.yMin + _rect.height / 2f );
@@ -283,7 +321,6 @@ namespace FluffyResearchTree
             // done
             _rectsSet = true;
         }
-
 
         #endregion Methods
 

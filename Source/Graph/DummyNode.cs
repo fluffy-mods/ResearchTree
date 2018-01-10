@@ -38,6 +38,7 @@ namespace FluffyResearchTree
 
             Widgets.DrawBox( Rect );
             Widgets.Label( Rect, Label );
+            TooltipHandler.TipRegion(Rect, Tree.DebugTip(this));
         }
 
         #endregion
@@ -48,11 +49,11 @@ namespace FluffyResearchTree
         {
             get
             {
-                var parent = Above.FirstOrDefault() as ResearchNode;
+                var parent = InNodes.FirstOrDefault() as ResearchNode;
                 if ( parent != null )
                     return parent;
 
-                var dummyParent = Above.FirstOrDefault() as DummyNode;
+                var dummyParent = InNodes.FirstOrDefault() as DummyNode;
 
                 return dummyParent?.Parent;
             }
@@ -62,11 +63,11 @@ namespace FluffyResearchTree
         {
             get
             {
-                var child = Below.FirstOrDefault() as ResearchNode;
+                var child = OutNodes.FirstOrDefault() as ResearchNode;
                 if ( child != null )
                     return child;
 
-                var dummyChild = Below.FirstOrDefault() as DummyNode;
+                var dummyChild = OutNodes.FirstOrDefault() as DummyNode;
 
                 return dummyChild?.Child;
             }

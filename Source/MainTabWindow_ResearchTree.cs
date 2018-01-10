@@ -10,16 +10,16 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Verse;
+using static FluffyResearchTree.Constants;
 
 namespace FluffyResearchTree
 {
     public class MainTabWindow_ResearchTree : MainTabWindow
     {
-        internal static Vector2 _scrollPosition                     = Vector2.zero;
+        internal static Vector2 _scrollPosition = Vector2.zero;
         public static List<Pair<ResearchNode, ResearchNode>> connections = new List<Pair<ResearchNode, ResearchNode>>();
-        public static List<Pair<ResearchNode, ResearchNode>> highlightedConnections =
-            new List<Pair<ResearchNode, ResearchNode>>();
-        public static Dictionary<Rect, List<String>> hubTips        = new Dictionary<Rect, List<string>>();
+        public static List<Pair<ResearchNode, ResearchNode>> highlightedConnections = new List<Pair<ResearchNode, ResearchNode>>();
+        public static Dictionary<Rect, List<String>> hubTips = new Dictionary<Rect, List<string>>();
         public static List<ResearchNode> nodes = new List<ResearchNode>();
 
         public override void PreOpen()
@@ -33,8 +33,8 @@ namespace FluffyResearchTree
 
                 // spit out debug info
 #if DEBUG
-                Log.Message( "ResearchTree :: duplicated positions:\n " + string.Join( "\n", Tree.Leaves.Where( n => Tree.Leaves.Any( n2 => n != n2 &&  n.X == n2.X && n.Y == n2.Y ) ).Select( n => n.X + ", " + n.Y + ": " + n.Label ).ToArray() ) );
-                Log.Message( "ResearchTree :: out-of-bounds nodes:\n" + string.Join( "\n", Tree.Leaves.Where( n => n.X < 1 || n.Y < 1  ).Select( n => n.ToString() ).ToArray()  ) );
+                Log.Message( "ResearchTree :: duplicated positions:\n " + string.Join( "\n", Tree.Nodes.Where( n => Tree.Nodes.Any( n2 => n != n2 &&  n.X == n2.X && n.Y == n2.Y ) ).Select( n => n.X + ", " + n.Y + ": " + n.Label ).ToArray() ) );
+                Log.Message( "ResearchTree :: out-of-bounds nodes:\n" + string.Join( "\n", Tree.Nodes.Where( n => n.X < 1 || n.Y < 1  ).Select( n => n.ToString() ).ToArray()  ) );
                 Log.Message( Tree.ToString() );
 #endif
             }
@@ -48,28 +48,19 @@ namespace FluffyResearchTree
             windowRect.width = Screen.width;
             windowRect.height = Screen.height - 35f;
         }
-
-        public override float TabButtonBarPercent
-        {
-            get
-            {
-                if ( Find.ResearchManager.currentProj != null )
-                {
-                    return Find.ResearchManager.currentProj.ProgressPercent;
-                }
-                return 0;
-            }
-        }
-
+        
         public override void DoWindowContents( Rect canvas )
         {
             PrepareTreeForDrawing();
             DrawTree( canvas );
+            bool dump = false;
+            //if ( Find.TickManager.TicksAbs % 60 == 0 )
+            //    Tree.VerticalAlignment_Sweep_Right( ref dump );
         }
 
         private void PrepareTreeForDrawing()
         {
-            foreach ( ResearchNode node in Tree.Leaves.OfType<ResearchNode>() )
+            foreach ( ResearchNode node in Tree.Nodes.OfType<ResearchNode>() )
             {
                 nodes.Add( node );
 
@@ -83,11 +74,14 @@ namespace FluffyResearchTree
         public void DrawTree( Rect canvas )
         {
             // set size of rect
-            float width = ( Tree.Size.x ) * ( Settings.NodeSize.x + Settings.NodeMargins.x ); 
-            float height = Tree.Size.z * ( Settings.NodeSize.y + Settings.NodeMargins.y );
+            float width = Tree.Size.x * ( NodeSize.x + NodeMargins.x ); 
+            float height = Tree.Size.z * ( NodeSize.y + NodeMargins.y );
 
             // main view rect
             Rect view = new Rect( 0f, 0f, width, height );
+
+            Log.Message( view.ToString() );
+
             Widgets.BeginScrollView( canvas, ref _scrollPosition, view );
             GUI.BeginGroup( view );
 
@@ -115,7 +109,7 @@ namespace FluffyResearchTree
             nodes.Clear();
 
 #if DEBUG
-            foreach ( DummyNode dummyNode in Tree.Leaves.OfType<DummyNode>() )
+            foreach ( DummyNode dummyNode in Tree.Nodes.OfType<DummyNode>() )
                 dummyNode.Draw();
 
             Tree.DrawDebug();

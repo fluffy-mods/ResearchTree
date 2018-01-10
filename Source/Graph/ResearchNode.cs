@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using FluffyResearchTree;
+using JetBrains.Annotations;
 using RimWorld;
 using UnityEngine;
 using Verse;
+using static FluffyResearchTree.Constants;
 
 namespace FluffyResearchTree
 {
@@ -26,8 +28,8 @@ namespace FluffyResearchTree
         {
             get
             {
-                var parents = Above.OfType<ResearchNode>();
-                parents.Concat( Above.OfType<DummyNode>().Select( dn => dn.Parent ) );
+                var parents = InNodes.OfType<ResearchNode>();
+                parents.Concat( InNodes.OfType<DummyNode>().Select( dn => dn.Parent ) );
                 return parents.ToList();
             }
         }
@@ -36,8 +38,8 @@ namespace FluffyResearchTree
         {
             get
             {
-                var children = Below.OfType<ResearchNode>();
-                children.Concat( Below.OfType<DummyNode>().Select( dn => dn.Child ) );
+                var children = OutNodes.OfType<ResearchNode>();
+                children.Concat( OutNodes.OfType<DummyNode>().Select( dn => dn.Child ) );
                 return children.ToList();
             }
         }
@@ -48,8 +50,8 @@ namespace FluffyResearchTree
         {
             Research = research;
 
-            // initialize position at vanilla positions (NOTE: _before_ easing!)
-            _pos = new IntVec2( (int) research.researchViewX + 1, (int) research.researchViewY + 1 );
+            // initialize position at vanilla y position, leave x at zero - we'll determine this ourselves
+            _pos = new Vector2( 0, research.researchViewY + 1 );
         }
 
         #endregion Constructors
@@ -83,6 +85,11 @@ namespace FluffyResearchTree
         {
             _buildingPresentCache.Clear();
             _missingFacilitiesCache.Clear();
+        }
+
+        public static implicit operator ResearchNode( ResearchProjectDef def )
+        {
+            return Tree.Nodes.OfType<ResearchNode>().FirstOrDefault( n => n.Research == def );
         }
 
         public static List<ThingDef> MissingFacilities( ResearchProjectDef research )
@@ -130,33 +137,7 @@ namespace FluffyResearchTree
         {
             return BuildingPresent( Research );
         }
-
-        /// <summary>
-        /// Set all prerequisites as parents of this node, and for each parent set this node as a child.
-        /// </summary>
-        public void CreateLinks()
-        {
-            if ( Research.prerequisites.NullOrEmpty() )
-                return;
-
-            // 'vanilla' prerequisites
-            foreach ( ResearchProjectDef prerequisite in Research.prerequisites )
-            {
-                // skip self prerequisite
-                if ( prerequisite != Research )
-                {
-                    Node parent = prerequisite.Node();
-                    if ( parent != null )
-                        Above.Add( parent );
-                }
-            }
-
-            foreach ( Node parent in Above )
-            {
-                parent.Below.Add( this );
-            }
-        }
-
+        
         /// <summary>
         /// Draw the node, including interactions.
         /// </summary>
@@ -230,6 +211,9 @@ namespace FluffyResearchTree
 
             // attach description and further info to a tooltip
             TooltipHandler.TipRegion( Rect, GetResearchTooltipString() );
+#if DEBUG
+            TooltipHandler.TipRegion( Rect, Tree.DebugTip( this ) );
+#endif
             if ( !BuildingPresent() )
             {
                 TooltipHandler
@@ -242,12 +226,12 @@ namespace FluffyResearchTree
             List<Pair<Def, string>> unlocks = Research.GetUnlockDefsAndDescs();
             for ( var i = 0; i < unlocks.Count; i++ )
             {
-                var iconRect = new Rect( IconsRect.xMax - ( i + 1 ) * ( Settings.IconSize.x + 4f ),
-                                         IconsRect.yMin + ( IconsRect.height - Settings.IconSize.y ) / 2f,
-                                         Settings.IconSize.x,
-                                         Settings.IconSize.y );
+                var iconRect = new Rect( IconsRect.xMax - ( i + 1 ) * ( IconSize.x + 4f ),
+                                         IconsRect.yMin + ( IconsRect.height - IconSize.y ) / 2f,
+                                         IconSize.x,
+                                         IconSize.y );
 
-                if ( iconRect.xMin - Settings.IconSize.x < IconsRect.xMin &&
+                if ( iconRect.xMin - IconSize.x < IconsRect.xMin &&
                      i + 1 < unlocks.Count )
                 {
                     // stop the loop if we're about to overflow and have 2 or more unlocks yet to print.
@@ -329,35 +313,7 @@ namespace FluffyResearchTree
         {
             return MissingFacilities( Research );
         }
-
-        #region Overrides of Node
         
-        public override int X
-        {
-            get
-            {
-                if (_pos.x == 0)
-                    SetDepth();
-                return base.X;
-            }
-        }
-
-        #endregion
-
-        /// <summary>
-        /// Recursively determine the depth of this node.
-        /// </summary>
-        public void SetDepth()
-        {
-            // make sure our position is in bounds
-            X = Math.Max( X, 1 );
-
-            // if it has prerequisites, make sure this appears later.
-            if ( !Parents.NullOrEmpty() )
-                X = Math.Max( Parents.Max( n => n.X ) + 1, X );
-        }
-        
-
         /// <summary>
         /// Creates text version of research description and additional unlocks/prereqs/etc sections.
         /// </summary>
