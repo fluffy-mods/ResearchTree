@@ -166,7 +166,7 @@ namespace FluffyResearchTree
 
         public static ResearchNode Node( this ResearchProjectDef research )
         {
-            return Tree.Leaves.OfType<ResearchNode>().FirstOrDefault( node => node.Research == research );
+            return Tree.Nodes.OfType<ResearchNode>().FirstOrDefault( node => node.Research == research );
         }
 
         #endregion Methods

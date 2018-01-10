@@ -172,7 +172,7 @@ namespace FluffyResearchTree
                 Log.Message( Label + " X: " + _pos.x + " -> " + value );
 #endif
                 _pos.x = value;
-                Tree.Size.x = Tree.Leaves.Max( n => n.X );
+                Tree.Size.x = Tree.Nodes.Max( n => n.X );
                 Tree.orderDirty = true;
             }
         }
@@ -186,7 +186,7 @@ namespace FluffyResearchTree
                 Log.Message( Label + " Y: " + _pos.z + " -> " + value );
 #endif
                 _pos.z = value;
-                Tree.Size.z = Tree.Leaves.Max( n => n.Y );
+                Tree.Size.z = Tree.Nodes.Max( n => n.Y );
                 Tree.orderDirty = true;
             }
         }

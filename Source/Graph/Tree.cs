@@ -21,7 +21,7 @@ namespace FluffyResearchTree
     {
         public static bool Initialized;
         public static IntVec2 Size = IntVec2.Zero;
-        public static List<Node> _leaves;
+        public static List<Node> _nodes;
 
         // data structures used in vertical alignment and compaction
         private static HashSet<Pair<Node, Node>> marks;
@@ -34,15 +34,46 @@ namespace FluffyResearchTree
 
         internal static bool orderDirty = true;
 
-        public static List<Node> Leaves
+        public static List<Node> Nodes
         {
             get
             {
-                if ( _leaves == null )
+                if ( _nodes == null )
                     throw new Exception( "Trying to access leaves before they are initialized." );
 
-                return _leaves;
+                return _nodes;
             }
+        }
+
+        public static void HorizontalPositions()
+        {
+            // get list of techlevels
+            var techlevels = Enum.GetValues(typeof(TechLevel)).Cast<TechLevel>();
+            bool anyChange;
+            var iteration = 1;
+            var maxIterations = 50;
+
+            do
+            {
+                Log.Debug("Assigning horizontal positions, iteration {0}", iteration);
+                var min = 1;
+                anyChange = false;
+
+                foreach (var techlevel in techlevels)
+                {
+                    // enforce minimum x position based on techlevels
+                    var nodes = Nodes.OfType<ResearchNode>().Where(n => n.Research.techLevel == techlevel);
+                    if (!nodes.Any())
+                        continue;
+
+                    foreach (var node in nodes)
+                        anyChange = node.SetDepth(min) || anyChange;
+
+                    min = nodes.Max(n => n.X) + 1;
+
+                    Log.Debug("\t{0}, change: {1}", techlevel, anyChange);
+                }
+            } while (anyChange && iteration++ < maxIterations);
         }
 
         public static void DrawLine( Pair<ResearchNode, ResearchNode> connection, Color color,
@@ -190,7 +221,7 @@ namespace FluffyResearchTree
         public static void Initialize()
         {
             // populate all nodes
-            _leaves = new List<Node>( DefDatabase<ResearchProjectDef>.AllDefsListForReading
+            _nodes = new List<Node>( DefDatabase<ResearchProjectDef>.AllDefsListForReading
                                           // exclude hidden projects (prereq of itself is a common trick to hide research).
                                                                      .Where(
                                                                             def =>
@@ -199,7 +230,7 @@ namespace FluffyResearchTree
                                                                      .Select( def => new ResearchNode( def ) as Node ) );
 
             // mark, but do not remove redundant prerequisites.
-            foreach ( ResearchNode node in Leaves.OfType<ResearchNode>() )
+            foreach ( ResearchNode node in Nodes.OfType<ResearchNode>() )
             {
                 if ( !node.Research.prerequisites.NullOrEmpty() )
                 {
@@ -222,22 +253,22 @@ namespace FluffyResearchTree
             }
 
             // create links between nodes
-            foreach ( ResearchNode node in Leaves.OfType<ResearchNode>() )
+            foreach ( ResearchNode node in Nodes.OfType<ResearchNode>() )
                 node.CreateLinks();
 
             // calculate Depth of each node
             // NOTE: These are the layers in graph terminology
-            foreach ( ResearchNode node in Leaves.OfType<ResearchNode>() )
+            foreach ( ResearchNode node in Nodes.OfType<ResearchNode>() )
                 node.SetDepth();
 
             // create dummy vertices for edges that span multiple layers
             var dummies = new List<Node>();
-            foreach ( ResearchNode node in Leaves.OfType<ResearchNode>() )
+            foreach ( ResearchNode node in Nodes.OfType<ResearchNode>() )
                 foreach ( ResearchNode child in node.Children.Where( child => child.X - node.X > 1 ) )
                     dummies.AddRange( CreateDummyNodes( node, child ) );
 
             // add dummy vertices to tree (can't do this in iteration because we'd be modifying the iteratee)
-            Leaves.AddRange( dummies );
+            Nodes.AddRange( dummies );
 
             // arrange nodes within layers to minimize edge crossings
             MinimizeCrossings();
@@ -290,11 +321,11 @@ namespace FluffyResearchTree
             //            Log.Message( $"Shift: \n\t{string.Join( "\n\t", shift.Select( p => $"{p.Key} -> {p.Value}" ).ToArray() )} " );
             //#endif
 
-            //foreach ( var leaf in Leaves )
+            //foreach ( var leaf in Nodes )
             //    leaf.Y = roots[leaf].Y;
 
-            int Yoffset = Leaves.Min( n => n.Y ) - 1;
-            foreach ( Node leaf in Leaves )
+            int Yoffset = Nodes.Min( n => n.Y ) - 1;
+            foreach ( Node leaf in Nodes )
                 leaf.Y -= Yoffset;
 
             int after = Crossings();
@@ -303,7 +334,7 @@ namespace FluffyResearchTree
 
         internal static void DrawDebug()
         {
-            foreach ( Node v in Leaves )
+            foreach ( Node v in Nodes )
             {
                 if ( v != roots[v] )
                     Widgets.DrawLine( v.Center, roots[v].Center, Color.red, 1 );
@@ -317,8 +348,8 @@ namespace FluffyResearchTree
         private static void HorizontalAlignment()
         {
             // Brandes & Kopf, 2001, p37 (Alg 2).
-            roots = Leaves.ToDictionary( n => n, n => n );
-            align = Leaves.ToDictionary( n => n, n => n );
+            roots = Nodes.ToDictionary( n => n, n => n );
+            align = Nodes.ToDictionary( n => n, n => n );
 
             var msg = new StringBuilder();
             msg.AppendLine( "Horizontal alignment log" );
@@ -384,17 +415,17 @@ namespace FluffyResearchTree
             // Brandes & Kopf, 2001, p38 (Alg 3).
 
             var msg = new StringBuilder( "Vertical compaction log" );
-            sink = Leaves.ToDictionary( n => n, n => n );
-            shift = Leaves.ToDictionary( n => n, n => int.MaxValue );
-            positioned = Leaves.ToDictionary( n => n, n => false );
+            sink = Nodes.ToDictionary( n => n, n => n );
+            shift = Nodes.ToDictionary( n => n, n => int.MaxValue );
+            positioned = Nodes.ToDictionary( n => n, n => false );
 
-            foreach ( Node v in Leaves )
+            foreach ( Node v in Nodes )
                 if ( roots[v] == v )
                     PlaceBlock( v, ref msg, 1 );
 
             Log.Message( msg.ToString() );
 
-            foreach ( Node v in Leaves )
+            foreach ( Node v in Nodes )
             {
                 PositionNode( v, roots[v].Y );
                 if ( shift[sink[roots[v]]] < int.MaxValue )
@@ -509,7 +540,7 @@ namespace FluffyResearchTree
             }
         }
 
-        private static Node NodeAtPos( int X, int Y ) { return Leaves.FirstOrDefault( n => n.X == X && n.Y == Y ); }
+        private static Node NodeAtPos( int X, int Y ) { return Nodes.FirstOrDefault( n => n.X == X && n.Y == Y ); }
 
         public static List<Node> CreateDummyNodes( ResearchNode parent, ResearchNode child )
         {
@@ -785,18 +816,18 @@ namespace FluffyResearchTree
         {
             if ( ordered && orderDirty )
             {
-                _leaves = Leaves.OrderBy( n => n.X ).ThenBy( n => n.Y ).ToList();
+                _nodes = Nodes.OrderBy( n => n.X ).ThenBy( n => n.Y ).ToList();
                 orderDirty = false;
             }
 
-            return Leaves.Where( n => n.X == depth ).ToList();
+            return Nodes.Where( n => n.X == depth ).ToList();
         }
 
         public new static string ToString()
         {
             var text = new StringBuilder();
 
-            for ( var l = 1; l <= Leaves.Max( n => n.X ); l++ )
+            for ( var l = 1; l <= Nodes.Max( n => n.X ); l++ )
             {
                 text.AppendLine( $"Layer {l}:" );
                 List<Node> layer = Layer( l, true );

@@ -33,8 +33,8 @@ namespace FluffyResearchTree
 
                 // spit out debug info
 #if DEBUG
-                Log.Message( "ResearchTree :: duplicated positions:\n " + string.Join( "\n", Tree.Leaves.Where( n => Tree.Leaves.Any( n2 => n != n2 &&  n.X == n2.X && n.Y == n2.Y ) ).Select( n => n.X + ", " + n.Y + ": " + n.Label ).ToArray() ) );
-                Log.Message( "ResearchTree :: out-of-bounds nodes:\n" + string.Join( "\n", Tree.Leaves.Where( n => n.X < 1 || n.Y < 1  ).Select( n => n.ToString() ).ToArray()  ) );
+                Log.Message( "ResearchTree :: duplicated positions:\n " + string.Join( "\n", Tree.Nodes.Where( n => Tree.Nodes.Any( n2 => n != n2 &&  n.X == n2.X && n.Y == n2.Y ) ).Select( n => n.X + ", " + n.Y + ": " + n.Label ).ToArray() ) );
+                Log.Message( "ResearchTree :: out-of-bounds nodes:\n" + string.Join( "\n", Tree.Nodes.Where( n => n.X < 1 || n.Y < 1  ).Select( n => n.ToString() ).ToArray()  ) );
                 Log.Message( Tree.ToString() );
 #endif
             }
@@ -69,7 +69,7 @@ namespace FluffyResearchTree
 
         private void PrepareTreeForDrawing()
         {
-            foreach ( ResearchNode node in Tree.Leaves.OfType<ResearchNode>() )
+            foreach ( ResearchNode node in Tree.Nodes.OfType<ResearchNode>() )
             {
                 nodes.Add( node );
 
@@ -115,7 +115,7 @@ namespace FluffyResearchTree
             nodes.Clear();
 
 #if DEBUG
-            foreach ( DummyNode dummyNode in Tree.Leaves.OfType<DummyNode>() )
+            foreach ( DummyNode dummyNode in Tree.Nodes.OfType<DummyNode>() )
                 dummyNode.Draw();
 
             Tree.DrawDebug();
