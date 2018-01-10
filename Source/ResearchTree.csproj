@@ -55,6 +55,7 @@
     <Compile Include="Extensions\Def_Extensions.cs" />
     <Compile Include="Graph\DummyNode.cs" />
     <Compile Include="Graph\ResearchNode.cs" />
+    <Compile Include="Log.cs" />
     <Compile Include="Queue\ResearchManager_Detour.cs" />
     <Compile Include="Queue\Queue.cs" />
     <Compile Include="MainTabWindow_ResearchTree.cs" />

@@ -219,8 +219,7 @@ namespace FluffyResearchTree
 
         public virtual string Label { get; }
 
-        public List<Node> InNodes => _above;
-
+        public List<Node> InNodes => _inNodes;
         public List<Node> OutNodes => _outNodes;
 
         /// <summary>

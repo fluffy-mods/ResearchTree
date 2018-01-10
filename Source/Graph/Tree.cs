@@ -234,21 +234,11 @@ namespace FluffyResearchTree
             {
                 if ( !node.Research.prerequisites.NullOrEmpty() )
                 {
-                    List<ResearchProjectDef> ancestors =
-                        node.Research.prerequisites?.SelectMany( r => r.GetPrerequisitesRecursive() ).ToList();
-                    if ( !ancestors.NullOrEmpty() &&
-                         ( !node.Research.prerequisites?.Intersect( ancestors ).ToList().NullOrEmpty() ?? false ) )
-                    {
-                        Log.Warning( "ResearchTree :: redundant prerequisites for " + node.Research.LabelCap +
-                                     " the following research: " +
-                                     string.Join( ", ",
-                                                  node.Research.prerequisites?.Intersect( ancestors )
-                                                      .Select( r => r.LabelCap )
-                                                      .ToArray() ) );
-                    }
+                    List<ResearchProjectDef> ancestors = node.Research.prerequisites?.SelectMany( r => r.GetPrerequisitesRecursive() ).ToList();
+                    if ( !ancestors.NullOrEmpty() && ( !node.Research.prerequisites?.Intersect( ancestors ).ToList().NullOrEmpty() ?? false ) )
+                        Log.Warning( "redundant prerequisites for {0}: {1}", node.Research.LabelCap, string.Join( ", ", node.Research.prerequisites?.Intersect( ancestors ).Select( r => r.LabelCap ).ToArray() ) );
                     if ( node.Research.prerequisites.Any( r => r.techLevel > node.Research.techLevel ) )
-                        Log.Error( "ResearchTree :: " + node.Research.defName +
-                                   " has a lower techlevel than (one of) it's dependenc(y/ies)" );
+                        Log.Warning( "{0} has a lower techlevel than (one of) it's dependenc(y/ies)", node.Research.defName );
                 }
             }
 
