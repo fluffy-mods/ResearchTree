@@ -49,17 +49,17 @@ namespace FluffyResearchTree
             windowRect.height = Screen.height - 35f;
         }
 
-        public override float TabButtonBarPercent
-        {
-            get
-            {
-                if ( Find.ResearchManager.currentProj != null )
-                {
-                    return Find.ResearchManager.currentProj.ProgressPercent;
-                }
-                return 0;
-            }
-        }
+        //public override float TabButtonBarPercent
+        //{
+        //    get
+        //    {
+        //        if ( Find.ResearchManager.currentProj != null )
+        //        {
+        //            return Find.ResearchManager.currentProj.ProgressPercent;
+        //        }
+        //        return 0;
+        //    }
+        //}
 
         public override void DoWindowContents( Rect canvas )
         {

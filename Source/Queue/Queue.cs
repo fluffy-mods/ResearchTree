@@ -2,16 +2,16 @@
 // Queue.cs
 // 2016-12-28
 
-using HugsLib.Utils;
 using System.Collections.Generic;
 using System.Linq;
+using RimWorld.Planet;
 using UnityEngine;
 using Verse;
 using static FluffyResearchTree.Assets;
 
 namespace FluffyResearchTree
 {
-    public class Queue : UtilityWorldObject
+    public class Queue : WorldComponent
     {
         #region Fields
 
@@ -136,7 +136,7 @@ namespace FluffyResearchTree
             if ( Scribe.mode == LoadSaveMode.Saving )
                 _saveableQueue = _queue.Select( node => node.Research ).ToList();
 
-            Scribe_Collections.LookList( ref _saveableQueue, "Queue", LookMode.Def );
+            Scribe_Collections.Look( ref _saveableQueue, "Queue", LookMode.Def );
 
             if ( Scribe.mode == LoadSaveMode.PostLoadInit )
             {
@@ -160,5 +160,8 @@ namespace FluffyResearchTree
         }
 
         #endregion Methods
+
+        public Queue( World world ) : base( world )
+        {}
     }
 }
