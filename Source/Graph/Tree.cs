@@ -32,7 +32,7 @@ namespace FluffyResearchTree
         private static Dictionary<Node, int> shift;
         private static Dictionary<Node, bool> positioned;
 
-        internal static bool orderDirty = true;
+        internal static bool OrderDirty = true;
 
         public static List<Node> Nodes
         {
@@ -340,7 +340,7 @@ namespace FluffyResearchTree
                     Widgets.DrawLine( v.Center, roots[v].Center, Color.red, 1 );
                 if ( v != align[v] && Math.Abs( align[v].X - v.X ) <= 1 )
                     Widgets.DrawLine( v.Center, align[v].Center, Color.blue, 4 );
-                foreach ( Node w in v.Below )
+                foreach ( Node w in v.OutNodes )
                     Widgets.DrawLine( v.Right, w.Left, Color.white, 1 );
             }
         }
@@ -369,9 +369,9 @@ namespace FluffyResearchTree
                     msg.AppendLine( $"\tChecking {v}" );
 
                     // if node has any neighbours on layer l+1
-                    if ( v.Below.Any() )
+                    if ( v.OutNodes.Any() )
                     {
-                        List<Node> neighbours = v.Below;
+                        List<Node> neighbours = v.OutNodes;
                         neighbours.SortBy( n => n.Y );
                         int d = neighbours.Count;
                         msg.AppendLine( $"\t\thas {d} neighbours" );
@@ -513,7 +513,7 @@ namespace FluffyResearchTree
                         // right_inner position is the endpoint of the edge on the
                         // current layer.
                         if ( node is DummyNode )
-                            right_inner = node.Above.First().Y;
+                            right_inner = node.InNodes.First().Y;
                         else
                             right_inner = layer_size;
 
@@ -522,8 +522,8 @@ namespace FluffyResearchTree
                         while ( i < i1 )
                         {
                             Node check = NodeAtPos( l + 1, i++ );
-                            if ( check?.Above?.Any() ?? false )
-                                foreach ( Node neighbour in check.Above )
+                            if ( check?.InNodes?.Any() ?? false )
+                                foreach ( Node neighbour in check.InNodes )
                                     if ( neighbour.Y < left_inner || neighbour.Y > right_inner )
                                     {
 #if TRACE_CONFLICTS
@@ -545,8 +545,8 @@ namespace FluffyResearchTree
         public static List<Node> CreateDummyNodes( ResearchNode parent, ResearchNode child )
         {
             // decouple parent and child
-            parent.Below.Remove( child );
-            child.Above.Remove( parent );
+            parent.OutNodes.Remove( child );
+            child.InNodes.Remove( parent );
 
             // create dummy nodes
             int n = child.X - parent.X;
@@ -560,8 +560,8 @@ namespace FluffyResearchTree
                 dummies.Add( dummy );
 
                 // hook up the chain
-                last.Below.Add( dummy );
-                dummy.Above.Add( last );
+                last.OutNodes.Add( dummy );
+                dummy.InNodes.Add( last );
                 dummy.X = last.X + 1;
 
                 // this is now last
@@ -569,8 +569,8 @@ namespace FluffyResearchTree
             }
 
             // hook up child
-            last.Below.Add( child );
-            child.Above.Add( last );
+            last.OutNodes.Add( child );
+            child.InNodes.Add( last );
 
             // done!
             return dummies;
@@ -668,7 +668,7 @@ namespace FluffyResearchTree
                 {
                     List<Node> nodes = Layer( i );
                     List<Pair<Node, float>> medians =
-                        nodes.Select( n => new Pair<Node, float>( n, GetMedianY( n.Above ) ) ).ToList();
+                        nodes.Select( n => new Pair<Node, float>( n, GetMedianY( n.InNodes ) ) ).ToList();
                     SetLayerPositions( medians );
                 }
             }
@@ -678,7 +678,7 @@ namespace FluffyResearchTree
                 {
                     List<Node> nodes = Layer( i );
                     List<Pair<Node, float>> medians =
-                        nodes.Select( n => new Pair<Node, float>( n, GetMedianY( n.Below ) ) ).ToList();
+                        nodes.Select( n => new Pair<Node, float>( n, GetMedianY( n.OutNodes ) ) ).ToList();
                     SetLayerPositions( medians );
                 }
             }
@@ -721,8 +721,8 @@ namespace FluffyResearchTree
             if ( a.X != b.X )
                 throw new Exception( "a and b must be on the same rank." );
 
-            IEnumerable<int> A = a.Above?.Select( n => n.Y );
-            IEnumerable<int> B = b.Above?.Select( n => n.Y );
+            IEnumerable<int> A = a.InNodes?.Select( n => n.Y );
+            IEnumerable<int> B = b.InNodes?.Select( n => n.Y );
 
             return Crossings( A, B );
         }
@@ -774,8 +774,8 @@ namespace FluffyResearchTree
             if ( a.X != b.X )
                 throw new Exception( "a and b must be on the same rank." );
 
-            IEnumerable<int> A = a.Below?.Select( n => n.Y );
-            IEnumerable<int> B = b.Below?.Select( n => n.Y );
+            IEnumerable<int> A = a.OutNodes?.Select( n => n.Y );
+            IEnumerable<int> B = b.OutNodes?.Select( n => n.Y );
 
             return Crossings( A, B );
         }
@@ -814,10 +814,10 @@ namespace FluffyResearchTree
 
         public static List<Node> Layer( int depth, bool ordered = false )
         {
-            if ( ordered && orderDirty )
+            if ( ordered && OrderDirty )
             {
                 _nodes = Nodes.OrderBy( n => n.X ).ThenBy( n => n.Y ).ToList();
-                orderDirty = false;
+                OrderDirty = false;
             }
 
             return Nodes.Where( n => n.X == depth ).ToList();
@@ -835,8 +835,8 @@ namespace FluffyResearchTree
                 foreach ( Node n in layer )
                 {
                     text.AppendLine( $"\t{n}" );
-                    text.AppendLine( $"\t\tAbove: " + string.Join( ", ", n.Above.Select( a => a.ToString() ).ToArray() ) );
-                    text.AppendLine( $"\t\tBelow: " + string.Join( ", ", n.Below.Select( b => b.ToString() ).ToArray() ) );
+                    text.AppendLine( $"\t\tAbove: " + string.Join( ", ", n.InNodes.Select( a => a.ToString() ).ToArray() ) );
+                    text.AppendLine( $"\t\tBelow: " + string.Join( ", ", n.OutNodes.Select( b => b.ToString() ).ToArray() ) );
                     //text.AppendLine( $"\t\tAlign: {align[n]}" );
                     //text.AppendLine( $"\t\tRoot: {roots[n]}" );
                 }

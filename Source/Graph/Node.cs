@@ -17,8 +17,8 @@ namespace FluffyResearchTree
         #region Fields
 
         protected IntVec2 _pos = IntVec2.Zero;
-        public List<Node> _below = new List<Node>();
-        public List<Node> _above = new List<Node>();
+        public List<Node> _outNodes = new List<Node>();
+        public List<Node> _inNodes = new List<Node>();
 
         protected const float LabSize = 30f;
 
@@ -46,8 +46,8 @@ namespace FluffyResearchTree
 
         public Node()
         {
-            _above = new List<Node>();
-            _below = new List<Node>();
+            _inNodes = new List<Node>();
+            _outNodes = new List<Node>();
         }
 
         #endregion Constructors
@@ -56,7 +56,7 @@ namespace FluffyResearchTree
 
         public List<Node> Descendants
         {
-            get { return _below.Concat( _below.SelectMany( node => node.Descendants ) ).ToList(); }
+            get { return _outNodes.Concat( _outNodes.SelectMany( node => node.Descendants ) ).ToList(); }
         }
 
         public Rect CostIconRect
@@ -163,17 +163,39 @@ namespace FluffyResearchTree
 
         public Vector2 Center => ( Left + Right ) / 2f;
 
+        protected internal virtual bool SetDepth(int min = 1)
+        {
+            // calculate desired position
+            var isRoot = InNodes.NullOrEmpty();
+            var desired = isRoot ? 1 : InNodes.Max(n => n.X) + 1;
+            var depth = Mathf.Max(desired, min);
+
+            // no change
+            if (depth == X)
+                return false;
+
+            // update
+            X = depth;
+            return true;
+        }
+
         public virtual int X
         {
-            get { return _pos.x; }
+            get => (int)_pos.x;
             set
             {
-#if TRACE_POS
-                Log.Message( Label + " X: " + _pos.x + " -> " + value );
-#endif
+                if (value < 0)
+                    throw new ArgumentOutOfRangeException(nameof(value));
+                if ( Math.Abs( _pos.x - value ) < 1e-4 )
+                    return;
+
+                Log.Trace("\t" + this + " X: " + _pos.x + " -> " + value);
                 _pos.x = value;
-                Tree.Size.x = Tree.Nodes.Max( n => n.X );
-                Tree.orderDirty = true;
+
+                // update caches
+                _rectsSet = false;
+                Tree.Size.x = Tree.Nodes.Max(n => n.X);
+                Tree.OrderDirty = true;
             }
         }
 
@@ -187,7 +209,7 @@ namespace FluffyResearchTree
 #endif
                 _pos.z = value;
                 Tree.Size.z = Tree.Nodes.Max( n => n.Y );
-                Tree.orderDirty = true;
+                Tree.OrderDirty = true;
             }
         }
 
@@ -197,9 +219,9 @@ namespace FluffyResearchTree
 
         public virtual string Label { get; }
 
-        public List<Node> Above => _above;
+        public List<Node> InNodes => _above;
 
-        public List<Node> Below => _below;
+        public List<Node> OutNodes => _outNodes;
 
         /// <summary>
         /// Prints debug information.
@@ -209,13 +231,13 @@ namespace FluffyResearchTree
             var text = new StringBuilder();
             text.AppendLine( Label + " (" + X + ", " + Y + "):" );
             text.AppendLine( "- Parents" );
-            foreach ( Node parent in Above )
+            foreach ( Node parent in InNodes )
             {
                 text.AppendLine( "-- " + parent.Label );
             }
 
             text.AppendLine( "- Children" );
-            foreach ( Node child in Below )
+            foreach ( Node child in OutNodes )
             {
                 text.AppendLine( "-- " + child.Label );
             }

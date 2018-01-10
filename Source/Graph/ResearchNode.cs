@@ -26,8 +26,8 @@ namespace FluffyResearchTree
         {
             get
             {
-                var parents = Above.OfType<ResearchNode>();
-                parents.Concat( Above.OfType<DummyNode>().Select( dn => dn.Parent ) );
+                var parents = InNodes.OfType<ResearchNode>();
+                parents.Concat( InNodes.OfType<DummyNode>().Select( dn => dn.Parent ) );
                 return parents.ToList();
             }
         }
@@ -36,8 +36,8 @@ namespace FluffyResearchTree
         {
             get
             {
-                var children = Below.OfType<ResearchNode>();
-                children.Concat( Below.OfType<DummyNode>().Select( dn => dn.Child ) );
+                var children = OutNodes.OfType<ResearchNode>();
+                children.Concat( OutNodes.OfType<DummyNode>().Select( dn => dn.Child ) );
                 return children.ToList();
             }
         }
@@ -147,13 +147,13 @@ namespace FluffyResearchTree
                 {
                     Node parent = prerequisite.Node();
                     if ( parent != null )
-                        Above.Add( parent );
+                        InNodes.Add( parent );
                 }
             }
 
-            foreach ( Node parent in Above )
+            foreach ( Node parent in InNodes )
             {
-                parent.Below.Add( this );
+                parent.OutNodes.Add( this );
             }
         }
 
@@ -328,33 +328,6 @@ namespace FluffyResearchTree
         public List<ThingDef> MissingFacilities()
         {
             return MissingFacilities( Research );
-        }
-
-        #region Overrides of Node
-        
-        public override int X
-        {
-            get
-            {
-                if (_pos.x == 0)
-                    SetDepth();
-                return base.X;
-            }
-        }
-
-        #endregion
-
-        /// <summary>
-        /// Recursively determine the depth of this node.
-        /// </summary>
-        public void SetDepth()
-        {
-            // make sure our position is in bounds
-            X = Math.Max( X, 1 );
-
-            // if it has prerequisites, make sure this appears later.
-            if ( !Parents.NullOrEmpty() )
-                X = Math.Max( Parents.Max( n => n.X ) + 1, X );
         }
         
 
