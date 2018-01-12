@@ -4,10 +4,12 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
 using Verse;
 using static FluffyResearchTree.Assets;
+using static FluffyResearchTree.Constants;
 
 namespace FluffyResearchTree
 {
@@ -43,7 +45,17 @@ namespace FluffyResearchTree
 
         #endregion Properties
 
+        public Queue(World world) : base(world)
+        {
+        }
+
         #region Methods
+
+        public static void TryDequeue( ResearchNode node )
+        {
+            if ( _queue.Contains( node ) )
+                Dequeue( node );
+        }
 
         public static void Dequeue( ResearchNode node )
         {
@@ -53,29 +65,42 @@ namespace FluffyResearchTree
                 _queue.Remove( followUp );
         }
 
-        public static void DrawLabels()
+        public static void DrawLabels( Rect visibleRect )
         {
             var i = 1;
-            foreach ( Node node in _queue )
+            foreach ( ResearchNode node in _queue )
             {
-                // draw coloured tag
-                GUI.color = Color.green;
-                GUI.DrawTexture( node.QueueRect, CircleFill );
-
-                // if this is not first in line, grey out centre of tag
-                if ( i > 1 )
+                if ( node.IsVisible( visibleRect ) )
                 {
-                    GUI.color = Color.grey;
-                    GUI.DrawTexture( node.QueueRect.ContractedBy( 2f ), CircleFill );
+                    var main = ColorCompleted[node.Research.techLevel];
+                    var background = i > 1 ? ColorUnavailable[node.Research.techLevel] : main;
+                    DrawLabel( node.QueueRect, main, background, i );
                 }
-
-                // draw queue number
-                GUI.color = Color.white;
-                Text.Anchor = TextAnchor.MiddleCenter;
-                Widgets.Label( node.QueueRect, i++.ToString() );
-                Text.Anchor = TextAnchor.UpperLeft;
+                i++;
             }
         }
+
+        public static void DrawLabel( Rect canvas, Color main, Color background, int label )
+        {
+            // draw coloured tag
+            GUI.color = main;
+            GUI.DrawTexture( canvas, CircleFill);
+
+            // if this is not first in line, grey out centre of tag
+            if (background != main)
+            {
+                GUI.color = background;
+                GUI.DrawTexture(canvas.ContractedBy( 2f ), CircleFill);
+            }
+
+            // draw queue number
+            GUI.color = Color.white;
+            Text.Anchor = TextAnchor.MiddleCenter;
+            Widgets.Label( canvas, label.ToString());
+            Text.Anchor = TextAnchor.UpperLeft;
+        }
+
+        public static int NumQueued => _queue.Count - 1;
 
         public static void Enqueue( ResearchNode node, bool add )
         {
@@ -105,7 +130,7 @@ namespace FluffyResearchTree
             }
 
             // sorting by depth ensures prereqs are met - cost is just a bonus thingy.
-            foreach ( ResearchNode node in nodes.OrderBy( node => node.Y ).ThenBy( node => node.Research.CostApparent ) )
+            foreach ( ResearchNode node in nodes.OrderBy( node => node.X ).ThenBy( node => node.Research.CostApparent ) )
                 Enqueue( node, true );
         }
 
@@ -114,18 +139,38 @@ namespace FluffyResearchTree
             return _queue.Contains( node );
         }
 
-        public static bool TryStartNext( out ResearchNode next )
+        public static void TryStartNext( ResearchProjectDef finished )
         {
-            if ( _queue.Count > 0 )
+            var current = _queue.FirstOrDefault()?.Research;
+            Log.Debug( "TryStartNext: current; {0}, finished; {1}", current, finished );
+            if ( finished != _queue.FirstOrDefault()?.Research )
             {
-                next = _queue.First();
-                Find.ResearchManager.currentProj = next.Research;
-                return true;
+                TryDequeue( finished );
+                return;
             }
+            _queue.RemoveAt( 0 );
+            var next = _queue.FirstOrDefault()?.Research;
+            Log.Debug( "TryStartNext: next; {0}", next );
+            Find.ResearchManager.currentProj = next;
+            DoCompletionLetter( current, next );
+        }
 
-            next = null;
-            Find.ResearchManager.currentProj = null;
-            return false;
+        private static void DoCompletionLetter( ResearchProjectDef current, ResearchProjectDef next )
+        {
+            // message
+            string label = "ResearchFinished".Translate( current.LabelCap);
+            string text = "ResearchFinished".Translate( current.LabelCap) + "\n\n" + current.DescriptionDiscovered;
+
+            if (next != null)
+            {
+                text += "\n\n" + "Fluffy.ResearchTree.NextInQueue".Translate(next.LabelCap);
+                Find.LetterStack.ReceiveLetter(label, text, LetterDefOf.PositiveEvent );
+            }
+            else
+            {
+                text += "\n\n" + "Fluffy.ResearchTree.NextInQueue".Translate("none".Translate());
+                Find.LetterStack.ReceiveLetter( label, text, LetterDefOf.NeutralEvent );
+            }
         }
 
         public override void ExposeData()
@@ -161,7 +206,42 @@ namespace FluffyResearchTree
 
         #endregion Methods
 
-        public Queue( World world ) : base( world )
-        {}
+        public static void DrawQueue( Rect canvas )
+        {
+            if ( !_queue.Any() )
+            {
+                Text.Anchor = TextAnchor.MiddleCenter;
+                GUI.color = TechLevelColor;
+                Widgets.Label( canvas, "Fluffy.ResearchTree.NothingQueued".Translate() );
+                Text.Anchor = TextAnchor.UpperLeft;
+                GUI.color = Color.white;
+                return;
+            }
+
+            var pos = canvas.min;
+            for ( int i = 0; i < _queue.Count && pos.x + NodeSize.x < canvas.xMax; i++ )
+            {
+                var node = _queue[i];
+                var rect = new Rect(
+                    pos.x - Margin,
+                    pos.y - Margin,
+                    NodeSize.x + 2 * Margin,
+                    NodeSize.y + 2 * Margin
+                );
+                node.DrawAt( pos, rect );
+                if ( Mouse.IsOver( rect ))
+                    MainTabWindow_ResearchTree.CenterOn( node );
+                pos.x += NodeSize.x + Margin;
+            }
+        }
+
+        public static void Notify_InstantFinished()
+        {
+            foreach ( var node in new List<ResearchNode>( _queue ) )
+                if ( node.Research.IsFinished )
+                    TryDequeue( node );
+
+            Find.ResearchManager.currentProj = _queue.FirstOrDefault()?.Research;
+        }
     }
 }

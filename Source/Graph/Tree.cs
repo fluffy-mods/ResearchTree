@@ -2,18 +2,15 @@
 // Tree.cs
 // 2017-01-06
 
-#define TRACE_ALIGNMENT
-
-//#define TRACE_COMPACTION
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using RimWorld;
 using UnityEngine;
 using Verse;
-using static FluffyResearchTree.Assets;
+using static FluffyResearchTree.Constants;
 
 namespace FluffyResearchTree
 {
@@ -21,551 +18,581 @@ namespace FluffyResearchTree
     {
         public static bool Initialized;
         public static IntVec2 Size = IntVec2.Zero;
-        public static List<Node> _nodes;
+        private static List<Node> _nodes = new List<Node>();
+        private static List<Edge<Node,Node>> _edges = new List<Edge<Node, Node>>();
+        private static List<TechLevel> _relevantTechLevels;
+        private static Dictionary<TechLevel, IntRange> _techLevelBounds;
 
-        // data structures used in vertical alignment and compaction
-        private static HashSet<Pair<Node, Node>> marks;
+        public static Dictionary<TechLevel, IntRange> TechLevelBounds
+        {
+            get
+            {
+                if (_techLevelBounds == null )
+                    throw new Exception( "TechLevelBounds called before they are set.");
+                return _techLevelBounds;
+            }
+        }
 
-        private static Dictionary<Node, Node> roots;
-        private static Dictionary<Node, Node> align;
-        private static Dictionary<Node, Node> sink;
-        private static Dictionary<Node, int> shift;
-        private static Dictionary<Node, bool> positioned;
-
-        internal static bool OrderDirty = true;
-
+        public static List<TechLevel> RelevantTechLevels
+        {
+            get
+            {
+                if ( _relevantTechLevels == null )
+                {
+                    _relevantTechLevels = Enum.GetValues(typeof(TechLevel))
+                        .Cast<TechLevel>()
+                        // filter down to relevant tech levels only.
+                        .Where(tl => DefDatabase<ResearchProjectDef>.AllDefsListForReading.Any(rp => rp.techLevel == tl))
+                        .ToList();
+                }
+                return _relevantTechLevels;
+            }
+        }
+        
         public static List<Node> Nodes
         {
             get
             {
-                if ( _nodes == null )
-                    throw new Exception( "Trying to access leaves before they are initialized." );
+                if (_nodes == null)
+                    throw new Exception("Trying to access nodes before they are initialized.");
 
                 return _nodes;
             }
         }
 
-        public static void HorizontalPositions()
+        public static List<Edge<Node,Node>> Edges
         {
-            // get list of techlevels
-            var techlevels = Enum.GetValues(typeof(TechLevel)).Cast<TechLevel>();
-            bool anyChange;
-            var iteration = 1;
-            var maxIterations = 50;
-
-            do
+            get
             {
-                Log.Debug("Assigning horizontal positions, iteration {0}", iteration);
-                var min = 1;
-                anyChange = false;
+                if (_edges == null)
+                    throw new Exception("Trying to access edges before they are initialized.");
 
-                foreach (var techlevel in techlevels)
-                {
-                    // enforce minimum x position based on techlevels
-                    var nodes = Nodes.OfType<ResearchNode>().Where(n => n.Research.techLevel == techlevel);
-                    if (!nodes.Any())
-                        continue;
-
-                    foreach (var node in nodes)
-                        anyChange = node.SetDepth(min) || anyChange;
-
-                    min = nodes.Max(n => n.X) + 1;
-
-                    Log.Debug("\t{0}, change: {1}", techlevel, anyChange);
-                }
-            } while (anyChange && iteration++ < maxIterations);
+                return _edges;
+            }
         }
 
-        public static void DrawLine( Pair<ResearchNode, ResearchNode> connection, Color color,
-                                     bool reverseDirection = false )
-        {
-            Vector2 a, b;
-
-            if ( reverseDirection )
-            {
-                a = connection.First.Right;
-                b = connection.Second.Left;
-            }
-            else
-            {
-                a = connection.First.Left;
-                b = connection.Second.Right;
-            }
-
-            GUI.color = color;
-            var isHubLink = false;
-
-            Vector2 left, right;
-            // make sure line goes left -> right
-            if ( a.x < b.x )
-            {
-                left = a;
-                right = b;
-            }
-            else
-            {
-                left = b;
-                right = a;
-            }
-
-            // if left and right are on the same level, just draw a straight line.
-            if ( Math.Abs( left.y - right.y ) < 0.1f )
-            {
-                var line = new Rect( left.x, left.y - 2f, right.x - left.x, 4f );
-                GUI.DrawTexture( line, EW );
-            }
-
-            // draw three line pieces and two curves.
-            else
-            {
-                // determine top and bottom y positions
-                float top = Math.Min( left.y, right.y ) + Settings.NodeMargins.x / 4f;
-                float bottom = Math.Max( left.y, right.y ) - Settings.NodeMargins.x / 4f;
-
-                // if these positions are more than X nodes apart, draw an invisible 'hub' link.
-                if ( false )
-                    // TODO: commented out for debug. Math.Abs( top - bottom ) > Settings.LineMaxLengthNodes * Settings.NodeSize.y )
-                {
-                    isHubLink = true;
-
-                    // left to hub
-                    var leftToHub = new Rect( left.x, left.y + 15f, Settings.NodeMargins.x / 4f, 4f );
-                    GUI.DrawTexture( leftToHub, EW );
-
-                    // hub to right
-                    var hubToRight = new Rect( right.x - Settings.NodeMargins.x / 4f, right.y + 15f,
-                                               Settings.NodeMargins.x / 4f, 4f );
-                    GUI.DrawTexture( hubToRight, EW );
-
-                    // left hub
-                    var hub = new Rect( left.x + Settings.NodeMargins.x / 4f - Settings.HubSize / 2f,
-                                        left.y + 17f - Settings.HubSize / 2f,
-                                        Settings.HubSize,
-                                        Settings.HubSize );
-                    GUI.DrawTexture( hub, CircleFill );
-
-                    // add tooltip
-                    if ( !MainTabWindow_ResearchTree.hubTips.ContainsKey( hub ) )
-                    {
-                        MainTabWindow_ResearchTree.hubTips.Add( hub, new List<string>() );
-                        MainTabWindow_ResearchTree.hubTips[hub].Add( "Fluffy.ResearchTree.LeadsTo".Translate() );
-                    }
-                    MainTabWindow_ResearchTree.hubTips[hub].Add( connection.First.Research.LabelCap );
-
-                    // right hub
-                    hub.position = new Vector2( right.x - Settings.NodeMargins.x / 4f - Settings.HubSize / 2f,
-                                                right.y + 17f - Settings.HubSize / 2f );
-                    GUI.DrawTexture( hub, CircleFill );
-
-                    // add tooltip
-                    if ( !MainTabWindow_ResearchTree.hubTips.ContainsKey( hub ) )
-                    {
-                        MainTabWindow_ResearchTree.hubTips.Add( hub, new List<string>() );
-                        MainTabWindow_ResearchTree.hubTips[hub].Add( "Fluffy.ResearchTree.Requires".Translate() );
-                    }
-                    MainTabWindow_ResearchTree.hubTips[hub].Add( connection.Second.Research.LabelCap );
-                }
-                    // but when nodes are close together, just draw the link as usual.
-                // left to curve
-                var leftToCurve = new Rect( left.x, left.y - 2f, Settings.NodeMargins.x / 4f, 4f );
-                GUI.DrawTexture( leftToCurve, EW );
-
-                // curve to curve
-                var curveToCurve = new Rect( left.x + Settings.NodeMargins.x / 2f - 2f, top, 4f, bottom - top );
-                GUI.DrawTexture( curveToCurve, NS );
-
-                // curve to right
-                var curveToRight = new Rect( left.x + Settings.NodeMargins.x / 4f * 3, right.y - 2f,
-                                             right.x - left.x - Settings.NodeMargins.x / 4f * 3, 4f );
-                GUI.DrawTexture( curveToRight, EW );
-
-                // curve positions
-                var curveLeft = new Rect( left.x + Settings.NodeMargins.x / 4f, left.y - Settings.NodeMargins.x / 4f,
-                                          Settings.NodeMargins.x / 2f, Settings.NodeMargins.x / 2f );
-                var curveRight = new Rect( left.x + Settings.NodeMargins.x / 4f,
-                                           right.y - Settings.NodeMargins.x / 4f, Settings.NodeMargins.x / 2f,
-                                           Settings.NodeMargins.x / 2f );
-
-                // going down
-                if ( left.y < right.y )
-                {
-                    GUI.DrawTextureWithTexCoords( curveLeft, Circle, new Rect( 0.5f, 0.5f, 0.5f, 0.5f ) );
-                    // bottom right quadrant
-                    GUI.DrawTextureWithTexCoords( curveRight, Circle, new Rect( 0f, 0f, 0.5f, 0.5f ) );
-                    // top left quadrant
-                }
-                // going up
-                else
-                {
-                    GUI.DrawTextureWithTexCoords( curveLeft, Circle, new Rect( 0.5f, 0f, 0.5f, 0.5f ) );
-                    // top right quadrant
-                    GUI.DrawTextureWithTexCoords( curveRight, Circle, new Rect( 0f, 0.5f, 0.5f, 0.5f ) );
-                    // bottom left quadrant
-                }
-            }
-
-            // draw the end arrow (if not hub link)
-            var end = new Rect( right.x - 16f, right.y - 8f, 16f, 16f );
-
-            if ( !isHubLink )
-                GUI.DrawTexture( end, End );
-
-            // reset color
-            GUI.color = Color.white;
-        }
-
-        //public static void GraphSharpTests()
-        //{
-        //    var graph = new GraphSharp.HierarchicalGraph<>();
-        //}
         public static void Initialize()
         {
-            // populate all nodes
-            _nodes = new List<Node>( DefDatabase<ResearchProjectDef>.AllDefsListForReading
-                                          // exclude hidden projects (prereq of itself is a common trick to hide research).
-                                                                     .Where(
-                                                                            def =>
-                                                                            def.prerequisites.NullOrEmpty() ||
-                                                                            !def.prerequisites.Contains( def ) )
-                                                                     .Select( def => new ResearchNode( def ) as Node ) );
+            // setup
+            LongEventHandler.QueueLongEvent( PopulateNodes, "Fluffy.ResearchTree.PreparingTree.Setup", false, null );
+            LongEventHandler.QueueLongEvent( CheckPrerequisites, "Fluffy.ResearchTree.PreparingTree.Setup", false, null);
+            LongEventHandler.QueueLongEvent( CreateEdges, "Fluffy.ResearchTree.PreparingTree.Setup", false, null);
+            LongEventHandler.QueueLongEvent( HorizontalPositions, "Fluffy.ResearchTree.PreparingTree.Setup", false, null);
+            LongEventHandler.QueueLongEvent( NormalizeEdges, "Fluffy.ResearchTree.PreparingTree.Setup", false, null);
+#if DEBUG
+            LongEventHandler.QueueLongEvent( DebugStatus, "Fluffy.ResearchTree.PreparingTree.Setup", false, null);
+#endif
 
-            // mark, but do not remove redundant prerequisites.
-            foreach ( ResearchNode node in Nodes.OfType<ResearchNode>() )
+            // crossing reduction
+            LongEventHandler.QueueLongEvent( Collapse, "Fluffy.ResearchTree.PreparingTree.CrossingReduction", false, null);
+            LongEventHandler.QueueLongEvent( MinimizeCrossings, "Fluffy.ResearchTree.PreparingTree.CrossingReduction", false, null);
+#if DEBUG
+            LongEventHandler.QueueLongEvent(DebugStatus, "Fluffy.ResearchTree.PreparingTree.CrossingReduction", false, null);
+#endif
+
+            // layout
+            LongEventHandler.QueueLongEvent( MinimizeEdgeLength, "Fluffy.ResearchTree.PreparingTree.Layout", false, null);
+            LongEventHandler.QueueLongEvent( RemoveEmptyRows, "Fluffy.ResearchTree.PreparingTree.Layout", false, null);
+#if DEBUG
+            LongEventHandler.QueueLongEvent(DebugStatus, "Fluffy.ResearchTree.PreparingTree.Layout", false, null);
+#endif
+
+            // done!
+            LongEventHandler.QueueLongEvent( () => { Initialized = true; }, "Fluffy.ResearchTree.PreparingTree.Layout", false, null );
+        }
+
+        private static void RemoveEmptyRows()
+        {
+            int y = 1;
+            while ( y <= Size.z )
             {
-                if ( !node.Research.prerequisites.NullOrEmpty() )
+                var row = Row( y );
+                if ( row.NullOrEmpty() )
                 {
-                    List<ResearchProjectDef> ancestors = node.Research.prerequisites?.SelectMany( r => r.GetPrerequisitesRecursive() ).ToList();
-                    if ( !ancestors.NullOrEmpty() && ( !node.Research.prerequisites?.Intersect( ancestors ).ToList().NullOrEmpty() ?? false ) )
-                        Log.Warning( "redundant prerequisites for {0}: {1}", node.Research.LabelCap, string.Join( ", ", node.Research.prerequisites?.Intersect( ancestors ).Select( r => r.LabelCap ).ToArray() ) );
-                    if ( node.Research.prerequisites.Any( r => r.techLevel > node.Research.techLevel ) )
-                        Log.Warning( "{0} has a lower techlevel than (one of) it's dependenc(y/ies)", node.Research.defName );
+                    foreach ( var node in Nodes.Where( n => n.Y > y ) )
+                    {
+                        node.Y--;
+                    }
+                }
+                else
+                {
+                    y++;
                 }
             }
-
-            // create links between nodes
-            foreach ( ResearchNode node in Nodes.OfType<ResearchNode>() )
-                node.CreateLinks();
-
-            // calculate Depth of each node
-            // NOTE: These are the layers in graph terminology
-            foreach ( ResearchNode node in Nodes.OfType<ResearchNode>() )
-                node.SetDepth();
-
-            // create dummy vertices for edges that span multiple layers
-            var dummies = new List<Node>();
-            foreach ( ResearchNode node in Nodes.OfType<ResearchNode>() )
-                foreach ( ResearchNode child in node.Children.Where( child => child.X - node.X > 1 ) )
-                    dummies.AddRange( CreateDummyNodes( node, child ) );
-
-            // add dummy vertices to tree (can't do this in iteration because we'd be modifying the iteratee)
-            Nodes.AddRange( dummies );
-
-            // arrange nodes within layers to minimize edge crossings
-            MinimizeCrossings();
-
-            // create a visually pleasing layout, with a minimum of bends in long edges
-            CreateLayout();
-
-            // Done!
-            Initialized = true;
         }
 
-        private static void CreateLayout()
+        private static void MinimizeEdgeLength()
         {
-            // three things happen;
-            // mark type 1 (crossing between long and short edge)
-            // create blocks of aligned vertices
-            // collapse blocks to minimize vertical space used
-            // Brandes, U., & Köpf, B. (2001, September). Fast and simple horizontal coordinate assignment. In International Symposium on Graph Drawing (pp. 31-44). Springer Berlin Heidelberg.
-
-            int before = Crossings();
-
-            MarkTypeIConflicts();
-
-#if DEBUG
-            Log.Message(
-                        $"Conflicts: \n\t{string.Join( "\n\t", marks.Select( p => $"{p.First} -> {p.Second}" ).ToArray() )} " );
-#endif
-
-            HorizontalAlignment();
-
-#if DEBUG
-            IEnumerable<KeyValuePair<Node, Node>> blocks = roots.Where( p => p.Key == p.Value );
-            var root_msg = new StringBuilder();
-            foreach ( Node root in blocks.Select( p => p.Key ) )
+            // move and/or swap nodes to reduce the total edge length
+            // perform sweeps of adjacent node reorderings
+            bool progress = false;
+            int iteration = 0, burnout = 2, max_iterations = 50;
+            while ((!progress || burnout > 0) && iteration < max_iterations)
             {
-                root_msg.AppendLine( $"Block: {root}" );
-                foreach ( KeyValuePair<Node, Node> node in roots.Where( p => p.Value == root ) )
-                    root_msg.AppendLine( $"\t{node}" );
+                progress = EdgeLengthSweep_Local(iteration++);
+                if (!progress)
+                    burnout--;
             }
 
-            Log.Message( root_msg.ToString() );
-            Log.Message( $"Align: \n\t{string.Join( "\n\t", align.Select( p => $"{p.Key} -> {p.Value}" ).ToArray() )} " );
-
-#endif
-            // todo: this is where things go horribly wrong.
-            //            VerticalCompaction();
-
-            //#if DEBUG
-            //            Log.Message( $"Sink: \n\t{string.Join( "\n\t", sink.Select( p => $"{p.Key} -> {p.Value}" ).ToArray() )} " );
-            //            Log.Message( $"Shift: \n\t{string.Join( "\n\t", shift.Select( p => $"{p.Key} -> {p.Value}" ).ToArray() )} " );
-            //#endif
-
-            //foreach ( var leaf in Nodes )
-            //    leaf.Y = roots[leaf].Y;
-
-            int Yoffset = Nodes.Min( n => n.Y ) - 1;
-            foreach ( Node leaf in Nodes )
-                leaf.Y -= Yoffset;
-
-            int after = Crossings();
-            Log.Message( $"CreateLayout: {before} -> {after}" );
-        }
-
-        internal static void DrawDebug()
-        {
-            foreach ( Node v in Nodes )
+            // sweep until we had no progress 2 times, then keep sweeping until we had progress
+            iteration = 0;
+            burnout = 2;
+            while ( burnout > 0 && iteration < max_iterations )
             {
-                if ( v != roots[v] )
-                    Widgets.DrawLine( v.Center, roots[v].Center, Color.red, 1 );
-                if ( v != align[v] && Math.Abs( align[v].X - v.X ) <= 1 )
-                    Widgets.DrawLine( v.Center, align[v].Center, Color.blue, 4 );
-                foreach ( Node w in v.OutNodes )
-                    Widgets.DrawLine( v.Right, w.Left, Color.white, 1 );
+                progress = EdgeLengthSweep_Global(iteration++);
+                if (!progress)
+                    burnout--;
             }
         }
 
-        private static void HorizontalAlignment()
+        private static bool EdgeLengthSweep_Global(int iteration)
         {
-            // Brandes & Kopf, 2001, p37 (Alg 2).
-            roots = Nodes.ToDictionary( n => n, n => n );
-            align = Nodes.ToDictionary( n => n, n => n );
+            // calculate edge length before sweep
+            var before = EdgeLength();
 
-            var msg = new StringBuilder();
-            msg.AppendLine( "Horizontal alignment log" );
+            // do left/right sweep, align with left/right nodes for 4 different iterations.
+            //if (iteration % 2 == 0)
+                for (var l = 2; l <= Size.x; l++)
+                    EdgeLengthSweep_Global_Layer(l, true);
+            //else
+            //    for (var l = 1; l < Size.x; l++)
+            //        EdgeLengthSweep_Global_Layer(l, false);
 
-            // loop over layers
-            for ( int l = Size.x - 1; l > 0; l-- )
+            // calculate edge length after sweep
+            var after = EdgeLength();
+
+            // return progress
+            Log.Debug($"EdgeLengthSweep_Global, iteration {iteration}: {before} -> {after}");
+            return after < before;
+        }
+
+
+        private static bool EdgeLengthSweep_Local(int iteration)
+        {
+            // calculate edge length before sweep
+            var before = EdgeLength();
+
+            // do left/right sweep, align with left/right nodes for 4 different iterations.
+            if (iteration % 2 == 0)
+                for (var l = 2; l <= Size.x; l++)
+                    EdgeLengthSweep_Local_Layer(l, true);
+            else
+                for (var l = Size.x - 1; l >= 0; l-- )
+                    EdgeLengthSweep_Local_Layer(l, false);
+
+            // calculate edge length after sweep
+            var after = EdgeLength();
+
+            // return progress
+            Log.Debug($"EdgeLengthSweep_Local, iteration {iteration}: {before} -> {after}");
+            return after < before;
+        }
+
+        private static void EdgeLengthSweep_Global_Layer(int l, bool @in )
+        {
+            // The objective here is to;
+            // (1) move and/or swap nodes to reduce total edge length
+            // (2) not increase the number of crossings
+
+            var length = EdgeLength( l, @in );
+            var crossings = Crossings( l );
+            if ( Math.Abs( length ) < Epsilon )
+                return;
+
+            List<Node> layer = Layer(l, true);
+            foreach (var node in layer)
             {
-                msg.AppendLine( $"Layer {l}" );
-                int r = -1;
-                List<Node> layer = Layer( l, true );
-                List<Node> below = Layer( l + 1, true );
+                // we only need to loop over positions that might be better for this node.
+                // min = minimum of current position, minimum of any connected nodes current position
+                var neighbours = node.Nodes;
+                if ( !neighbours.Any() )
+                    continue;
 
-                // loop over nodes in layer
-                for ( var pos_v = 0; pos_v < layer.Count; pos_v++ )
+                var min = Mathf.Min( node.Y, neighbours.Min( n => n.Y ) );
+                var max = Mathf.Max( node.Y, neighbours.Max( n => n.Y ) );
+                if ( min == max && min == node.Y )
+                    continue;
+
+                for ( var y = min; y <= max; y++)
                 {
-                    Node v = layer[pos_v];
-                    msg.AppendLine( $"\tChecking {v}" );
+                    if ( y == node.Y )
+                        continue;
+                    
+                    // is this spot occupied? 
+                    var otherNode = NodeAt( l, y );
 
-                    // if node has any neighbours on layer l+1
-                    if ( v.OutNodes.Any() )
+                    // occupied, try swapping
+                    if ( otherNode != null )
                     {
-                        List<Node> neighbours = v.OutNodes;
-                        neighbours.SortBy( n => n.Y );
-                        int d = neighbours.Count;
-                        msg.AppendLine( $"\t\thas {d} neighbours" );
-                        int[] medians = {(int) Math.Floor( ( d - 1f ) / 2f ), (int) Math.Ceiling( ( d - 1f ) / 2f )};
-                        foreach ( int m in medians )
+                        Swap( node, otherNode );
+                        var candidateCrossings = Crossings( l );
+                        if ( candidateCrossings > crossings )
                         {
-                            msg.AppendLine( "\t\t" + ( align[v] == v ? "not yet aligned" : "already aligned" ) );
-                            // if not yet aligned, and m is a valid node index
-                            if ( align[v] == v )
+                            // abort
+                            Swap( otherNode, node );
+                        }
+                        else
+                        {
+                            var candidateLength = EdgeLength( l, @in);
+                            if ( length - candidateLength < Epsilon )
                             {
-                                // if the median node is not marked as type 1
-                                Node u = neighbours[m];
-                                msg.AppendLine( $"\t\ttrying to align with {u}" );
-                                int pos_u = below.IndexOf( u );
-                                var edge = new Pair<Node, Node>( v, u );
-                                if ( marks.Contains( edge ) )
-                                    msg.AppendLine( $"\t\t{v} -> {u} is marked as a type I conflict" );
-                                if ( r >= pos_u )
-                                    msg.AppendLine( $"\t\tpos(u) = {pos_u}, >= r = {r}" );
-                                if ( !marks.Contains( edge )
-                                     && r < pos_u )
+                                // abort
+                                Swap( otherNode, node );
+                            }
+                            else
+                            {
+                                Log.Trace( "\tSwapping {0} and {1}: {2} -> {3}", node, otherNode, length,
+                                    candidateLength );
+                                length = candidateLength;
+                            }
+                        }
+                    }
+
+                    // not occupied, try moving
+                    else
+                    {
+                        var oldY = node.Y;
+                        node.Y = y;
+                        var candidateCrossings = Crossings(l);
+                        if (candidateCrossings > crossings)
+                        {
+                            // abort
+                            node.Y = oldY;
+                        }
+                        else
+                        {
+                            var candidateLength = EdgeLength(l, @in );
+                            if (length - candidateLength < Epsilon)
+                            {
+                                // abort
+                                node.Y = oldY;
+                            }
+                            else
+                            {
+                                Log.Trace("\tMoving {0} -> {1}: {2} -> {3}", node, new Vector2(node.X, oldY), length, candidateLength);
+                                length = candidateLength;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+        private static void EdgeLengthSweep_Local_Layer(int l, bool @in)
+        {
+            // The objective here is to;
+            // (1) move and/or swap nodes to reduce local edge length
+            // (2) not increase the number of crossings
+            var x = @in ? l - 1 : l + 1;
+            var crossings = Crossings( x );
+
+            List<Node> layer = Layer(l, true);
+            foreach ( var node in layer )
+            {
+                foreach ( var edge in @in ? node.InEdges: node.OutEdges )
+                {
+                    // current length
+                    var length = edge.Length;
+                    var neighbour = @in ? edge.In : edge.Out;
+                    if ( neighbour.X != x )
+                        Log.Warning( "{0} is not at layer {1}", neighbour, x );
+
+                    // we only need to loop over positions that might be better for this node.
+                    // min = minimum of current position, node position
+                    var min = Mathf.Min( node.Y, neighbour.Y );
+                    var max = Mathf.Max( node.Y, neighbour.Y );
+
+                    // already at only possible position
+                    if (min == max && min == node.Y)
+                        continue;
+
+                    for (var y = min; y <= max; y++)
+                    {
+                        if (y == neighbour.Y)
+                            continue;
+
+                        // is this spot occupied? 
+                        var otherNode = NodeAt( x, y );
+
+                        // occupied, try swapping
+                        if (otherNode != null)
+                        {
+                            Swap( neighbour, otherNode );
+                            var candidateCrossings = Crossings( x );
+                            if (candidateCrossings > crossings)
+                            {
+                                // abort
+                                Swap( otherNode, neighbour );
+                            }
+                            else
+                            {
+                                var candidateLength = edge.Length;
+                                if (length - candidateLength < Epsilon)
                                 {
-                                    msg.AppendLine( $"\t\t aligning {u} to {v} " );
-                                    align[u] = v;
-                                    roots[v] = roots[u];
-                                    align[v] = roots[v];
-                                    r = pos_u;
+                                    // abort
+                                    Swap(otherNode, neighbour);
+                                }
+                                else
+                                {
+                                    Log.Trace("\tSwapping {0} and {1}: {2} -> {3}", neighbour, otherNode, length, candidateLength);
+                                    length = candidateLength;
+                                }
+                            }
+                        }
+
+                        // not occupied, try moving
+                        else
+                        {
+                            var oldY = neighbour.Y;
+                            neighbour.Y = y;
+                            var candidateCrossings = Crossings( x );
+                            if (candidateCrossings > crossings)
+                            {
+                                // abort
+                                neighbour.Y = oldY;
+                            }
+                            else
+                            {
+                                var candidateLength = edge.Length;
+                                if (length - candidateLength < Epsilon)
+                                {
+                                    // abort
+                                    neighbour.Y = oldY;
+                                }
+                                else
+                                {
+                                    Log.Trace("\tMoving {0} -> {1}: {2} -> {3}", neighbour, new Vector2( neighbour.X, oldY ), length, candidateLength);
+                                    length = candidateLength;
                                 }
                             }
                         }
                     }
                 }
             }
-#if DEBUG
-            Log.Message( msg.ToString() );
-#endif
         }
 
-        private static void VerticalCompaction()
+        public static void HorizontalPositions()
         {
-            // Brandes & Kopf, 2001, p38 (Alg 3).
+            // get list of techlevels
+            var techlevels = RelevantTechLevels;
+            bool anyChange;
+            var iteration = 1;
+            var maxIterations = 50;
 
-            var msg = new StringBuilder( "Vertical compaction log" );
-            sink = Nodes.ToDictionary( n => n, n => n );
-            shift = Nodes.ToDictionary( n => n, n => int.MaxValue );
-            positioned = Nodes.ToDictionary( n => n, n => false );
-
-            foreach ( Node v in Nodes )
-                if ( roots[v] == v )
-                    PlaceBlock( v, ref msg, 1 );
-
-            Log.Message( msg.ToString() );
-
-            foreach ( Node v in Nodes )
-            {
-                PositionNode( v, roots[v].Y );
-                if ( shift[sink[roots[v]]] < int.MaxValue )
-                    PositionNode( v, v.Y + shift[sink[roots[v]]] );
-            }
-
-            // done!
-        }
-
-        private static string Tabs( int n ) { return new String( '\t', n ); }
-
-        private static void PlaceBlock( Node v, ref StringBuilder msg, int d )
-        {
-            // function place_block, Brandes & Kopf, 2001, p38 (Alg 3).
-            msg.AppendLine( $"{Tabs( d )}placing block of {v}" );
-            if ( positioned[v] )
-            {
-                msg.AppendLine( $"{Tabs( d )}already positioned" );
-                return;
-            }
-
-            // I have absolutely zero idea of what's going on here.
-            Node w = v;
+            // assign horizontal positions based on tech levels and prerequisites
             do
             {
-                List<Node> layer = Layer( w.X, true );
-                int index = layer.IndexOf( w );
-                msg.AppendLine( $"{Tabs( d )}index: {index}" );
-                if ( index > 0 )
-                {
-                    Node u = roots[layer[index - 1]];
-                    PlaceBlock( u, ref msg, d + 1 );
+                Log.Debug( "Assigning horizontal positions, iteration {0}", iteration );
+                var min = 1;
+                anyChange = false;
 
-                    if ( sink[v] == v )
-                    {
-                        msg.AppendLine( $"{Tabs( d )}sink(v) == v [{v}]" );
-                        msg.AppendLine( $"{Tabs( d )}setting sink(v) -> sink(u) [{sink[u]}]" );
-                        sink[v] = sink[u];
-                    }
-                    if ( sink[v] != sink[u] )
-                    {
-                        msg.AppendLine( $"{Tabs( d )}sink(v) != sink(u) [{sink[v]} != {sink[u]}]" );
-                        msg.AppendLine(
-                                       $"{Tabs( d )}setting shift(sink(u)) = Min( shift(sink(u)), y(v) - y(u) - 1) [Min({shift[sink[u]]}, {v.Y} - {u.Y} - 1]" );
-                        shift[sink[u]] = Math.Min( shift[sink[u]], v.Y - u.Y - 1 );
-                    }
-                    else
-                    {
-                        msg.AppendLine( $"{Tabs( d )}sink(v) == sink(u) [{sink[v]} == {sink[u]}]" );
-                        msg.AppendLine( $"{Tabs( d )}setting y(v) to Max( y(v), y(u) + 1 [{v.Y}, {u.Y + 1}" );
-                        PositionNode( v, Math.Max( v.Y, u.Y + 1 ) );
-                    }
+                foreach ( var techlevel in techlevels )
+                {
+                    // enforce minimum x position based on techlevels
+                    var nodes = Nodes.OfType<ResearchNode>().Where( n => n.Research.techLevel == techlevel );
+                    if ( !nodes.Any() )
+                        continue;
+
+                    foreach ( var node in nodes )
+                        anyChange = node.SetDepth(min) || anyChange;
+
+                    min = nodes.Max( n => n.X ) + 1;
+
+                    Log.Debug( "\t{0}, change: {1}", techlevel, anyChange );
+                }
+            } while ( anyChange && iteration++ < maxIterations );
+
+            // store tech level boundaries
+            _techLevelBounds = new Dictionary<TechLevel, IntRange>();
+            foreach ( var techlevel in techlevels )
+            {
+                var nodes = Nodes.OfType<ResearchNode>().Where(n => n.Research.techLevel == techlevel);
+                _techLevelBounds[techlevel] = new IntRange( nodes.Min( n => n.X) - 1, nodes.Max( n => n.X ) );
+            }
+        }
+
+        private static void NormalizeEdges()
+        {
+            Log.Debug( "Normalizing edges."  );
+            foreach ( var edge in new List<Edge<Node, Node>>( Edges.Where( e => e.Span > 1 ) ) )
+            {
+                Log.Debug( "\tCreating dummy chain for {0}", edge );
+
+                // remove and decouple long edge
+                Edges.Remove( edge );
+                edge.In.OutEdges.Remove( edge );
+                edge.Out.InEdges.Remove( edge );
+                var cur = edge.In;
+                var yOffset = ( edge.Out.Yf - edge.In.Yf ) / edge.Span;
+
+                // create and hook up dummy chain
+                for ( int x = edge.In.X + 1; x < edge.Out.X; x++ )
+                {
+                    var dummy = new DummyNode();
+                    dummy.X = x;
+                    dummy.Yf = edge.In.Yf + yOffset * ( x - edge.In.X );
+                    var dummyEdge = new Edge<Node, Node>( cur, dummy );
+                    cur.OutEdges.Add( dummyEdge );
+                    dummy.InEdges.Add( dummyEdge );
+                    _nodes.Add( dummy );
+                    Edges.Add( dummyEdge );
+                    cur = dummy;
+                    Log.Debug( "\t\tCreated dummy {0}", dummy );
                 }
 
-                msg.AppendLine( $"{Tabs( d )}moving from {w} to {align[w]}" );
-                w = align[w];
-            } while ( w != v );
+                // hook up final dummy to out node
+                var finalEdge = new Edge<Node, Node>( cur, edge.Out );
+                cur.OutEdges.Add( finalEdge );
+                edge.Out.InEdges.Add( finalEdge );
+                Edges.Add( finalEdge );
+            }
         }
 
-        // small wrapper for positioning to keep track of defined positions in the horizontal compaction stage.
-        private static void PositionNode( Node node, int Y )
+        private static void CreateEdges()
         {
-            node.Y = Y;
-            positioned[node] = true;
-        }
-
-        private static void MarkTypeIConflicts()
-        {
-            // Brandes & Kopf, 2001, p36 (Alg 1).
-            marks = new HashSet<Pair<Node, Node>>();
-            for ( var l = 1; l < Size.x; l++ )
+            Log.Debug( "Creating edges."  );
+            // create links between nodes
+            foreach ( ResearchNode node in Nodes.OfType<ResearchNode>() )
             {
-                int left_inner = 1, right_inner = 1;
-                List<Node> layer = Layer( l, true );
-                List<Node> next_layer = Layer( l + 1, true );
-                int layer_size = layer.Max( n => n.Y );
-                int next_layer_size = next_layer.Max( n => n.Y );
-
-                for ( int i = 1, i1 = 1; i1 <= next_layer_size; i1++ )
+                if ( node.Research.prerequisites.NullOrEmpty() )
+                    continue;
+                foreach ( var prerequisite in node.Research.prerequisites )
                 {
-                    Node node = NodeAtPos( l + 1, i1 );
-                    // find vertices that are part of an inner (long) edge
-                    if ( node is DummyNode || node == next_layer.Last() )
+                    ResearchNode prerequisiteNode = prerequisite;
+                    var edge = new Edge<Node, Node>( prerequisiteNode, node );
+                    Edges.Add( edge );
+                    node.InEdges.Add( edge );
+                    prerequisiteNode.OutEdges.Add( edge );
+                    Log.Debug( "\tCreated edge {0}", edge );
+                }
+            }
+        }
+
+        private static void CheckPrerequisites()
+        {
+// check prerequisites
+            Log.Debug( "Checking prerequisites."  );
+            foreach ( ResearchNode node in Nodes.OfType<ResearchNode>() )
+            {
+                if ( !node.Research.prerequisites.NullOrEmpty() )
+                {
+                    if ( node.Research.prerequisites.NullOrEmpty() )
+                        continue;
+
+                    // warn about badly configured techlevels
+                    if ( node.Research.prerequisites.Any( r => r.techLevel > node.Research.techLevel ) )
+                        Log.Warning( "\t{0} has a lower techlevel than (one of) it's dependenc(y/ies)", node.Research.defName );
+
+                    // get (redundant) ancestors.
+                    var ancestors = node.Research.prerequisites?.SelectMany( r => r.GetPrerequisitesRecursive() ).ToList();
+                    var redundant = ancestors.Intersect( node.Research.prerequisites );
+                    if ( redundant.Any() )
                     {
-                        // right_inner position is the endpoint of the edge on the
-                        // current layer.
-                        if ( node is DummyNode )
-                            right_inner = node.InNodes.First().Y;
-                        else
-                            right_inner = layer_size;
-
-                        // keeping track of nodes already checked, mark edges that
-                        // cross nearest inner boundaries.
-                        while ( i < i1 )
-                        {
-                            Node check = NodeAtPos( l + 1, i++ );
-                            if ( check?.InNodes?.Any() ?? false )
-                                foreach ( Node neighbour in check.InNodes )
-                                    if ( neighbour.Y < left_inner || neighbour.Y > right_inner )
-                                    {
-#if TRACE_CONFLICTS
-                                        Log.Message( $"Conflict: {neighbour} -> {check}, @{node} ({l}; {left_inner}-{right_inner})" );
-#endif
-                                        marks.Add( new Pair<Node, Node>( neighbour, check ) );
-                                    }
-                        }
-
-                        // right inner is now left inner.
-                        left_inner = right_inner;
+                        Log.Warning( "\tredundant prerequisites for {0}: {1}", node.Research.LabelCap, string.Join( ", ", redundant.Select( r => r.LabelCap ).ToArray() ) );
+                        foreach ( var redundantPrerequisite in redundant )
+                            node.Research.prerequisites.Remove( redundantPrerequisite );
                     }
                 }
             }
         }
 
-        private static Node NodeAtPos( int X, int Y ) { return Nodes.FirstOrDefault( n => n.X == X && n.Y == Y ); }
-
-        public static List<Node> CreateDummyNodes( ResearchNode parent, ResearchNode child )
+        private static void PopulateNodes()
         {
-            // decouple parent and child
-            parent.OutNodes.Remove( child );
-            child.InNodes.Remove( parent );
-
-            // create dummy nodes
-            int n = child.X - parent.X;
-            var dummies = new List<Node>( n );
-            Node last = parent;
-
-            for ( var i = 1; i < n; i++ )
-            {
-                // create empty dummy
-                var dummy = new DummyNode();
-                dummies.Add( dummy );
-
-                // hook up the chain
-                last.OutNodes.Add( dummy );
-                dummy.InNodes.Add( last );
-                dummy.X = last.X + 1;
-
-                // this is now last
-                last = dummy;
-            }
-
-            // hook up child
-            last.OutNodes.Add( child );
-            child.InNodes.Add( last );
-
-            // done!
-            return dummies;
+            Log.Debug( "Populating nodes." );
+            // populate all nodes
+            _nodes = new List<Node>( DefDatabase<ResearchProjectDef>.AllDefsListForReading
+                // exclude hidden projects (prereq of itself is a common trick to hide research).
+                .Where( def => def.prerequisites.NullOrEmpty() || !def.prerequisites.Contains( def ) )
+                .Select( def => new ResearchNode( def ) as Node ) );
+            Log.Debug( "\t{0} nodes", _nodes.Count );
         }
 
+        private static void Collapse()
+        {
+            Log.Debug( "Collapsing nodes." );
+            var pre = Size;
+            for ( int l = 1; l <= Size.x; l++ )
+            {
+                var nodes = Layer( l, true );
+                int Y = 1;
+                foreach ( var node in nodes )
+                    node.Y = Y++;
+            }
+            Log.Debug("{0} -> {1}", pre, Size);
+        }
+
+        [Conditional("DEBUG")]
+        internal static void DebugDraw()
+        {
+            foreach (Node v in Nodes)
+            {
+                foreach ( Node w in v.OutNodes )
+                {
+                    Widgets.DrawLine( v.Right, w.Left, Color.white, 1 );
+                }
+            }
+        }
+
+
+        public static void Draw( Rect visibleRect )
+        {
+            foreach ( var techlevel in RelevantTechLevels )
+                DrawTechLevel( techlevel, visibleRect );
+
+            foreach ( var edge in Edges.OrderBy( e => e.DrawOrder ) )
+                edge.Draw(visibleRect);
+
+            foreach ( var node in Nodes )
+                node.Draw(visibleRect);
+        }
+
+        public static void DrawTechLevel( TechLevel techlevel, Rect visibleRect )
+        {
+            // determine positions
+            var xMin = ( NodeSize.x + NodeMargins.x ) * TechLevelBounds[techlevel].min - NodeMargins.x / 2f;
+            var xMax = ( NodeSize.x + NodeMargins.x ) * TechLevelBounds[techlevel].max - NodeMargins.x / 2f;
+
+            GUI.color = Assets.TechLevelColor;
+            Text.Anchor = TextAnchor.MiddleCenter;
+
+            // lower bound
+            if ( TechLevelBounds[techlevel].min > 0 && xMin > visibleRect.xMin && xMin < visibleRect.xMax )
+            {
+                // line
+                Widgets.DrawLine(new Vector2(xMin, visibleRect.yMin), new Vector2(xMin, visibleRect.yMax), Assets.TechLevelColor, 1f);
+
+                // label
+                var labelRect = new Rect(
+                    xMin + TechLevelLabelSize.y / 2f - TechLevelLabelSize.x / 2f,
+                    visibleRect.center.y - TechLevelLabelSize.y / 2f,
+                    TechLevelLabelSize.x,
+                    TechLevelLabelSize.y );
+                UI.RotateAroundPivot( -90, labelRect.center );
+                Widgets.Label(labelRect, techlevel.ToStringHuman());
+                UI.RotateAroundPivot( 90, labelRect.center );
+            }
+
+            // upper bound
+            if (TechLevelBounds[techlevel].max < Size.x && xMax > visibleRect.xMin && xMax < visibleRect.xMax )
+            {
+                // label
+                var labelRect = new Rect(
+                    xMax - TechLevelLabelSize.y / 2f - TechLevelLabelSize.x / 2f,
+                    visibleRect.center.y - TechLevelLabelSize.y / 2f,
+                    TechLevelLabelSize.x,
+                    TechLevelLabelSize.y);
+                UI.RotateAroundPivot(-90, labelRect.center);
+                Widgets.Label(labelRect, techlevel.ToStringHuman());
+                UI.RotateAroundPivot(90, labelRect.center);
+            }
+
+            GUI.color = Color.white;
+            Text.Anchor = TextAnchor.UpperLeft;
+        }
+
+        private static Node NodeAt( int X, int Y ) { return Nodes.FirstOrDefault( n => n.X == X && n.Y == Y ); }
+        
         public static void MinimizeCrossings()
         {
             // initialize each layer by putting nodes with the most (recursive!) children on bottom
@@ -576,24 +603,25 @@ namespace FluffyResearchTree
                     nodes[i].Y = i + 1;
             }
 
-            // up-down sweeps of median reordering
-            // burnout; number of iterations without progress
-            int iteration = 0, max_iterations = 50, burnout = 2;
-            while ( burnout > 0 && iteration < max_iterations )
-                if ( !MedianSweep( iteration++ ) )
+            // up-down sweeps of mean reordering
+            bool progress = false;
+            int iteration = 0, burnout = 2, max_iterations = 50;
+            while ((!progress || burnout > 0) && iteration < max_iterations)
+            {
+                progress = BarymetricSweep(iteration++);
+                if (!progress)
                     burnout--;
+            }
 
-            // (note that the last iteration without progress often _increases_ the amount of crossings,
-            // hence, we run one last iteration, hopefully resetting crossings to the previous minimum.
-            MedianSweep( iteration );
-
-            // perform sweeps of adjacent node reorderings
+            // greedy sweep for local optima
             iteration = 0;
-            max_iterations = 50;
             burnout = 2;
             while ( burnout > 0 && iteration < max_iterations )
-                if ( !GreedySweep( iteration++ ) )
+            {
+                progress = GreedySweep(iteration++);
+                if (!progress)
                     burnout--;
+            }
         }
 
         private static bool GreedySweep( int iteration )
@@ -629,10 +657,26 @@ namespace FluffyResearchTree
             //
             // If I'm reasoning this out right, both objectives should be served by
             // minimizing the amount of crossings between each pair of nodes.
+            var crossings = Crossings( l );
+            if (crossings == 0)
+                return;
+
             List<Node> layer = Layer( l, true );
             for ( var i = 0; i < layer.Count - 1; i++ )
-                if ( Crossings( layer[i + 1], layer[i] ) < Crossings( layer[i], layer[i + 1] ) )
-                    Swap( layer[i], layer[i + 1] );
+            {
+                for (var j = i + 1; j < layer.Count; j++)
+                {
+                    // swap, then count crossings again. If lower, leave it. If higher, revert.
+                    Swap( layer[i], layer[j] );
+                    var candidateCrossings = Crossings( l );
+                    if ( candidateCrossings < crossings )
+                        // update current crossings
+                        crossings = candidateCrossings;
+                    else
+                        // revert change
+                        Swap( layer[j], layer[i] );
+                }
+            }
         }
 
         private static void Swap( Node A, Node B )
@@ -645,163 +689,147 @@ namespace FluffyResearchTree
             A.Y = B.Y;
             B.Y = tmp;
         }
-
-        private static bool MedianSweep( int iteration )
+        
+        private static bool BarymetricSweep( int iteration )
         {
             // count number of crossings before sweep
             int before = Crossings();
 
             // do up/down sweep on alternating iterations
             if ( iteration % 2 == 0 )
-            {
-                for ( var i = 1; i < Size.x; i++ )
-                {
-                    List<Node> nodes = Layer( i );
-                    List<Pair<Node, float>> medians =
-                        nodes.Select( n => new Pair<Node, float>( n, GetMedianY( n.InNodes ) ) ).ToList();
-                    SetLayerPositions( medians );
-                }
-            }
+                for ( var i = 2; i <= Size.x; i++ )
+                    BarymetricSweep_Layer( i, true );
             else
-            {
-                for ( int i = Size.x; i > 1; i-- )
-                {
-                    List<Node> nodes = Layer( i );
-                    List<Pair<Node, float>> medians =
-                        nodes.Select( n => new Pair<Node, float>( n, GetMedianY( n.OutNodes ) ) ).ToList();
-                    SetLayerPositions( medians );
-                }
-            }
+                for ( int i = Size.x - 1; i > 0; i-- )
+                    BarymetricSweep_Layer( i, false );
 
             // count number of crossings after sweep
             int after = Crossings();
 
-#if DEBUG
-            Log.Message( $"MedianSweep: {before} -> {after}" );
-#endif
-
             // did we make progress? please?
+            Log.Debug( $"BarymetricSweep {iteration} ({( iteration % 2 == 0 ? "left" : "right" )}): {before} -> {after}" );
             return after < before;
         }
 
-        private static float GetMedianY( List<Node> nodes )
+        private static void BarymetricSweep_Layer( int layer, bool left )
         {
-            if ( nodes.NullOrEmpty() )
-                return -1;
+            var means = Layer( layer )
+                .ToDictionary( n => n, n => GetBarycentre( n, left ? n.InNodes : n.OutNodes ) )
+                .OrderBy( n => n.Value );
 
-            return nodes.Sum( n => n.Y ) / (float) nodes.Count;
-        }
+            // create groups of nodes at similar means
+            var cur = float.MinValue;
+            Dictionary<float,List<Node>> groups = new Dictionary<float, List<Node>>(); 
+            foreach ( var mean in means )
+            {
+                if ( Math.Abs( mean.Value - cur ) > Epsilon )
+                {
+                    cur = mean.Value;
+                    groups[cur] = new List<Node>();
+                }
+                groups[cur].Add( mean.Key );
+            }
 
-        private static void SetLayerPositions( List<Pair<Node, float>> nodeMedianPairs )
-        {
-            // we can be fairly straightforward here, as we're only concerned with crossing edges.
-            // determining the best Y coordinates for a pretty graph will be handled later.
-            IEnumerable<Node> nodes = nodeMedianPairs.OrderBy( p => p.Second )
-                                                     .ThenBy( p => p.First.Descendants.Count )
-                                                     .Select( p => p.First );
-
-            // set Y positions 1, |nodes|
+            // position nodes as close to their desired mean as possible
             var Y = 1;
-            foreach ( Node node in nodes )
-                node.Y = Y++;
+            foreach ( var group in groups )
+            {
+                var mean = group.Key;
+                var N = group.Value.Count;
+                Y = (int)Mathf.Max( Y, mean - ( N - 1 ) / 2 );
+
+                foreach ( var node in group.Value )
+                    node.Y = Y++;
+            }
         }
 
-        private static int UpperCrossings( Node a, Node b )
+        private static float GetBarycentre( Node node, List<Node> neighbours )
         {
-            if ( a.X != b.X )
-                throw new Exception( "a and b must be on the same rank." );
+            if ( neighbours.NullOrEmpty() )
+                return node.Yf;
 
-            IEnumerable<int> A = a.InNodes?.Select( n => n.Y );
-            IEnumerable<int> B = b.InNodes?.Select( n => n.Y );
-
-            return Crossings( A, B );
-        }
-
-        /// <summary>
-        /// Return the total amount of crossings of edges between A and B, assuming that A and B are
-        /// Y coordinates of vertices adjacent to A and B, and that Y(A) \lt Y(B);
-        /// </summary>
-        /// <param name="A"></param>
-        /// <param name="B"></param>
-        /// <returns></returns>
-        private static int Crossings( IEnumerable<int> A, IEnumerable<int> B )
-        {
-#if TRACE_CROSSINGS
-            Log.Message( $"Crossings( A, B ) called" );
-
-            if ( A == null )
-                Log.Message( "A NULL" );
-            else
-                Log.Message( "A: " + string.Join( ", ", A.Select( i => i.ToString() ).ToArray() ) );
-
-            if ( B == null )
-                Log.Message( "B NULL" );
-            else
-                Log.Message( "B: " + string.Join( ", ", B.Select( i => i.ToString() ).ToArray() ) );
-#endif
-
-            if ( A == null || B == null )
-                return 0;
-
-            if ( !A.Any() || !B.Any() )
-                return 0;
-
-            var crossings = 0;
-            foreach ( int a in A )
-                foreach ( int b in B )
-                    if ( a > b )
-                        crossings++;
-
-#if TRACE_CROSSINGS
-            Log.Message( "\tCrossings: " + crossings  );
-#endif
-
-            return crossings;
-        }
-
-        private static int LowerCrossings( Node a, Node b )
-        {
-            if ( a.X != b.X )
-                throw new Exception( "a and b must be on the same rank." );
-
-            IEnumerable<int> A = a.OutNodes?.Select( n => n.Y );
-            IEnumerable<int> B = b.OutNodes?.Select( n => n.Y );
-
-            return Crossings( A, B );
+            return neighbours.Sum( n => n.Yf ) / neighbours.Count;
         }
 
         private static int Crossings()
         {
-#if TRACE_CROSSINGS
-            Log.Message( "Crossings() called, tree size: " + Size );
-#endif
             var crossings = 0;
-            for ( var i = 1; i < Size.x; i++ )
-                crossings += Crossings( i );
-
+            for ( int layer = 1; layer < Size.x; layer++ )
+            {
+                crossings += Crossings( layer, true );
+            }
             return crossings;
         }
 
-        private static int Crossings( Node A, Node B ) { return UpperCrossings( A, B ) + LowerCrossings( A, B ); }
-
-        private static int Crossings( int depth, bool up = false )
+        private static float EdgeLength()
         {
-#if TRACE_CROSSINGS
-            Log.Message( $"Crossings( {depth}, {up} ) called, nodes at {depth}: {NodesAtDepth(depth).Count}" );
-#endif
-            if ( up && depth - 1 < 0 )
-                throw new ArgumentOutOfRangeException( nameof( depth ) );
-            if ( !up && depth + 1 > Size.x )
-                throw new ArgumentOutOfRangeException( nameof( depth ) );
-
-            var crossings = 0;
-            List<Node> nodes = Layer( depth, true );
-            for ( var i = 0; i < nodes.Count - 1; i++ )
-                crossings += up ? UpperCrossings( nodes[i], nodes[i + 1] ) : LowerCrossings( nodes[i], nodes[i + 1] );
-
-            return crossings;
+            var length = 0f;
+            for ( int layer = 1; layer < Size.x; layer++ )
+            {
+                length += EdgeLength( layer, true );
+            }
+            return length;
+        }
+        
+        private static int Crossings( int layer )
+        {
+            if ( layer == 0 )
+                return Crossings( layer, false );
+            if ( layer == Size.x )
+                return Crossings( layer, true );
+            return Crossings( layer, true ) + Crossings( layer, false );
         }
 
+        private static float EdgeLength(int layer)
+        {
+            if (layer == 0)
+                return EdgeLength(layer, false);
+            if (layer == Size.x)
+                return EdgeLength(layer, true);
+            return EdgeLength(layer, true) * EdgeLength(layer, false); // multply to favor moving nodes closer to one endpoint
+        }
+
+        private static int Crossings( int layer, bool @in )
+        {
+            // get in/out edges for layer
+            var edges = Layer( layer )
+                .SelectMany( n => @in ? n.InEdges : n.OutEdges )
+                .OrderBy( e => e.In.Y )
+                .ThenBy( e => e.Out.Y )
+                .ToList();
+
+            if (edges.Count < 2)
+                return 0;
+
+            // count number of inversions
+            var inversions = 0;
+            for (int i = 0; i < edges.Count - 1; i++)
+            {
+                for (int j = i + 1; j < edges.Count; j++)
+                {
+                    if (edges[j].Out.Y < edges[i].Out.Y)
+                        inversions++;
+                }
+            }
+            return inversions;
+        }
+
+        private static float EdgeLength( int layer, bool @in )
+        {
+            // get in/out edges for layer
+            var edges = Layer(layer)
+                .SelectMany(n => @in ? n.InEdges : n.OutEdges )
+                .OrderBy(e => e.In.Y)
+                .ThenBy(e => e.Out.Y)
+                .ToList();
+
+            if ( edges.NullOrEmpty() )
+                return 0f;
+
+            return edges.Sum( e => e.Length ) * ( @in ? 2 : 1 );
+        }
+
+        public static bool OrderDirty;
         public static List<Node> Layer( int depth, bool ordered = false )
         {
             if ( ordered && OrderDirty )
@@ -811,6 +839,11 @@ namespace FluffyResearchTree
             }
 
             return Nodes.Where( n => n.X == depth ).ToList();
+        }
+
+        public static List<Node> Row( int Y )
+        {
+            return Nodes.Where( n => n.Y == Y ).ToList();
         }
 
         public new static string ToString()
@@ -827,12 +860,17 @@ namespace FluffyResearchTree
                     text.AppendLine( $"\t{n}" );
                     text.AppendLine( $"\t\tAbove: " + string.Join( ", ", n.InNodes.Select( a => a.ToString() ).ToArray() ) );
                     text.AppendLine( $"\t\tBelow: " + string.Join( ", ", n.OutNodes.Select( b => b.ToString() ).ToArray() ) );
-                    //text.AppendLine( $"\t\tAlign: {align[n]}" );
-                    //text.AppendLine( $"\t\tRoot: {roots[n]}" );
                 }
             }
 
             return text.ToString();
+        }
+
+        public static void DebugStatus()
+        {
+            Log.Message("duplicated positions:\n " + string.Join("\n", Nodes.Where(n => Nodes.Any(n2 => n != n2 && n.X == n2.X && n.Y == n2.Y)).Select(n => n.X + ", " + n.Y + ": " + n.Label).ToArray()));
+            Log.Message("out-of-bounds nodes:\n" + string.Join("\n", Nodes.Where(n => n.X < 1 || n.Y < 1).Select(n => n.ToString()).ToArray()));
+            Log.Message(ToString());
         }
     }
 }

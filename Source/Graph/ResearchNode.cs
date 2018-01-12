@@ -1,26 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using FluffyResearchTree;
 using RimWorld;
 using UnityEngine;
 using Verse;
+using static FluffyResearchTree.Constants;
 
 namespace FluffyResearchTree
 {
     public class ResearchNode : Node
     {
-        #region Fields
 
         public ResearchProjectDef Research;
 
         private static Dictionary<ResearchProjectDef, bool> _buildingPresentCache = new Dictionary<ResearchProjectDef, bool>();
-        
-        private static Dictionary<ResearchProjectDef, List<ThingDef>> _missingFacilitiesCache =
-            new Dictionary<ResearchProjectDef, List<ThingDef>>();
-
-        #endregion Fields
+        private static Dictionary<ResearchProjectDef, List<ThingDef>> _missingFacilitiesCache = new Dictionary<ResearchProjectDef, List<ThingDef>>();
 
         public List<ResearchNode> Parents
         {
@@ -29,6 +23,34 @@ namespace FluffyResearchTree
                 var parents = InNodes.OfType<ResearchNode>();
                 parents.Concat( InNodes.OfType<DummyNode>().Select( dn => dn.Parent ) );
                 return parents.ToList();
+            }
+        }
+
+        public override Color Color
+        {
+            get
+            {
+                if ( Highlighted )
+                    return GenUI.MouseoverColor;
+                if ( Completed )
+                    return Assets.ColorCompleted[Research.techLevel];
+                if ( Available )
+                    return Assets.ColorCompleted[Research.techLevel];
+                return Assets.ColorUnavailable[Research.techLevel];
+            }
+        }
+
+        public override Color EdgeColor
+        {
+            get
+            {
+                if ( Highlighted )
+                    return GenUI.MouseoverColor;
+                if (Completed)
+                    return Assets.ColorCompleted[Research.techLevel];
+                if (Available)
+                    return Assets.ColorAvailable[Research.techLevel];
+                return Assets.ColorUnavailable[Research.techLevel];
             }
         }
 
@@ -41,23 +63,20 @@ namespace FluffyResearchTree
                 return children.ToList();
             }
         }
-
-        #region Constructors
         
         public ResearchNode( ResearchProjectDef research ) : base()
         {
             Research = research;
 
-            // initialize position at vanilla positions (NOTE: _before_ easing!)
-            _pos = new IntVec2( (int) research.researchViewX + 1, (int) research.researchViewY + 1 );
+            // initialize position at vanilla y position, leave x at zero - we'll determine this ourselves
+            _pos = new Vector2( 0, research.researchViewY + 1 );
         }
-
-        #endregion Constructors
-
-        #region Methods
 
         public static bool BuildingPresent( ResearchProjectDef research )
         {
+            if ( DebugSettings.godMode )
+                return true;
+
             // try get from cache
             bool result;
             if ( _buildingPresentCache.TryGetValue( research, out result ) )
@@ -83,6 +102,24 @@ namespace FluffyResearchTree
         {
             _buildingPresentCache.Clear();
             _missingFacilitiesCache.Clear();
+        }
+
+        public static implicit operator ResearchNode( ResearchProjectDef def )
+        {
+            return Tree.Nodes.OfType<ResearchNode>().FirstOrDefault( n => n.Research == def );
+        }
+        
+        public int Matches( string query )
+        {
+            query = query.ToLowerInvariant();
+
+            if ( Research.LabelCap.ToLowerInvariant().Contains( query ) )
+                return 1;
+            if ( Research.GetUnlockDefsAndDescs().Any( unlock => unlock.First.LabelCap.ToLowerInvariant().Contains( query ) ) )
+                return 2;
+            if ( Research.description.ToLowerInvariant().Contains( query ) )
+                return 3;
+            return 0;
         }
 
         public static List<ThingDef> MissingFacilities( ResearchProjectDef research )
@@ -130,142 +167,117 @@ namespace FluffyResearchTree
         {
             return BuildingPresent( Research );
         }
-
-        /// <summary>
-        /// Set all prerequisites as parents of this node, and for each parent set this node as a child.
-        /// </summary>
-        public void CreateLinks()
-        {
-            if ( Research.prerequisites.NullOrEmpty() )
-                return;
-
-            // 'vanilla' prerequisites
-            foreach ( ResearchProjectDef prerequisite in Research.prerequisites )
-            {
-                // skip self prerequisite
-                if ( prerequisite != Research )
-                {
-                    Node parent = prerequisite.Node();
-                    if ( parent != null )
-                        InNodes.Add( parent );
-                }
-            }
-
-            foreach ( Node parent in InNodes )
-            {
-                parent.OutNodes.Add( this );
-            }
-        }
-
+        
         /// <summary>
         /// Draw the node, including interactions.
         /// </summary>
-        public override void Draw()
+        public override void Draw( Rect visibleRect )
         {
-            // cop out if off-screen
-            var screen = new Rect( MainTabWindow_ResearchTree._scrollPosition.x,
-                                   MainTabWindow_ResearchTree._scrollPosition.y, Screen.width, Screen.height - 35 );
-            if ( Rect.xMin > screen.xMax ||
-                 Rect.xMax < screen.xMin ||
-                 Rect.yMin > screen.yMax ||
-                 Rect.yMax < screen.yMin )
+            if ( !IsVisible( visibleRect ) )
             {
+                Highlighted = false;
                 return;
             }
 
-            // researches that are completed or could be started immediately, and that have the required building(s) available
-            GUI.color = DrawColor;
-
-            // mouseover highlights
-            if ( Mouse.IsOver( Rect ) ) // TODO: commented out for debug && BuildingPresent() )
+            var mouseOver = Mouse.IsOver(Rect);
+            if ( Event.current.type == EventType.Repaint )
             {
-                // active button
-                GUI.DrawTexture( Rect, Assets.ButtonActive );
+                // researches that are completed or could be started immediately, and that have the required building(s) available
+                GUI.color = Color;
 
-                // highlight this and all prerequisites if research not completed
-                if ( !Research.IsFinished )
+                if ( mouseOver || Highlighted )
+                    GUI.DrawTexture( Rect, Assets.ButtonActive );
+                else
+                    GUI.DrawTexture( Rect, Assets.Button );
+                Highlighted = false;
+
+                // grey out center to create a progress bar effect, completely greying out research not started.
+                if ( Available )
                 {
-                    List<ResearchNode> prereqs = GetMissingRequiredRecursive();
-                    Highlight( GenUI.MouseoverColor, true, false );
-                    foreach ( ResearchNode prerequisite in prereqs )
-                        prerequisite.Highlight( GenUI.MouseoverColor, true, false );
+                    Rect progressBarRect = Rect.ContractedBy( 3f );
+                    GUI.color = Assets.ColorAvailable[Research.techLevel];
+                    progressBarRect.xMin += Research.ProgressPercent * progressBarRect.width;
+                    GUI.DrawTexture( progressBarRect, BaseContent.WhiteTex );
                 }
-                else // highlight followups
+
+                // draw the research label
+                if ( !Completed && !Available )
                 {
-                    foreach ( ResearchNode child in Children )
+                    GUI.color = Color.grey;
+                }
+                else
+                {
+                    GUI.color = Color.white;
+                }
+                Text.Anchor = TextAnchor.UpperLeft;
+                Text.WordWrap = false;
+                Text.Font = _largeLabel ? GameFont.Tiny : GameFont.Small;
+                Widgets.Label( LabelRect, Research.LabelCap );
+
+                // draw research cost and icon
+                Text.Anchor = TextAnchor.UpperRight;
+                Text.Font = GameFont.Small;
+                Widgets.Label( CostLabelRect, Research.CostApparent.ToStringByStyle( ToStringStyle.Integer ) );
+                GUI.DrawTexture( CostIconRect, ( !Completed && !Available ) ? Assets.Lock : Assets.ResearchIcon,
+                    ScaleMode.ScaleToFit );
+                Text.WordWrap = true;
+
+                // attach description and further info to a tooltip
+                TooltipHandler.TipRegion( Rect, GetResearchTooltipString() );
+                if ( !BuildingPresent() )
+                {
+                    TooltipHandler.TipRegion( Rect,
+                        "Fluffy.ResearchTree.MissingFacilities".Translate( string.Join( ", ",
+                            MissingFacilities().Select( td => td.LabelCap ).ToArray() ) ) );
+                }
+                // new TipSignal( GetResearchTooltipString(), Settings.TipID ) );
+
+                // draw unlock icons
+                List<Pair<Def, string>> unlocks = Research.GetUnlockDefsAndDescs();
+                for ( var i = 0; i < unlocks.Count; i++ )
+                {
+                    var iconRect = new Rect( IconsRect.xMax - ( i + 1 ) * ( IconSize.x + 4f ),
+                        IconsRect.yMin + ( IconsRect.height - IconSize.y ) / 2f,
+                        IconSize.x,
+                        IconSize.y );
+
+                    if ( iconRect.xMin - IconSize.x < IconsRect.xMin &&
+                         i + 1 < unlocks.Count )
                     {
-                        MainTabWindow_ResearchTree.highlightedConnections.Add( new Pair<ResearchNode, ResearchNode>( this, child ) );
-                        child.Highlight( GenUI.MouseoverColor, false, false );
+                        // stop the loop if we're about to overflow and have 2 or more unlocks yet to print.
+                        iconRect.x = IconsRect.x + 4f;
+                        GUI.DrawTexture( iconRect, Assets.MoreIcon, ScaleMode.ScaleToFit );
+                        string tip = string.Join( "\n",
+                            unlocks.GetRange( i, unlocks.Count - i ).Select( p => p.Second ).ToArray() );
+                        TooltipHandler.TipRegion( iconRect, tip );
+                        // new TipSignal( tip, Settings.TipID, TooltipPriority.Pawn ) );
+                        break;
+                    }
+
+                    // draw icon
+                    unlocks[i].First.DrawColouredIcon( iconRect );
+
+                    // tooltip
+                    TooltipHandler.TipRegion( iconRect, unlocks[i].Second );
+                    // new TipSignal( unlocks[i].Second, Settings.TipID, TooltipPriority.Pawn ) );
+                }
+
+                if ( mouseOver )
+                {
+                    // highlight prerequisites if research available
+                    if ( Available )
+                    {
+                        Highlighted = true;
+                        foreach ( ResearchNode prerequisite in GetMissingRequiredRecursive() )
+                            prerequisite.Highlighted = true;
+                    }
+                    // highlight children if completed
+                    else if ( Completed )
+                    {
+                        foreach ( ResearchNode child in Children )
+                            child.Highlighted = true;
                     }
                 }
-            }
-            // if not moused over, just draw the default button state
-            else
-            {
-                GUI.DrawTexture( Rect, Assets.Button );
-            }
-
-            // grey out center to create a progress bar effect, completely greying out research not started.
-            if ( !Research.IsFinished )
-            {
-                Rect progressBarRect = Rect.ContractedBy( 2f );
-                GUI.color = DrawColor / 2f;
-                progressBarRect.xMin += Research.ProgressPercent * progressBarRect.width;
-                GUI.DrawTexture( progressBarRect, BaseContent.WhiteTex );
-            }
-
-            // draw the research label
-            GUI.color = Color.white;
-            Text.Anchor = TextAnchor.UpperLeft;
-            Text.WordWrap = false;
-            Text.Font = _largeLabel ? GameFont.Tiny : GameFont.Small;
-            Widgets.Label( LabelRect, Research.LabelCap );
-
-            // draw research cost and icon
-            Text.Anchor = TextAnchor.UpperRight;
-            Text.Font = GameFont.Small;
-            Widgets.Label( CostLabelRect, Research.CostApparent.ToStringByStyle( ToStringStyle.Integer ) );
-            GUI.DrawTexture( CostIconRect, Assets.ResearchIcon );
-            Text.WordWrap = true;
-
-            // attach description and further info to a tooltip
-            TooltipHandler.TipRegion( Rect, GetResearchTooltipString() );
-            if ( !BuildingPresent() )
-            {
-                TooltipHandler
-                    .TipRegion( Rect,
-                                "Fluffy.ResearchTree.MissingFacilities".Translate( string.Join( ", ", MissingFacilities().Select( td => td.LabelCap ).ToArray() ) ) );
-            }
-            // new TipSignal( GetResearchTooltipString(), Settings.TipID ) );
-
-            // draw unlock icons
-            List<Pair<Def, string>> unlocks = Research.GetUnlockDefsAndDescs();
-            for ( var i = 0; i < unlocks.Count; i++ )
-            {
-                var iconRect = new Rect( IconsRect.xMax - ( i + 1 ) * ( Settings.IconSize.x + 4f ),
-                                         IconsRect.yMin + ( IconsRect.height - Settings.IconSize.y ) / 2f,
-                                         Settings.IconSize.x,
-                                         Settings.IconSize.y );
-
-                if ( iconRect.xMin - Settings.IconSize.x < IconsRect.xMin &&
-                     i + 1 < unlocks.Count )
-                {
-                    // stop the loop if we're about to overflow and have 2 or more unlocks yet to print.
-                    iconRect.x = IconsRect.x + 4f;
-                    GUI.DrawTexture( iconRect, Assets.MoreIcon, ScaleMode.ScaleToFit );
-                    string tip = string.Join( "\n",
-                                              unlocks.GetRange( i, unlocks.Count - i ).Select( p => p.Second ).ToArray() );
-                    TooltipHandler.TipRegion( iconRect, tip );
-                    // new TipSignal( tip, Settings.TipID, TooltipPriority.Pawn ) );
-                    break;
-                }
-
-                // draw icon
-                unlocks[i].First.DrawColouredIcon( iconRect );
-
-                // tooltip
-                TooltipHandler.TipRegion( iconRect, unlocks[i].Second );
-                // new TipSignal( unlocks[i].Second, Settings.TipID, TooltipPriority.Pawn ) );
             }
 
             // if clicked and not yet finished, queue up this research and all prereqs.
@@ -277,13 +289,20 @@ namespace FluffyResearchTree
                     if ( !Queue.IsQueued( this ) )
                     {
                         // if shift is held, add to queue, otherwise replace queue
-                        Queue.EnqueueRange( GetMissingRequiredRecursive().Concat( new List<ResearchNode>( new[] { this } ) ),
-                                            Event.current.shift );
+                        var queue = GetMissingRequiredRecursive()
+                            .Concat( new List<ResearchNode>( new[] {this} ) )
+                            .Distinct();
+                        Queue.EnqueueRange( queue, Event.current.shift );
                     }
                     else
                     {
                         Queue.Dequeue( this );
                     }
+                }
+                if ( Event.current.button == 1 && !Research.IsFinished )
+                {
+                    Find.ResearchManager.InstantFinish( Research );
+                    Queue.Notify_InstantFinished();
                 }
             }
         }
@@ -304,33 +323,14 @@ namespace FluffyResearchTree
             return allParents.Distinct().ToList();
         }
 
-        /// <summary>
-        /// Draw highlights around node, and optionally highlight links to parents/children of this node.
-        /// </summary>
-        /// <param name="color">color to use</param>
-        /// <param name="linkParents">should links to parents be drawn?</param>
-        /// <param name="linkChildren">should links to children be drawn?</param>
-        public void Highlight( Color color, bool linkParents, bool linkChildren )
-        {
-            GUI.color = color;
-            Widgets.DrawBox( Rect.ContractedBy( -2f ), 2 );
-            GUI.color = Color.white;
-            if ( linkParents )
-                foreach ( ResearchNode parent in Parents )
-                    MainTabWindow_ResearchTree.highlightedConnections.Add( new Pair<ResearchNode, ResearchNode>( parent, this ) );
-             
-            if ( linkChildren )
-                foreach ( ResearchNode child in Children )
-                    MainTabWindow_ResearchTree.highlightedConnections.Add( new Pair<ResearchNode, ResearchNode>( this, child ) );
-
-        }
+        public override bool Completed => Research.IsFinished;
+        public override bool Available => !Research.IsFinished && DebugSettings.godMode || BuildingPresent();
 
         public List<ThingDef> MissingFacilities()
         {
             return MissingFacilities( Research );
         }
         
-
         /// <summary>
         /// Creates text version of research description and additional unlocks/prereqs/etc sections.
         /// </summary>
@@ -351,17 +351,22 @@ namespace FluffyResearchTree
                 text.AppendLine( "Fluffy.ResearchTree.LClickReplaceQueue".Translate() );
                 text.AppendLine( "Fluffy.ResearchTree.SLClickAddToQueue".Translate() );
             }
-            text.AppendLine( "Fluffy.ResearchTree.RClickForDetails".Translate() );
+            if ( DebugSettings.godMode )
+            {
+                text.AppendLine( "Fluffy.ResearchTree.RClickInstaFinish".Translate() );
+            }
+
 
             return text.ToString();
         }
 
-        #endregion Methods
-
-        #region Overrides of Node
-
         public override string Label => Research.LabelCap;
 
-        #endregion
+        public void DrawAt( Vector2 pos, Rect visibleRect )
+        {
+            SetRects( pos );
+            Draw( visibleRect );
+            SetRects();
+        }
     }
 }

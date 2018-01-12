@@ -2,11 +2,8 @@
 // DummyNode.cs
 // 2017-01-05
 
-using System;
 using System.Linq;
-using RimWorld;
 using UnityEngine;
-using Verse;
 
 namespace FluffyResearchTree
 {
@@ -23,6 +20,7 @@ namespace FluffyResearchTree
 
         #region Overrides of Node
 
+#if DEBUG_DUMMIES
         public override void Draw()
         {
             // cop out if off-screen
@@ -39,11 +37,9 @@ namespace FluffyResearchTree
             Widgets.DrawBox( Rect );
             Widgets.Label( Rect, Label );
         }
+#endif
 
-        #endregion
-
-        public DummyNode() : base() { }
-
+#endregion
         public ResearchNode Parent
         {
             get
@@ -71,5 +67,11 @@ namespace FluffyResearchTree
                 return dummyChild?.Child;
             }
         }
+
+        public override bool Completed => OutNodes.FirstOrDefault()?.Completed ?? false;
+        public override bool Available => OutNodes.FirstOrDefault()?.Available ?? false;
+        public override bool Highlighted => OutNodes.FirstOrDefault()?.Highlighted ?? false;
+        public override Color Color => OutNodes.FirstOrDefault()?.Color ?? Color.white;
+        public override Color EdgeColor => OutNodes.FirstOrDefault()?.EdgeColor ?? Color.white;
     }
 }

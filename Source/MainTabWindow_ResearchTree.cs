@@ -5,138 +5,159 @@
 // Created 2015-12-21 13:30
 
 using RimWorld;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Verse;
+using static FluffyResearchTree.Constants;
 
 namespace FluffyResearchTree
 {
     public class MainTabWindow_ResearchTree : MainTabWindow
     {
-        internal static Vector2 _scrollPosition                     = Vector2.zero;
-        public static List<Pair<ResearchNode, ResearchNode>> connections = new List<Pair<ResearchNode, ResearchNode>>();
-        public static List<Pair<ResearchNode, ResearchNode>> highlightedConnections =
-            new List<Pair<ResearchNode, ResearchNode>>();
-        public static Dictionary<Rect, List<String>> hubTips        = new Dictionary<Rect, List<string>>();
-        public static List<ResearchNode> nodes = new List<ResearchNode>();
+        internal static Vector2 _scrollPosition = Vector2.zero;
 
         public override void PreOpen()
         {
             base.PreOpen();
 
             if ( !Tree.Initialized )
-            {
                 // initialize tree
                 Tree.Initialize();
 
-                // spit out debug info
-#if DEBUG
-                Log.Message( "ResearchTree :: duplicated positions:\n " + string.Join( "\n", Tree.Nodes.Where( n => Tree.Nodes.Any( n2 => n != n2 &&  n.X == n2.X && n.Y == n2.Y ) ).Select( n => n.X + ", " + n.Y + ": " + n.Label ).ToArray() ) );
-                Log.Message( "ResearchTree :: out-of-bounds nodes:\n" + string.Join( "\n", Tree.Nodes.Where( n => n.X < 1 || n.Y < 1  ).Select( n => n.ToString() ).ToArray()  ) );
-                Log.Message( Tree.ToString() );
-#endif
-            }
-            
             // clear node availability caches
             ResearchNode.ClearCaches();
 
             // set to topleft (for some reason vanilla alignment overlaps bottom buttons).
             windowRect.x = 0f;
             windowRect.y = 0f;
-            windowRect.width = Screen.width;
-            windowRect.height = Screen.height - 35f;
+            windowRect.width = UI.screenWidth;
+            windowRect.height = UI.screenHeight - 35f;
         }
 
-        //public override float TabButtonBarPercent
-        //{
-        //    get
-        //    {
-        //        if ( Find.ResearchManager.currentProj != null )
-        //        {
-        //            return Find.ResearchManager.currentProj.ProgressPercent;
-        //        }
-        //        return 0;
-        //    }
-        //}
+        private static Rect _viewRect;
+        private static Rect _treeRect;
 
         public override void DoWindowContents( Rect canvas )
         {
-            PrepareTreeForDrawing();
-            DrawTree( canvas );
+            if ( !Tree.Initialized )
+                return;
+
+            // size of tree
+            float width = Tree.Size.x * ( NodeSize.x + NodeMargins.x );
+            float height = Tree.Size.z * ( NodeSize.y + NodeMargins.y );
+            _treeRect = new Rect( 0f, 0f, width, height );
+
+            // layout
+            var topRect = new Rect(
+                canvas.xMin,
+                canvas.yMin,
+                canvas.width,
+                TopBarHeight );
+            _viewRect = canvas;
+            _viewRect.yMin += TopBarHeight + Margin;
+
+            GUI.DrawTexture( _viewRect, Assets.SlightlyDarkBackground );
+            _viewRect = _viewRect.ContractedBy( Constants.Margin );
+
+            // visible area of _treeRect
+            var visibleRect = new Rect(
+                _scrollPosition.x,
+                _scrollPosition.y,
+                _viewRect.width,
+                _viewRect.height );
+
+            DrawTopBar( topRect );
+
+            Widgets.BeginScrollView( _viewRect, ref _scrollPosition, _treeRect );
+            GUI.BeginGroup( _treeRect );
+
+            Tree.Draw( visibleRect );
+            Queue.DrawLabels( visibleRect );
+
+            GUI.EndGroup();
+            Widgets.EndScrollView();
+
+            // cleanup;
+            GUI.color = Color.white;
+            Text.Anchor = TextAnchor.UpperLeft;
         }
 
-        private void PrepareTreeForDrawing()
+        private void DrawTopBar( Rect canvas )
         {
-            foreach ( ResearchNode node in Tree.Nodes.OfType<ResearchNode>() )
-            {
-                nodes.Add( node );
+            var searchRect = canvas;
+            var queueRect = canvas;
+            searchRect.width = 200f;
+            queueRect.xMin += 200f + Constants.Margin;
 
-                foreach ( ResearchNode parent in node.Parents )
+            GUI.DrawTexture( searchRect, Assets.SlightlyDarkBackground );
+            GUI.DrawTexture( queueRect, Assets.SlightlyDarkBackground );
+
+            DrawSearchBar( searchRect.ContractedBy( Constants.Margin ) );
+            Queue.DrawQueue( queueRect.ContractedBy( Constants.Margin ) );
+        }
+
+        private string _query = "";
+
+        private void DrawSearchBar( Rect canvas )
+        {
+            var iconRect = new Rect(
+                    canvas.xMax - Constants.Margin - 16f,
+                    0f,
+                    16f,
+                    16f )
+                .CenteredOnYIn( canvas );
+            var searchRect = new Rect(
+                    canvas.xMin,
+                    0f,
+                    canvas.width,
+                    30f )
+                .CenteredOnYIn( canvas );
+
+            GUI.DrawTexture( iconRect, Assets.Search );
+            var query = Widgets.TextField( searchRect, _query );
+
+            if ( query != _query )
+            {
+                _query = query;
+                Find.WindowStack.FloatMenu?.Close( false );
+
+                if ( query.Length > 2 )
                 {
-                    connections.Add( new Pair<ResearchNode, ResearchNode>( node, parent ) );
+                    // open float menu with search results, if any.
+                    var options = new List<FloatMenuOption>();
+
+                    foreach ( var result in Tree.Nodes.OfType<ResearchNode>()
+                        .Select( n => new { node = n, match = n.Matches( query ) } )
+                        .Where( result => result.match > 0 )
+                        .OrderBy( result => result.match ) )
+                    {
+                        options.Add( new FloatMenuOption( result.node.Label, () => CenterOn( result.node ),
+                            MenuOptionPriority.Default, () => CenterOn( result.node ) ) );
+                    }
+
+                    if ( !options.Any() )
+                        options.Add( new FloatMenuOption( "Fluffy.ResearchTree.NoResearchFound".Translate(), null ) );
+
+                    Find.WindowStack.Add( new FloatMenu_Fixed( options,
+                        UI.GUIToScreenPoint( new Vector2( searchRect.xMin, searchRect.yMax ) ) ) );
                 }
             }
         }
 
-        public void DrawTree( Rect canvas )
+        public static void CenterOn( Node node )
         {
-            // set size of rect
-            float width = ( Tree.Size.x ) * ( Settings.NodeSize.x + Settings.NodeMargins.x ); 
-            float height = Tree.Size.z * ( Settings.NodeSize.y + Settings.NodeMargins.y );
+            var position = new Vector2(
+                ( NodeSize.x + NodeMargins.x ) * ( node.X - .5f ),
+                ( NodeSize.y + NodeMargins.y ) * ( node.Y - .5f ) );
 
-            // main view rect
-            Rect view = new Rect( 0f, 0f, width, height );
-            Widgets.BeginScrollView( canvas, ref _scrollPosition, view );
-            GUI.BeginGroup( view );
+            node.Highlighted = true;
 
-            Text.Anchor = TextAnchor.MiddleCenter;
+            position -= new Vector2( UI.screenWidth, UI.screenHeight ) / 2f;
 
-            //// draw regular connections, not done first to better highlight done.
-            //foreach ( var connection in connections.Where( pair => !pair.Second.Research.IsFinished ) )
-            //{
-            //    Tree.DrawLine( connection, Color.grey );
-            //}
-
-            //// draw connections from completed nodes
-            //foreach ( var connection in connections.Where( pair => pair.Second.Research.IsFinished ) )
-            //    Tree.DrawLine( connection, Color.green );
-            //connections.Clear();
-
-            //// draw highlight connections on top
-            //foreach ( var connection in highlightedConnections )
-            //    Tree.DrawLine( connection, GenUI.MouseoverColor, true );
-            //highlightedConnections.Clear();
-
-            // draw nodes on top of lines
-            foreach ( ResearchNode node in nodes )
-                node.Draw();
-            nodes.Clear();
-
-#if DEBUG
-            foreach ( DummyNode dummyNode in Tree.Nodes.OfType<DummyNode>() )
-                dummyNode.Draw();
-
-            Tree.DrawDebug();
-#endif
-
-            // register hub tooltips
-            foreach ( KeyValuePair<Rect, List<string>> pair in hubTips )
-            {
-                string text = string.Join( "\n", pair.Value.ToArray() );
-                TooltipHandler.TipRegion( pair.Key, text );
-            }
-            hubTips.Clear();
-
-            // draw Queue labels
-            Queue.DrawLabels();
-
-            // reset anchor
-            Text.Anchor = TextAnchor.UpperLeft;
-
-            GUI.EndGroup();
-            Widgets.EndScrollView();
+            position.x = Mathf.Clamp( position.x, 0f, _treeRect.width - _viewRect.width );
+            position.y = Mathf.Clamp( position.y, 0f, _treeRect.height - _viewRect.height );
+            _scrollPosition = position;
         }
     }
 }

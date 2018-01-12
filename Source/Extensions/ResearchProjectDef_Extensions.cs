@@ -94,15 +94,14 @@ namespace FluffyResearchTree
         public static IEnumerable<RecipeDef> GetRecipesUnlocked( this ResearchProjectDef research )
         {
             // recipe directly locked behind research
-            IEnumerable<RecipeDef> direct =
-                DefDatabase<RecipeDef>.AllDefsListForReading.Where( rd => rd.researchPrerequisite == research );
+            IEnumerable<RecipeDef> direct = DefDatabase<RecipeDef>.AllDefsListForReading.Where( rd => rd.researchPrerequisite == research );
 
             // recipe building locked behind research
-            IEnumerable<RecipeDef> building =
-                DefDatabase<ThingDef>.AllDefsListForReading
-                                     .Where( td => td.researchPrerequisites?.Contains( research ) ?? false
+            IEnumerable<RecipeDef> building = DefDatabase<ThingDef>.AllDefsListForReading
+                                     .Where( td => ( td.researchPrerequisites?.Contains( research ) ?? false )
                                                    && !td.AllRecipes.NullOrEmpty() )
-                                     .SelectMany( td => td.AllRecipes );
+                                     .SelectMany( td => td.AllRecipes )
+                                     .Where( rd => rd.researchPrerequisite == null );
 
             // return union of these two sets
             return direct.Concat( building ).Distinct();
