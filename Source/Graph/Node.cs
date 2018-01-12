@@ -21,18 +21,19 @@ namespace FluffyResearchTree
         protected List<Edge<Node,Node>> _inEdges = new List<Edge<Node, Node>>();
         protected List<Edge<Node,Node>> _outEdges = new List<Edge<Node, Node>>();
 
-        protected const float LabSize = 30f;
 
         protected const float Offset = 2f;
-        
+
         protected bool _largeLabel;
-        
-        protected Rect _queueRect,
-                     _rect,
-                     _labelRect,
-                     _costLabelRect,
-                     _costIconRect,
-                     _iconsRect;
+
+        protected Rect 
+            _queueRect,
+            _rect,
+            _labelRect,
+            _costLabelRect,
+            _costIconRect,
+            _iconsRect,
+            _lockRect;
 
         protected bool _rectsSet;
 
@@ -56,6 +57,8 @@ namespace FluffyResearchTree
         public List<Node> OutNodes => _outEdges.Select( e => e.Out ).ToList();
         public List<Edge<Node, Node>> InEdges => _inEdges;
         public List<Node> InNodes => _inEdges.Select( e => e.In ).ToList();
+        public List<Edge<Node, Node>> Edges => _inEdges.Concat( _outEdges ).ToList();
+        public List<Node> Nodes => InNodes.Concat( OutNodes ).ToList();
 
         public Rect CostIconRect
         {
@@ -79,7 +82,8 @@ namespace FluffyResearchTree
             }
         }
 
-        public Color DrawColor => Color.white;
+        public virtual Color Color => Color.white;
+        public virtual Color EdgeColor => Color;
 
         public Rect IconsRect
         {
@@ -128,6 +132,17 @@ namespace FluffyResearchTree
                     SetRects();
 
                 return _queueRect;
+            }
+        }
+
+        public Rect LockRect
+        {
+            get
+            {
+                if (!_rectsSet)
+                    SetRects();
+
+                return _lockRect;
             }
         }
 
@@ -217,6 +232,8 @@ namespace FluffyResearchTree
             }
         }
 
+        public virtual Vector2 Pos => new Vector2( X, Y );
+
         public virtual float Yf
         {
             get => _pos.y;
@@ -272,12 +289,19 @@ namespace FluffyResearchTree
         public void SetRects()
         {
             // origin
-            _topLeft = new Vector2( ( X - 1 ) * ( NodeSize.x + NodeMargins.x ),
-                                    ( Yf - 1 ) * ( NodeSize.y + NodeMargins.y ) );
+            _topLeft = new Vector2(
+                (X - 1) * (NodeSize.x + NodeMargins.x),
+                (Yf - 1) * (NodeSize.y + NodeMargins.y));
+
+            SetRects( _topLeft );
+        }
+
+        public void SetRects( Vector2 topLeft )
+        {
 
             // main rect
-            _rect = new Rect( _topLeft.x,
-                              _topLeft.y,
+            _rect = new Rect( topLeft.x,
+                              topLeft.y,
                               NodeSize.x,
                               NodeSize.y );
 
@@ -286,10 +310,8 @@ namespace FluffyResearchTree
             _right = new Vector2( _rect.xMax, _left.y );
 
             // queue rect
-            _queueRect = new Rect( _rect.xMax - LabSize / 2f,
-                                   _rect.yMin + ( _rect.height - LabSize ) / 2f,
-                                   LabSize,
-                                   LabSize );
+            _queueRect = new Rect( _rect.xMax - QueueLabelSize / 2f,
+                                   _rect.yMin + ( _rect.height - QueueLabelSize) / 2f, QueueLabelSize, QueueLabelSize );
 
             // label rect
             _labelRect = new Rect( _rect.xMin + 6f,
@@ -315,6 +337,11 @@ namespace FluffyResearchTree
                                    _rect.width,
                                    _rect.height * .5f );
 
+            // lock icon rect
+            _lockRect = new Rect( 0f, 0f, 32f, 32f );
+            _lockRect = _lockRect.CenteredOnXIn( _rect );
+            _lockRect = _lockRect.CenteredOnYIn( _rect );
+
             // see if the label is too big
             _largeLabel = Text.CalcHeight( Label, _labelRect.width ) > _labelRect.height;
 
@@ -322,8 +349,21 @@ namespace FluffyResearchTree
             _rectsSet = true;
         }
 
+        public virtual bool Completed => false;
+        public virtual bool Available => false;
+        public virtual bool Highlighted { get; set; }
+
+        public virtual bool IsVisible( Rect visibleRect )
+        {
+            return !(
+                Rect.xMin > visibleRect.xMax ||
+                Rect.xMax < visibleRect.xMin ||
+                Rect.yMin > visibleRect.yMax ||
+                Rect.yMax < visibleRect.yMin );
+        }
+
         #endregion Methods
 
-        public virtual void Draw() { }
+        public virtual void Draw( Rect visibleRect ) { }
     }
 }

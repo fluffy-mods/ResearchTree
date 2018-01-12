@@ -5,7 +5,7 @@
     <defName>ResearchTree</defName>
     <label>research tree</label>
     <description>Examine and decide on research projects.</description>
-    <!-- <workerClass>MainButtonWorker_ToggleResearchTab</workerClass> -->
+    <workerClass>FluffyResearchTree.MainButtonWorker_ResearchTree</workerClass>
     <tabWindowClass>FluffyResearchTree.MainTabWindow_ResearchTree</tabWindowClass>
     <order>91</order>
   </MainButtonDef>
