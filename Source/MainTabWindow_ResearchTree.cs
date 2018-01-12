@@ -101,6 +101,7 @@ namespace FluffyResearchTree
 
         private void DrawSearchBar( Rect canvas )
         {
+            Profiler.Start( "DrawSearchBar" );
             var iconRect = new Rect(
                     canvas.xMax - Constants.Margin - 16f,
                     0f,
@@ -143,6 +144,7 @@ namespace FluffyResearchTree
                         UI.GUIToScreenPoint( new Vector2( searchRect.xMin, searchRect.yMax ) ) ) );
                 }
             }
+            Profiler.End();
         }
 
         public static void CenterOn( Node node )

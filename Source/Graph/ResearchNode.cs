@@ -74,7 +74,7 @@ namespace FluffyResearchTree
 
         public static bool BuildingPresent( ResearchProjectDef research )
         {
-            if ( DebugSettings.godMode )
+            if ( DebugSettings.godMode && Prefs.DevMode )
                 return true;
 
             // try get from cache
@@ -183,13 +183,12 @@ namespace FluffyResearchTree
             if ( Event.current.type == EventType.Repaint )
             {
                 // researches that are completed or could be started immediately, and that have the required building(s) available
-                GUI.color = Color;
+                GUI.color = mouseOver ? GenUI.MouseoverColor : Color;
 
                 if ( mouseOver || Highlighted )
                     GUI.DrawTexture( Rect, Assets.ButtonActive );
                 else
                     GUI.DrawTexture( Rect, Assets.Button );
-                Highlighted = false;
 
                 // grey out center to create a progress bar effect, completely greying out research not started.
                 if ( Available )
@@ -199,6 +198,8 @@ namespace FluffyResearchTree
                     progressBarRect.xMin += Research.ProgressPercent * progressBarRect.width;
                     GUI.DrawTexture( progressBarRect, BaseContent.WhiteTex );
                 }
+                Highlighted = false;
+
 
                 // draw the research label
                 if ( !Completed && !Available )
@@ -259,7 +260,6 @@ namespace FluffyResearchTree
 
                     // tooltip
                     TooltipHandler.TipRegion( iconRect, unlocks[i].Second );
-                    // new TipSignal( unlocks[i].Second, Settings.TipID, TooltipPriority.Pawn ) );
                 }
 
                 if ( mouseOver )
@@ -299,7 +299,7 @@ namespace FluffyResearchTree
                         Queue.Dequeue( this );
                     }
                 }
-                if ( Event.current.button == 1 && !Research.IsFinished )
+                if ( DebugSettings.godMode && Prefs.DevMode && Event.current.button == 1 && !Research.IsFinished )
                 {
                     Find.ResearchManager.InstantFinish( Research );
                     Queue.Notify_InstantFinished();
@@ -324,7 +324,7 @@ namespace FluffyResearchTree
         }
 
         public override bool Completed => Research.IsFinished;
-        public override bool Available => !Research.IsFinished && DebugSettings.godMode || BuildingPresent();
+        public override bool Available => !Research.IsFinished && ( DebugSettings.godMode || BuildingPresent() );
 
         public List<ThingDef> MissingFacilities()
         {

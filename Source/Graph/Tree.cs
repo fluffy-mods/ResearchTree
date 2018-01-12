@@ -2,12 +2,12 @@
 // Tree.cs
 // 2017-01-06
 
+using RimWorld;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using RimWorld;
 using UnityEngine;
 using Verse;
 using static FluffyResearchTree.Constants;
@@ -103,6 +103,8 @@ namespace FluffyResearchTree
 
         private static void RemoveEmptyRows()
         {
+            Log.Debug( "Removing empty rows" );
+            Profiler.Start();
             int y = 1;
             while ( y <= Size.z )
             {
@@ -119,10 +121,14 @@ namespace FluffyResearchTree
                     y++;
                 }
             }
+            Profiler.End();
         }
 
         private static void MinimizeEdgeLength()
         {
+            Log.Debug( "Minimize edge length."  );
+            Profiler.Start();
+
             // move and/or swap nodes to reduce the total edge length
             // perform sweeps of adjacent node reorderings
             bool progress = false;
@@ -143,10 +149,12 @@ namespace FluffyResearchTree
                 if (!progress)
                     burnout--;
             }
+            Profiler.End();
         }
 
         private static bool EdgeLengthSweep_Global(int iteration)
         {
+            Profiler.Start("iteration" + iteration);
             // calculate edge length before sweep
             var before = EdgeLength();
 
@@ -163,12 +171,14 @@ namespace FluffyResearchTree
 
             // return progress
             Log.Debug($"EdgeLengthSweep_Global, iteration {iteration}: {before} -> {after}");
+            Profiler.End();
             return after < before;
         }
 
 
         private static bool EdgeLengthSweep_Local(int iteration)
         {
+            Profiler.Start( "iteration" + iteration );
             // calculate edge length before sweep
             var before = EdgeLength();
 
@@ -185,6 +195,7 @@ namespace FluffyResearchTree
 
             // return progress
             Log.Debug($"EdgeLengthSweep_Local, iteration {iteration}: {before} -> {after}");
+            Profiler.End();
             return after < before;
         }
 
@@ -380,10 +391,13 @@ namespace FluffyResearchTree
             var iteration = 1;
             var maxIterations = 50;
 
+            Log.Debug( "Assigning horizontal positions."  );
+            Profiler.Start();
+
             // assign horizontal positions based on tech levels and prerequisites
             do
             {
-                Log.Debug( "Assigning horizontal positions, iteration {0}", iteration );
+                Profiler.Start( "iteration " + iteration );
                 var min = 1;
                 anyChange = false;
 
@@ -399,9 +413,11 @@ namespace FluffyResearchTree
 
                     min = nodes.Max( n => n.X ) + 1;
 
-                    Log.Debug( "\t{0}, change: {1}", techlevel, anyChange );
+                    Log.Trace( "\t{0}, change: {1}", techlevel, anyChange );
                 }
+                Profiler.End();
             } while ( anyChange && iteration++ < maxIterations );
+
 
             // store tech level boundaries
             _techLevelBounds = new Dictionary<TechLevel, IntRange>();
@@ -410,14 +426,17 @@ namespace FluffyResearchTree
                 var nodes = Nodes.OfType<ResearchNode>().Where(n => n.Research.techLevel == techlevel);
                 _techLevelBounds[techlevel] = new IntRange( nodes.Min( n => n.X) - 1, nodes.Max( n => n.X ) );
             }
+
+            Profiler.End();
         }
 
         private static void NormalizeEdges()
         {
             Log.Debug( "Normalizing edges."  );
+            Profiler.Start();
             foreach ( var edge in new List<Edge<Node, Node>>( Edges.Where( e => e.Span > 1 ) ) )
             {
-                Log.Debug( "\tCreating dummy chain for {0}", edge );
+                Log.Trace( "\tCreating dummy chain for {0}", edge );
 
                 // remove and decouple long edge
                 Edges.Remove( edge );
@@ -438,7 +457,7 @@ namespace FluffyResearchTree
                     _nodes.Add( dummy );
                     Edges.Add( dummyEdge );
                     cur = dummy;
-                    Log.Debug( "\t\tCreated dummy {0}", dummy );
+                    Log.Trace( "\t\tCreated dummy {0}", dummy );
                 }
 
                 // hook up final dummy to out node
@@ -447,11 +466,13 @@ namespace FluffyResearchTree
                 edge.Out.InEdges.Add( finalEdge );
                 Edges.Add( finalEdge );
             }
+            Profiler.End();
         }
 
         private static void CreateEdges()
         {
             Log.Debug( "Creating edges."  );
+            Profiler.Start();
             // create links between nodes
             foreach ( ResearchNode node in Nodes.OfType<ResearchNode>() )
             {
@@ -464,15 +485,17 @@ namespace FluffyResearchTree
                     Edges.Add( edge );
                     node.InEdges.Add( edge );
                     prerequisiteNode.OutEdges.Add( edge );
-                    Log.Debug( "\tCreated edge {0}", edge );
+                    Log.Trace( "\tCreated edge {0}", edge );
                 }
             }
+            Profiler.End();
         }
 
         private static void CheckPrerequisites()
         {
-// check prerequisites
+            // check prerequisites
             Log.Debug( "Checking prerequisites."  );
+            Profiler.Start();
             foreach ( ResearchNode node in Nodes.OfType<ResearchNode>() )
             {
                 if ( !node.Research.prerequisites.NullOrEmpty() )
@@ -480,11 +503,14 @@ namespace FluffyResearchTree
                     if ( node.Research.prerequisites.NullOrEmpty() )
                         continue;
 
-                    // warn about badly configured techlevels
+                    // warn and fix badly configured techlevels
                     if ( node.Research.prerequisites.Any( r => r.techLevel > node.Research.techLevel ) )
-                        Log.Warning( "\t{0} has a lower techlevel than (one of) it's dependenc(y/ies)", node.Research.defName );
+                    {
+                        Log.Warning( "\t{0} has a lower techlevel than (one of) it's prerequisites", node.Research.defName );
+                        node.Research.techLevel = node.Research.prerequisites.Max( r => r.techLevel );
+                    }
 
-                    // get (redundant) ancestors.
+                    // warn and fix badly configured prerequisites.
                     var ancestors = node.Research.prerequisites?.SelectMany( r => r.GetPrerequisitesRecursive() ).ToList();
                     var redundant = ancestors.Intersect( node.Research.prerequisites );
                     if ( redundant.Any() )
@@ -495,22 +521,26 @@ namespace FluffyResearchTree
                     }
                 }
             }
+            Profiler.End();
         }
 
         private static void PopulateNodes()
         {
             Log.Debug( "Populating nodes." );
+            Profiler.Start();
             // populate all nodes
             _nodes = new List<Node>( DefDatabase<ResearchProjectDef>.AllDefsListForReading
                 // exclude hidden projects (prereq of itself is a common trick to hide research).
                 .Where( def => def.prerequisites.NullOrEmpty() || !def.prerequisites.Contains( def ) )
                 .Select( def => new ResearchNode( def ) as Node ) );
             Log.Debug( "\t{0} nodes", _nodes.Count );
+            Profiler.End();
         }
 
         private static void Collapse()
         {
             Log.Debug( "Collapsing nodes." );
+            Profiler.Start();
             var pre = Size;
             for ( int l = 1; l <= Size.x; l++ )
             {
@@ -520,6 +550,7 @@ namespace FluffyResearchTree
                     node.Y = Y++;
             }
             Log.Debug("{0} -> {1}", pre, Size);
+            Profiler.End();
         }
 
         [Conditional("DEBUG")]
@@ -537,14 +568,21 @@ namespace FluffyResearchTree
 
         public static void Draw( Rect visibleRect )
         {
+            Profiler.Start( "Tree.Draw"  );
+            Profiler.Start( "techlevels" );
             foreach ( var techlevel in RelevantTechLevels )
                 DrawTechLevel( techlevel, visibleRect );
+            Profiler.End();
 
+            Profiler.Start( "edges" );
             foreach ( var edge in Edges.OrderBy( e => e.DrawOrder ) )
                 edge.Draw(visibleRect);
+            Profiler.End();
 
+            Profiler.Start( "nodes" );
             foreach ( var node in Nodes )
                 node.Draw(visibleRect);
+            Profiler.End();
         }
 
         public static void DrawTechLevel( TechLevel techlevel, Rect visibleRect )
@@ -596,6 +634,9 @@ namespace FluffyResearchTree
         public static void MinimizeCrossings()
         {
             // initialize each layer by putting nodes with the most (recursive!) children on bottom
+            Log.Debug( "Minimize crossings.");
+            Profiler.Start();
+
             for ( var X = 1; X <= Size.x; X++ )
             {
                 List<Node> nodes = Layer( X ).OrderBy( n => n.Descendants.Count ).ToList();
@@ -622,10 +663,14 @@ namespace FluffyResearchTree
                 if (!progress)
                     burnout--;
             }
+
+            Profiler.End();
         }
 
         private static bool GreedySweep( int iteration )
         {
+            Profiler.Start( "iteration " + iteration );
+
             // count number of crossings before sweep
             int before = Crossings();
 
@@ -640,9 +685,8 @@ namespace FluffyResearchTree
             // count number of crossings after sweep
             int after = Crossings();
 
-#if DEBUG
-            Log.Message( $"GreedySweep: {before} -> {after}" );
-#endif
+            Log.Debug( $"GreedySweep: {before} -> {after}" );
+            Profiler.End();
 
             // return progress
             return after < before;
@@ -692,6 +736,8 @@ namespace FluffyResearchTree
         
         private static bool BarymetricSweep( int iteration )
         {
+            Profiler.Start( "iteration " + iteration );
+
             // count number of crossings before sweep
             int before = Crossings();
 
@@ -708,6 +754,7 @@ namespace FluffyResearchTree
 
             // did we make progress? please?
             Log.Debug( $"BarymetricSweep {iteration} ({( iteration % 2 == 0 ? "left" : "right" )}): {before} -> {after}" );
+            Profiler.End();
             return after < before;
         }
 
@@ -870,7 +917,7 @@ namespace FluffyResearchTree
         {
             Log.Message("duplicated positions:\n " + string.Join("\n", Nodes.Where(n => Nodes.Any(n2 => n != n2 && n.X == n2.X && n.Y == n2.Y)).Select(n => n.X + ", " + n.Y + ": " + n.Label).ToArray()));
             Log.Message("out-of-bounds nodes:\n" + string.Join("\n", Nodes.Where(n => n.X < 1 || n.Y < 1).Select(n => n.ToString()).ToArray()));
-            Log.Message(ToString());
+            Log.Trace(ToString());
         }
     }
 }

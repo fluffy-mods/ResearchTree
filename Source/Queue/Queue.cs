@@ -67,6 +67,7 @@ namespace FluffyResearchTree
 
         public static void DrawLabels( Rect visibleRect )
         {
+            Profiler.Start("Queue.DrawLabels");
             var i = 1;
             foreach ( ResearchNode node in _queue )
             {
@@ -78,6 +79,7 @@ namespace FluffyResearchTree
                 }
                 i++;
             }
+            Profiler.End();
         }
 
         public static void DrawLabel( Rect canvas, Color main, Color background, int label )
@@ -208,6 +210,7 @@ namespace FluffyResearchTree
 
         public static void DrawQueue( Rect canvas )
         {
+            Profiler.Start( "Queue.DrawQueue" );
             if ( !_queue.Any() )
             {
                 Text.Anchor = TextAnchor.MiddleCenter;
@@ -233,6 +236,7 @@ namespace FluffyResearchTree
                     MainTabWindow_ResearchTree.CenterOn( node );
                 pos.x += NodeSize.x + Margin;
             }
+            Profiler.End();
         }
 
         public static void Notify_InstantFinished()
