@@ -191,17 +191,26 @@ namespace FluffyResearchTree
                 if ( !Tree.Initialized )
                     Tree.Initialize();
 
-                // initialize the queue
-                foreach ( ResearchProjectDef research in _saveableQueue )
-                {
-                    // find a node that matches the research - or null if none found
-                    ResearchNode node = research.Node();
+            }
+        }
 
-                    // enqueue the node
-                    if ( node != null )
-                    {
-                        Enqueue( node, true );
-                    }
+        internal static void Notify_TreeInitialized()
+        {
+            // initialize the queue
+            foreach (ResearchProjectDef research in _saveableQueue)
+            {
+                // find a node that matches the research - or null if none found
+                ResearchNode node = research.Node();
+
+                // enqueue the node
+                if (node != null)
+                {
+                    Log.Debug("Adding {0} to queue", node.Research.LabelCap);
+                    Enqueue(node, true);
+                }
+                else
+                {
+                    Log.Debug("Could not find node for {0}", research.LabelCap);
                 }
             }
         }

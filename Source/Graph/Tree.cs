@@ -99,6 +99,9 @@ namespace FluffyResearchTree
 
             // done!
             LongEventHandler.QueueLongEvent( () => { Initialized = true; }, "Fluffy.ResearchTree.PreparingTree.Layout", false, null );
+
+            // restore research queue
+            LongEventHandler.QueueLongEvent( Queue.Notify_TreeInitialized, "Fluffy.ResearchTree.RestoreQueue", false, null );
         }
 
         private static void RemoveEmptyRows()
