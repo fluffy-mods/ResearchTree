@@ -22,6 +22,9 @@
 	<Fluffy.ResearchTree.NothingQueued>no research queued</Fluffy.ResearchTree.NothingQueued>
 	<Fluffy.ResearchTree.NextInQueue>Next in queue: {0}</Fluffy.ResearchTree.NextInQueue>
 
-	<Fluffy.ResearchTree.PreparingTree>Preparing research tree...</Fluffy.ResearchTree.PreparingTree>
+	<Fluffy.ResearchTree.PreparingTree.Setup>Preparing research nodes</Fluffy.ResearchTree.PreparingTree.Setup>
+	<Fluffy.ResearchTree.PreparingTree.CrossingReduction>Reducing crossings</Fluffy.ResearchTree.PreparingTree.CrossingReduction>
+	<Fluffy.ResearchTree.PreparingTree.Layout>Finalizing layout</Fluffy.ResearchTree.PreparingTree.Layout>
+	<Fluffy.ResearchTree.RestoreQueue>Restoring queue</Fluffy.ResearchTree.RestoreQueue>
 
 </LanguageData>
