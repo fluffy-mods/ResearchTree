@@ -224,7 +224,7 @@ namespace FluffyResearchTree
                 Text.WordWrap = true;
 
                 // attach description and further info to a tooltip
-                TooltipHandler.TipRegion( Rect, GetResearchTooltipString() );
+                TooltipHandler.TipRegion( Rect, GetResearchTooltipString, Research.GetHashCode() );
                 if ( !BuildingPresent() )
                 {
                     TooltipHandler.TipRegion( Rect,

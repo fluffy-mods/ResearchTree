@@ -18,8 +18,8 @@ namespace FluffyResearchTree
     {
         public static bool Initialized;
         public static IntVec2 Size = IntVec2.Zero;
-        private static List<Node> _nodes = new List<Node>();
-        private static List<Edge<Node,Node>> _edges = new List<Edge<Node, Node>>();
+        private static List<Node> _nodes;
+        private static List<Edge<Node,Node>> _edges;
         private static List<TechLevel> _relevantTechLevels;
         private static Dictionary<TechLevel, IntRange> _techLevelBounds;
 
@@ -54,7 +54,7 @@ namespace FluffyResearchTree
             get
             {
                 if (_nodes == null)
-                    throw new Exception("Trying to access nodes before they are initialized.");
+                    PopulateNodes();
 
                 return _nodes;
             }
@@ -71,10 +71,15 @@ namespace FluffyResearchTree
             }
         }
 
+        private static bool _initializing = false;
         public static void Initialize()
         {
+            // make sure we only have one initializer running
+            if (_initializing)
+                return;
+            _initializing = true;
+
             // setup
-            LongEventHandler.QueueLongEvent( PopulateNodes, "Fluffy.ResearchTree.PreparingTree.Setup", false, null );
             LongEventHandler.QueueLongEvent( CheckPrerequisites, "Fluffy.ResearchTree.PreparingTree.Setup", false, null);
             LongEventHandler.QueueLongEvent( CreateEdges, "Fluffy.ResearchTree.PreparingTree.Setup", false, null);
             LongEventHandler.QueueLongEvent( HorizontalPositions, "Fluffy.ResearchTree.PreparingTree.Setup", false, null);
@@ -100,8 +105,9 @@ namespace FluffyResearchTree
             // done!
             LongEventHandler.QueueLongEvent( () => { Initialized = true; }, "Fluffy.ResearchTree.PreparingTree.Layout", false, null );
 
-            // restore research queue
-            LongEventHandler.QueueLongEvent( Queue.Notify_TreeInitialized, "Fluffy.ResearchTree.RestoreQueue", false, null );
+            // tell researh tab we're ready
+            LongEventHandler.QueueLongEvent( MainTabWindow_ResearchTree.Instance.Notify_TreeInitialized, "Fluffy.ResearchTree.RestoreQueue", false, null);
+
         }
 
         private static void RemoveEmptyRows()
@@ -477,6 +483,11 @@ namespace FluffyResearchTree
             Log.Debug( "Creating edges."  );
             Profiler.Start();
             // create links between nodes
+            if ( _edges.NullOrEmpty() )
+            {
+                _edges = new List<Edge<Node, Node>>();
+            }
+
             foreach ( ResearchNode node in Nodes.OfType<ResearchNode>() )
             {
                 if ( node.Research.prerequisites.NullOrEmpty() )

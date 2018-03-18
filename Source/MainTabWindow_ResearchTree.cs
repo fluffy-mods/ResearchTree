@@ -16,10 +16,32 @@ namespace FluffyResearchTree
     public class MainTabWindow_ResearchTree : MainTabWindow
     {
         internal static Vector2 _scrollPosition = Vector2.zero;
+        private static MainTabWindow_ResearchTree _instance;
+        public static MainTabWindow_ResearchTree Instance => _instance;
+
+        public MainTabWindow_ResearchTree()
+        {
+            closeOnClickedOutside = false;
+            _instance = this;
+
+        }
+
+        public override void PreClose()
+        {
+            base.PreClose();
+            Log.Debug( "CloseOnClickedOutside: {0}", closeOnClickedOutside );
+            Log.Debug( StackTraceUtility.ExtractStackTrace() );
+        }
+
+        public void Notify_TreeInitialized()
+        {
+            SetRects();
+        }
 
         public override void PreOpen()
         {
             base.PreOpen();
+            SetRects();
 
             if ( !Tree.Initialized )
                 // initialize tree
@@ -28,59 +50,215 @@ namespace FluffyResearchTree
             // clear node availability caches
             ResearchNode.ClearCaches();
 
-            // set to topleft (for some reason vanilla alignment overlaps bottom buttons).
+            _dragging = false;
+            closeOnClickedOutside = false;
+        }
+
+        private void SetRects()
+        {
+            // tree view rects, have to deal with UIScale and ZoomLevel manually.
+            _baseViewRect = new Rect(
+                StandardMargin / Prefs.UIScale,
+                (TopBarHeight + Constants.Margin + StandardMargin) / Prefs.UIScale,
+                (Screen.width - StandardMargin * 2f) / Prefs.UIScale,
+                (Screen.height - MainButtonDef.ButtonHeight - StandardMargin * 2f - TopBarHeight - Constants.Margin) / Prefs.UIScale);
+            _baseViewRect_Inner = _baseViewRect.ContractedBy( Constants.Margin / Prefs.UIScale );
+
+            // windowrect, set to topleft (for some reason vanilla alignment overlaps bottom buttons).
             windowRect.x = 0f;
             windowRect.y = 0f;
             windowRect.width = UI.screenWidth;
-            windowRect.height = UI.screenHeight - 35f;
+            windowRect.height = UI.screenHeight - MainButtonDef.ButtonHeight;
         }
 
-        private static Rect _viewRect;
-        private static Rect _treeRect;
+        public float ScaledMargin => Constants.Margin * ZoomLevel / Prefs.UIScale;
 
         public override void DoWindowContents( Rect canvas )
         {
             if ( !Tree.Initialized )
                 return;
 
-            // size of tree
-            float width = Tree.Size.x * ( NodeSize.x + NodeMargins.x );
-            float height = Tree.Size.z * ( NodeSize.y + NodeMargins.y );
-            _treeRect = new Rect( 0f, 0f, width, height );
 
-            // layout
+            // top bar
             var topRect = new Rect(
                 canvas.xMin,
                 canvas.yMin,
                 canvas.width,
                 TopBarHeight );
-            _viewRect = canvas;
-            _viewRect.yMin += TopBarHeight + Margin;
+            DrawTopBar(topRect);
+            
+            ApplyZoomLevel();
 
-            GUI.DrawTexture( _viewRect, Assets.SlightlyDarkBackground );
-            _viewRect = _viewRect.ContractedBy( Constants.Margin );
+            // draw background
+            GUI.DrawTexture( ViewRect, Assets.SlightlyDarkBackground );
+            
+            // draw the actual tree
+            // TODO: stop scrollbars scaling with zoom
+            Widgets.BeginScrollView( ViewRect, ref _scrollPosition, TreeRect, true );
+            GUI.BeginGroup( 
+                new Rect( 
+                    ScaledMargin,
+                    ScaledMargin,
+                    TreeRect.width + ScaledMargin * 2f, 
+                    TreeRect.height + ScaledMargin * 2f
+                ) 
+            );
 
-            // visible area of _treeRect
-            var visibleRect = new Rect(
-                _scrollPosition.x,
-                _scrollPosition.y,
-                _viewRect.width,
-                _viewRect.height );
-
-            DrawTopBar( topRect );
-
-            Widgets.BeginScrollView( _viewRect, ref _scrollPosition, _treeRect );
-            GUI.BeginGroup( _treeRect );
-
-            Tree.Draw( visibleRect );
-            Queue.DrawLabels( visibleRect );
-
+            Tree.Draw( VisibleRect );
+            Queue.DrawLabels( VisibleRect );
+            
             GUI.EndGroup();
-            Widgets.EndScrollView();
+            GUI.EndScrollView( false );
+
+            HandleDragging();
+            HandleZoom();
+
+            // reset zoom level
+            ResetZoomLevel();
+
 
             // cleanup;
             GUI.color = Color.white;
             Text.Anchor = TextAnchor.UpperLeft;
+        }
+
+        private void HandleZoom()
+        {
+            // handle zoom
+            if (Event.current.isScrollWheel)
+            {
+                Log.Debug("Scroll delta: {0}", Event.current.delta);
+                ZoomLevel += Event.current.delta.y * ZoomStep * ZoomLevel;
+
+                // TODO: Zoom to cursor
+                Event.current.Use();
+            }
+        }
+
+        private bool _dragging = false;
+        private Vector2 _mousePosition = Vector2.zero;
+        private void HandleDragging()
+        {
+            if ( Event.current.type == EventType.mouseDown )
+            {
+                _dragging = true;
+                _mousePosition = Event.current.mousePosition;
+                Event.current.Use();
+            }
+            if ( Event.current.type == EventType.mouseUp )
+            {
+                _dragging = false;
+                _mousePosition = Vector2.zero;
+            }
+            if ( Event.current.type == EventType.mouseDrag )
+            {
+                var _currentMousePosition = Event.current.mousePosition;
+                _scrollPosition += _mousePosition - _currentMousePosition;
+                _mousePosition = _currentMousePosition;
+            }
+        }
+
+        private float _zoomLevel = 1f;
+        public float ZoomLevel
+        {
+            get => _zoomLevel;
+            set
+            {
+                _zoomLevel = Mathf.Clamp(value, 1f, MaxZoomLevel);
+                _viewRectDirty = true;
+                _viewRect_InnerDirty = true;
+            } 
+        }
+
+        private Rect _baseViewRect;
+        private Rect _baseViewRect_Inner;
+        private Rect _viewRect;
+        private bool _viewRectDirty = true;
+        public Rect ViewRect
+        {
+            get
+            {
+                if (_viewRectDirty)
+                {
+                    _viewRect = new Rect(
+                        _baseViewRect.xMin * ZoomLevel,
+                        _baseViewRect.yMin * ZoomLevel,
+                        _baseViewRect.width * ZoomLevel,
+                        _baseViewRect.height * ZoomLevel
+                    );
+                    _viewRectDirty = false;
+                }
+                return _viewRect;
+            }
+        }
+
+        private Rect _viewRect_Inner;
+        private bool _viewRect_InnerDirty = true;
+        public Rect ViewRect_Inner
+        {
+            get
+            {
+                if (_viewRect_InnerDirty)
+                {
+                    _viewRect_Inner = _viewRect.ContractedBy( Margin * ZoomLevel );
+                    _viewRect_InnerDirty = false;
+                }
+                return _viewRect_Inner;
+            }
+        }
+
+        private static Rect _treeRect = default( Rect );
+        public Rect TreeRect
+        {
+            get
+            {
+                if ( _treeRect == default(Rect) )
+                {
+                    float width = Tree.Size.x * (NodeSize.x + NodeMargins.x);
+                    float height = Tree.Size.z * (NodeSize.y + NodeMargins.y);
+                    _treeRect = new Rect( 0f, 0f, width, height);
+                }
+                return _treeRect;
+            }
+        }
+
+        public Rect VisibleRect
+        {
+            get
+            {
+                return new Rect(
+                    _scrollPosition.x,
+                    _scrollPosition.y,
+                    ViewRect_Inner.width,
+                    ViewRect_Inner.height);
+
+            }
+        }
+
+        internal float MaxZoomLevel
+        {
+            get
+            {
+                // get the minimum zoom level at which the entire tree fits onto the screen, or a static maximum zoom level.
+                var fitZoomLevel =  Mathf.Max( TreeRect.width / _baseViewRect_Inner.width, TreeRect.height / _baseViewRect_Inner.height );
+                return Mathf.Min( fitZoomLevel, AbsoluteMaxZoomLevel );
+            }
+        }
+
+        private void ApplyZoomLevel()
+        {
+            GUI.EndClip(); // window contents
+            GUI.EndClip(); // window itself?
+            GUI.matrix = Matrix4x4.TRS(new Vector3(0f, 0f, 0f), Quaternion.identity, new Vector3( Prefs.UIScale / ZoomLevel, Prefs.UIScale / ZoomLevel, 1f));
+        }
+
+        private void ResetZoomLevel()
+        {
+            // dummies to maintain correct stack size
+            // TODO; figure out how to get actual clipping rects in ApplyZoomLevel();
+            UI.ApplyUIScale();
+            GUI.BeginClip(windowRect);
+            GUI.BeginClip( new Rect( 0f, 0f, UI.screenWidth, UI.screenHeight ) );
         }
 
         private void DrawTopBar( Rect canvas )
@@ -147,7 +325,7 @@ namespace FluffyResearchTree
             Profiler.End();
         }
 
-        public static void CenterOn( Node node )
+        public void CenterOn( Node node )
         {
             var position = new Vector2(
                 ( NodeSize.x + NodeMargins.x ) * ( node.X - .5f ),
@@ -157,8 +335,8 @@ namespace FluffyResearchTree
 
             position -= new Vector2( UI.screenWidth, UI.screenHeight ) / 2f;
 
-            position.x = Mathf.Clamp( position.x, 0f, _treeRect.width - _viewRect.width );
-            position.y = Mathf.Clamp( position.y, 0f, _treeRect.height - _viewRect.height );
+            position.x = Mathf.Clamp( position.x, 0f, TreeRect.width - ViewRect.width );
+            position.y = Mathf.Clamp( position.y, 0f, TreeRect.height - ViewRect.height );
             _scrollPosition = position;
         }
     }

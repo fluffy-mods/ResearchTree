@@ -187,34 +187,26 @@ namespace FluffyResearchTree
 
             if ( Scribe.mode == LoadSaveMode.PostLoadInit )
             {
-                // initialize the tree if not initialized
-                if ( !Tree.Initialized )
-                    Tree.Initialize();
-
-            }
-        }
-
-        internal static void Notify_TreeInitialized()
-        {
-            // initialize the queue
-            foreach (ResearchProjectDef research in _saveableQueue)
-            {
-                // find a node that matches the research - or null if none found
-                ResearchNode node = research.Node();
-
-                // enqueue the node
-                if (node != null)
+                // initialize the queue
+                foreach (ResearchProjectDef research in _saveableQueue)
                 {
-                    Log.Debug("Adding {0} to queue", node.Research.LabelCap);
-                    Enqueue(node, true);
-                }
-                else
-                {
-                    Log.Debug("Could not find node for {0}", research.LabelCap);
+                    // find a node that matches the research - or null if none found
+                    ResearchNode node = research.Node();
+
+                    // enqueue the node
+                    if (node != null)
+                    {
+                        Log.Debug("Adding {0} to queue", node.Research.LabelCap);
+                        Enqueue(node, true);
+                    }
+                    else
+                    {
+                        Log.Debug("Could not find node for {0}", research.LabelCap);
+                    }
                 }
             }
         }
-
+        
         #endregion Methods
 
         public static void DrawQueue( Rect canvas )
@@ -242,7 +234,7 @@ namespace FluffyResearchTree
                 );
                 node.DrawAt( pos, rect );
                 if ( Mouse.IsOver( rect ))
-                    MainTabWindow_ResearchTree.CenterOn( node );
+                    MainTabWindow_ResearchTree.Instance.CenterOn( node );
                 pos.x += NodeSize.x + Margin;
             }
             Profiler.End();

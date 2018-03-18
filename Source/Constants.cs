@@ -17,5 +17,7 @@ namespace FluffyResearchTree
         public const float Margin = 6f;
         public const float QueueLabelSize = 30f;
         public const float SmallQueueLabelSize = 20f;
+        public const float AbsoluteMaxZoomLevel = 3f;
+        public const float ZoomStep = .05f;
     }
 }
