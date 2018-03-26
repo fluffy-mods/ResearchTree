@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using RimWorld;
@@ -111,13 +112,14 @@ namespace FluffyResearchTree
         
         public int Matches( string query )
         {
-            query = query.ToLowerInvariant();
+            var culture = CultureInfo.CurrentUICulture;
+            query = query.ToLower( culture );
 
-            if ( Research.LabelCap.ToLowerInvariant().Contains( query ) )
+            if ( Research.LabelCap.ToLower(culture).Contains( query ) )
                 return 1;
-            if ( Research.GetUnlockDefsAndDescs().Any( unlock => unlock.First.LabelCap.ToLowerInvariant().Contains( query ) ) )
+            if ( Research.GetUnlockDefsAndDescs().Any( unlock => unlock.First.LabelCap.ToLower(culture).Contains( query ) ) )
                 return 2;
-            if ( Research.description.ToLowerInvariant().Contains( query ) )
+            if ( Research.description.ToLower(culture).Contains( query ) )
                 return 3;
             return 0;
         }
