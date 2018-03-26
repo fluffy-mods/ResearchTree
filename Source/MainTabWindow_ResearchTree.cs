@@ -130,16 +130,16 @@ namespace FluffyResearchTree
             {
                 // absolute position of mouse on research tree
                 var absPos = Event.current.mousePosition;
-                Log.Debug( "Absolute position: {0}", absPos );
+                // Log.Debug( "Absolute position: {0}", absPos );
 
                 // relative normalized position of mouse on visible tree
                 var relPos = ( Event.current.mousePosition - _scrollPosition ) / ZoomLevel;
-                Log.Debug( "Normalized position: {0}", relPos );
+                // Log.Debug( "Normalized position: {0}", relPos );
                 
                 // update zoom level
                 ZoomLevel += Event.current.delta.y * ZoomStep * ZoomLevel;
                 
-                // we want to keep absolute position the same as before zooming, relative position changes with ZoomLevel
+                // we want to keep the _normalized_ relative position the same as before zooming
                 _scrollPosition = absPos - relPos * ZoomLevel;
             
                 Event.current.Use();

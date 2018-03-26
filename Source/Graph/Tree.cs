@@ -510,28 +510,44 @@ namespace FluffyResearchTree
             // check prerequisites
             Log.Debug( "Checking prerequisites."  );
             Profiler.Start();
-            foreach ( ResearchNode node in Nodes.OfType<ResearchNode>() )
+
+            Queue<ResearchNode> nodes = new Queue<ResearchNode>( Nodes.OfType<ResearchNode>() );
+            // remove redundant prerequisites
+            while ( nodes.Count > 0 )
             {
-                if ( !node.Research.prerequisites.NullOrEmpty() )
+                var node = nodes.Dequeue();
+                if ( node.Research.prerequisites.NullOrEmpty() )
+                    continue;
+
+                var ancestors = node.Research.prerequisites?.SelectMany(r => r.GetPrerequisitesRecursive()).ToList();
+                var redundant = ancestors.Intersect(node.Research.prerequisites);
+                if (redundant.Any())
                 {
-                    if ( node.Research.prerequisites.NullOrEmpty() )
-                        continue;
-
-                    // warn and fix badly configured techlevels
-                    if ( node.Research.prerequisites.Any( r => r.techLevel > node.Research.techLevel ) )
+                    Log.Warning("\tredundant prerequisites for {0}: {1}", node.Research.LabelCap, string.Join(", ", redundant.Select(r => r.LabelCap).ToArray()));
+                    foreach ( var redundantPrerequisite in redundant )
                     {
-                        Log.Warning( "\t{0} has a lower techlevel than (one of) it's prerequisites", node.Research.defName );
-                        node.Research.techLevel = node.Research.prerequisites.Max( r => r.techLevel );
+                        node.Research.prerequisites.Remove(redundantPrerequisite);
                     }
-
-                    // warn and fix badly configured prerequisites.
-                    var ancestors = node.Research.prerequisites?.SelectMany( r => r.GetPrerequisitesRecursive() ).ToList();
-                    var redundant = ancestors.Intersect( node.Research.prerequisites );
-                    if ( redundant.Any() )
+                }
+            }
+            // fix bad techlevels
+            nodes = new Queue<ResearchNode>( Nodes.OfType<ResearchNode>() );
+            while ( nodes.Count > 0 )
+            {
+                var node = nodes.Dequeue();
+                if (!node.Research.prerequisites.NullOrEmpty())
+                {
+                    // warn and fix badly configured techlevels
+                    if (node.Research.prerequisites.Any(r => r.techLevel > node.Research.techLevel))
                     {
-                        Log.Warning( "\tredundant prerequisites for {0}: {1}", node.Research.LabelCap, string.Join( ", ", redundant.Select( r => r.LabelCap ).ToArray() ) );
-                        foreach ( var redundantPrerequisite in redundant )
-                            node.Research.prerequisites.Remove( redundantPrerequisite );
+                        Log.Warning("\t{0} has a lower techlevel than (one of) it's prerequisites", node.Research.defName);
+                        node.Research.techLevel = node.Research.prerequisites.Max(r => r.techLevel);
+
+                        // re-enqeue children
+                        foreach ( var child in node.Children )
+                        {
+                            nodes.Enqueue( child );
+                        }
                     }
                 }
             }
