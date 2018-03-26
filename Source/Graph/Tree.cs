@@ -615,14 +615,18 @@ namespace FluffyResearchTree
                 Widgets.DrawLine(new Vector2(xMin, visibleRect.yMin), new Vector2(xMin, visibleRect.yMax), Assets.TechLevelColor, 1f);
 
                 // label
-                var labelRect = new Rect(
-                    xMin + TechLevelLabelSize.y / 2f - TechLevelLabelSize.x / 2f,
-                    visibleRect.center.y - TechLevelLabelSize.y / 2f,
-                    TechLevelLabelSize.x,
-                    TechLevelLabelSize.y );
-                UI.RotateAroundPivot( -90, labelRect.center );
-                Widgets.Label(labelRect, techlevel.ToStringHuman());
-                UI.RotateAroundPivot( 90, labelRect.center );
+                // NOTE: This is a massive copout, but just don't draw these labels if zoomlevel != 1;
+                if ( MainTabWindow_ResearchTree.Instance.ZoomLevel - 1f < 1e-4 )
+                {
+                    var labelRect = new Rect(
+                        xMin + TechLevelLabelSize.y / 2f - TechLevelLabelSize.x / 2f,
+                        visibleRect.center.y - TechLevelLabelSize.y / 2f,
+                        TechLevelLabelSize.x,
+                        TechLevelLabelSize.y );
+                    UI.RotateAroundPivot( -90, labelRect.center );
+                    Widgets.Label(labelRect, techlevel.ToStringHuman());
+                    UI.RotateAroundPivot( 90, labelRect.center );
+                }
             }
 
             // upper bound
