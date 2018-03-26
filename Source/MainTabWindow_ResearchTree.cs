@@ -106,12 +106,13 @@ namespace FluffyResearchTree
 
             Tree.Draw( VisibleRect );
             Queue.DrawLabels( VisibleRect );
-            
+
+            HandleZoom();
+
             GUI.EndGroup();
             GUI.EndScrollView( false );
 
             HandleDragging();
-            HandleZoom();
 
             // reset zoom level
             ResetZoomLevel();
@@ -127,10 +128,20 @@ namespace FluffyResearchTree
             // handle zoom
             if (Event.current.isScrollWheel)
             {
-                Log.Debug("Scroll delta: {0}", Event.current.delta);
-                ZoomLevel += Event.current.delta.y * ZoomStep * ZoomLevel;
+                // absolute position of mouse on research tree
+                var absPos = Event.current.mousePosition;
+                Log.Debug( "Absolute position: {0}", absPos );
 
-                // TODO: Zoom to cursor
+                // relative normalized position of mouse on visible tree
+                var relPos = ( Event.current.mousePosition - _scrollPosition ) / ZoomLevel;
+                Log.Debug( "Normalized position: {0}", relPos );
+                
+                // update zoom level
+                ZoomLevel += Event.current.delta.y * ZoomStep * ZoomLevel;
+                
+                // we want to keep absolute position the same as before zooming, relative position changes with ZoomLevel
+                _scrollPosition = absPos - relPos * ZoomLevel;
+            
                 Event.current.Use();
             }
         }
@@ -272,7 +283,7 @@ namespace FluffyResearchTree
             GUI.DrawTexture( queueRect, Assets.SlightlyDarkBackground );
 
             DrawSearchBar( searchRect.ContractedBy( Constants.Margin ) );
-            Queue.DrawQueue( queueRect.ContractedBy( Constants.Margin ) );
+            Queue.DrawQueue( queueRect.ContractedBy( Constants.Margin ), !_dragging );
         }
 
         private string _query = "";

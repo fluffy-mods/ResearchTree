@@ -209,7 +209,7 @@ namespace FluffyResearchTree
         
         #endregion Methods
 
-        public static void DrawQueue( Rect canvas )
+        public static void DrawQueue( Rect canvas, bool interactible )
         {
             Profiler.Start( "Queue.DrawQueue" );
             if ( !_queue.Any() )
@@ -233,7 +233,7 @@ namespace FluffyResearchTree
                     NodeSize.y + 2 * Margin
                 );
                 node.DrawAt( pos, rect );
-                if ( Mouse.IsOver( rect ))
+                if ( interactible && Mouse.IsOver( rect ))
                     MainTabWindow_ResearchTree.Instance.CenterOn( node );
                 pos.x += NodeSize.x + Margin;
             }
