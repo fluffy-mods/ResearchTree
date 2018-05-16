@@ -15,7 +15,7 @@
 	<Fluffy.ResearchTree.LeadsTo>Ведет к</Fluffy.ResearchTree.LeadsTo>
 
 	<Fluffy.ResearchTree.QueuedNode>Уже в очереди</Fluffy.ResearchTree.QueuedNode>
-	<Fluffy.ResearchTree.MissingFacilities>Не изучено {0}</Fluffy.ResearchTree.MissingFacilities>
+	<Fluffy.ResearchTree.MissingFacilities>Отсутствует {0}</Fluffy.ResearchTree.MissingFacilities>
 
 	<Fluffy.ResearchTree.NoResearchFound>нечего исследовать</Fluffy.ResearchTree.NoResearchFound>
 	<Fluffy.ResearchTree.NothingQueued>исследований не назначено</Fluffy.ResearchTree.NothingQueued>
