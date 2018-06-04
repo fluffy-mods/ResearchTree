@@ -364,6 +364,6 @@ namespace FluffyResearchTree
 
         #endregion Methods
 
-        public virtual void Draw( Rect visibleRect ) { }
+        public virtual void Draw( Rect visibleRect, bool forceDetailedMode = false ) { }
     }
 }

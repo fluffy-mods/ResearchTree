@@ -14,6 +14,7 @@ namespace FluffyResearchTree
         public static readonly Vector2 NodeSize = new Vector2(200f, 50f);
         public static readonly float TopBarHeight = NodeSize.y + Margin * 2;
         public static readonly Vector2 TechLevelLabelSize = new Vector2( 200f, 30f);
+        public const float DetailedModeZoomLevelCutoff = 1.5f;
         public const float Margin = 6f;
         public const float QueueLabelSize = 30f;
         public const float SmallQueueLabelSize = 20f;

@@ -173,7 +173,7 @@ namespace FluffyResearchTree
         /// <summary>
         /// Draw the node, including interactions.
         /// </summary>
-        public override void Draw( Rect visibleRect )
+        public override void Draw( Rect visibleRect, bool forceDetailedMode = false )
         {
             if ( !IsVisible( visibleRect ) )
             {
@@ -181,6 +181,7 @@ namespace FluffyResearchTree
                 return;
             }
 
+            var detailedMode = forceDetailedMode || MainTabWindow_ResearchTree.Instance.ZoomLevel < DetailedModeZoomLevelCutoff;
             var mouseOver = Mouse.IsOver(Rect);
             if ( Event.current.type == EventType.Repaint )
             {
@@ -212,17 +213,31 @@ namespace FluffyResearchTree
                 {
                     GUI.color = Color.white;
                 }
-                Text.Anchor = TextAnchor.UpperLeft;
-                Text.WordWrap = false;
-                Text.Font = _largeLabel ? GameFont.Tiny : GameFont.Small;
-                Widgets.Label( LabelRect, Research.LabelCap );
+
+                if ( detailedMode )
+                {
+                    Text.Anchor = TextAnchor.UpperLeft;
+                    Text.WordWrap = false;
+                    Text.Font = _largeLabel ? GameFont.Tiny : GameFont.Small;
+                    Widgets.Label( LabelRect, Research.LabelCap );
+                }
+                else
+                {
+                    Text.Anchor = TextAnchor.MiddleCenter;
+                    Text.WordWrap = false;
+                    Text.Font = GameFont.Medium;
+                    Widgets.Label( Rect, Research.LabelCap );
+                }
 
                 // draw research cost and icon
-                Text.Anchor = TextAnchor.UpperRight;
-                Text.Font = GameFont.Small;
-                Widgets.Label( CostLabelRect, Research.CostApparent.ToStringByStyle( ToStringStyle.Integer ) );
-                GUI.DrawTexture( CostIconRect, ( !Completed && !Available ) ? Assets.Lock : Assets.ResearchIcon,
-                    ScaleMode.ScaleToFit );
+                if ( detailedMode )
+                {
+                    Text.Anchor = TextAnchor.UpperRight;
+                    Text.Font = GameFont.Small;
+                    Widgets.Label( CostLabelRect, Research.CostApparent.ToStringByStyle( ToStringStyle.Integer ) );
+                    GUI.DrawTexture( CostIconRect, ( !Completed && !Available ) ? Assets.Lock : Assets.ResearchIcon,
+                        ScaleMode.ScaleToFit );
+                }
                 Text.WordWrap = true;
 
                 // attach description and further info to a tooltip
@@ -233,35 +248,37 @@ namespace FluffyResearchTree
                         "Fluffy.ResearchTree.MissingFacilities".Translate( string.Join( ", ",
                             MissingFacilities().Select( td => td.LabelCap ).ToArray() ) ) );
                 }
-                // new TipSignal( GetResearchTooltipString(), Settings.TipID ) );
 
                 // draw unlock icons
-                List<Pair<Def, string>> unlocks = Research.GetUnlockDefsAndDescs();
-                for ( var i = 0; i < unlocks.Count; i++ )
+                if ( detailedMode )
                 {
-                    var iconRect = new Rect( IconsRect.xMax - ( i + 1 ) * ( IconSize.x + 4f ),
-                        IconsRect.yMin + ( IconsRect.height - IconSize.y ) / 2f,
-                        IconSize.x,
-                        IconSize.y );
-
-                    if ( iconRect.xMin - IconSize.x < IconsRect.xMin &&
-                         i + 1 < unlocks.Count )
+                    List<Pair<Def, string>> unlocks = Research.GetUnlockDefsAndDescs();
+                    for ( var i = 0; i < unlocks.Count; i++ )
                     {
-                        // stop the loop if we're about to overflow and have 2 or more unlocks yet to print.
-                        iconRect.x = IconsRect.x + 4f;
-                        GUI.DrawTexture( iconRect, Assets.MoreIcon, ScaleMode.ScaleToFit );
-                        string tip = string.Join( "\n",
-                            unlocks.GetRange( i, unlocks.Count - i ).Select( p => p.Second ).ToArray() );
-                        TooltipHandler.TipRegion( iconRect, tip );
-                        // new TipSignal( tip, Settings.TipID, TooltipPriority.Pawn ) );
-                        break;
+                        var iconRect = new Rect( IconsRect.xMax - ( i + 1 ) * ( IconSize.x + 4f ),
+                            IconsRect.yMin + ( IconsRect.height - IconSize.y ) / 2f,
+                            IconSize.x,
+                            IconSize.y );
+
+                        if ( iconRect.xMin - IconSize.x < IconsRect.xMin &&
+                             i + 1 < unlocks.Count )
+                        {
+                            // stop the loop if we're about to overflow and have 2 or more unlocks yet to print.
+                            iconRect.x = IconsRect.x + 4f;
+                            GUI.DrawTexture( iconRect, Assets.MoreIcon, ScaleMode.ScaleToFit );
+                            string tip = string.Join( "\n",
+                                unlocks.GetRange( i, unlocks.Count - i ).Select( p => p.Second ).ToArray() );
+                            TooltipHandler.TipRegion( iconRect, tip );
+                            // new TipSignal( tip, Settings.TipID, TooltipPriority.Pawn ) );
+                            break;
+                        }
+
+                        // draw icon
+                        unlocks[i].First.DrawColouredIcon( iconRect );
+
+                        // tooltip
+                        TooltipHandler.TipRegion( iconRect, unlocks[i].Second );
                     }
-
-                    // draw icon
-                    unlocks[i].First.DrawColouredIcon( iconRect );
-
-                    // tooltip
-                    TooltipHandler.TipRegion( iconRect, unlocks[i].Second );
                 }
 
                 if ( mouseOver )
@@ -364,10 +381,10 @@ namespace FluffyResearchTree
 
         public override string Label => Research.LabelCap;
 
-        public void DrawAt( Vector2 pos, Rect visibleRect )
+        public void DrawAt( Vector2 pos, Rect visibleRect, bool forceDetailedMode = false )
         {
             SetRects( pos );
-            Draw( visibleRect );
+            Draw( visibleRect, forceDetailedMode );
             SetRects();
         }
     }
