@@ -94,7 +94,7 @@ namespace FluffyResearchTree
             
             // draw the actual tree
             // TODO: stop scrollbars scaling with zoom
-            Widgets.BeginScrollView( ViewRect, ref _scrollPosition, TreeRect, true );
+            _scrollPosition = GUI.BeginScrollView( ViewRect, _scrollPosition, TreeRect );
             GUI.BeginGroup( 
                 new Rect( 
                     ScaledMargin,

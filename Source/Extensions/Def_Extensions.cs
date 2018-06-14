@@ -141,9 +141,7 @@ namespace FluffyResearchTree
             {
                 try
                 {
-                    _cachedDefIcons.Add( def,
-                                         pawnKindDef.lifeStages.Last().bodyGraphicData.Graphic.MatFront.mainTexture as
-                                         Texture2D );
+                    _cachedDefIcons.Add( def, pawnKindDef.lifeStages.Last().bodyGraphicData.Graphic.MatSouth.mainTexture as Texture2D );
                     return _cachedDefIcons[def];
                 }
                 catch
