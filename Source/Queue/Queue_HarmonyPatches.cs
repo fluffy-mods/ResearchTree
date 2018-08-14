@@ -33,13 +33,13 @@ namespace FluffyResearchTree
             }
         }
 
-        [HarmonyPatch( typeof( ResearchManager ), "DoCompletionDialog", new Type[] {typeof( ResearchProjectDef ), typeof( Pawn )} )]
+        [HarmonyPatch( typeof( ResearchManager ), "FinishProject" )]
         public class DoCompletionDialog
         {
             // suppress vanilla completion dialog, we never want to show it.
-            static bool Prefix()
+            static void Prefix( ref bool doCompletionDialog )
             {
-                return false;
+                doCompletionDialog = false;
             }
         }
     }

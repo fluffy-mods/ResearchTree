@@ -320,7 +320,7 @@ namespace FluffyResearchTree
                 }
                 if ( DebugSettings.godMode && Prefs.DevMode && Event.current.button == 1 && !Research.IsFinished )
                 {
-                    Find.ResearchManager.InstantFinish( Research );
+                    Find.ResearchManager.FinishProject( Research );
                     Queue.Notify_InstantFinished();
                 }
             }

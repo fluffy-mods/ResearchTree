@@ -161,7 +161,7 @@ namespace FluffyResearchTree
         {
             // message
             string label = "ResearchFinished".Translate( current.LabelCap);
-            string text = current.discoveredLetterTitle + "\n\n" + current.discoveredLetterText;
+            string text = current.LabelCap + "\n\n" + current.description;
 
             if (next != null)
             {
