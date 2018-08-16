@@ -543,10 +543,10 @@ namespace FluffyResearchTree
                         Log.Warning("\t{0} has a lower techlevel than (one of) it's prerequisites", node.Research.defName);
                         node.Research.techLevel = node.Research.prerequisites.Max(r => r.techLevel);
 
-                        // re-enqeue children
-                        foreach ( var child in node.Children )
+                        // re-enqeue all descendants
+                        foreach ( var descendant in node.Descendants.OfType<ResearchNode>() )
                         {
-                            nodes.Enqueue( child );
+                            nodes.Enqueue( descendant );
                         }
                     }
                 }

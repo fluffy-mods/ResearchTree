@@ -3,7 +3,7 @@
   <name>Research Tree</name>
   <author>Fluffy</author>
   <url>https://ludeon.com/forums/index.php?topic=16120</url>
-  <targetVersion>0.19.1987</targetVersion>
+  <targetVersion>0.19.1996</targetVersion>
   <description>A better research tree.
 
 &lt;size=24&gt;Features&lt;/size&gt;
@@ -50,7 +50,7 @@ Eiglsperger M., Siebenhaller M., Kaufmann M. (2005) An Efficient Implementation 
 Luckily, the crossing reduction and edge length reduction steps partially achieve the goals of the final step. The final graph is not as pretty as it could be, but it’s still pretty good - in most scenarios. 
 
 &lt;size=24&gt;Version&lt;/size&gt;
-This is version 2.13.461, for RimWorld 0.19.1987.
+This is version 2.14.462, for RimWorld 0.19.1996.
 
 </description>
 </ModMetaData>
