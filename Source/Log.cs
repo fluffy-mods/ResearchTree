@@ -15,12 +15,20 @@ namespace FluffyResearchTree
 
         public static void Warning( string msg, params object[] args )
         {
-            Verse.Log.Message( Format( msg, args ) );
+            Verse.Log.Warning( Format( msg, args ) );
         }
 
         private static string Format( string msg, params object[] args )
         {
             return "ResearchTree :: " + String.Format( msg, args );
+        }
+
+        public static void Error( string msg, bool once, params object[] args ){
+            var _msg = Format( msg, args );
+            if (once)
+                Verse.Log.ErrorOnce( _msg, _msg.GetHashCode() );
+            else 
+                Verse.Log.Error( _msg );
         }
 
         [Conditional("DEBUG")]

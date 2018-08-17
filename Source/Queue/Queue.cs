@@ -191,7 +191,7 @@ namespace FluffyResearchTree
                 foreach (ResearchProjectDef research in _saveableQueue)
                 {
                     // find a node that matches the research - or null if none found
-                    ResearchNode node = research.Node();
+                    ResearchNode node = research.ResearchNode();
 
                     // enqueue the node
                     if (node != null)

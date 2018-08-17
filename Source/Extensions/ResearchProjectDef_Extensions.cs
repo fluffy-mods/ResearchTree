@@ -59,7 +59,7 @@ namespace FluffyResearchTree
                                         .Where( td => td.plant?.sowResearchPrerequisites?.Contains( research ) ?? false );
         }
 
-        public static List<ResearchProjectDef> GetPrerequisitesRecursive( this ResearchProjectDef research )
+        public static List<ResearchProjectDef> Ancestors( this ResearchProjectDef research )
         {
             // keep a list of prerequites
             var prerequisites = new List<ResearchProjectDef>();
@@ -163,9 +163,13 @@ namespace FluffyResearchTree
             return unlocks;
         }
 
-        public static ResearchNode Node( this ResearchProjectDef research )
+        public static ResearchNode ResearchNode( this ResearchProjectDef research )
         {
-            return Tree.Nodes.OfType<ResearchNode>().FirstOrDefault( node => node.Research == research );
+            var node = Tree.Nodes.OfType<ResearchNode>().FirstOrDefault( n => n.Research == research );
+            if (node == null){
+                Log.Error( "Node for {0} not found. Was it intentionally hidden or locked?", true, research.LabelCap );
+            }
+            return node;            
         }
 
         #endregion Methods

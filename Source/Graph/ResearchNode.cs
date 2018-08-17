@@ -92,7 +92,7 @@ namespace FluffyResearchTree
                              .Any( b => research.CanBeResearchedAt( b, true ) );
 
             if ( result )
-                result = research.GetPrerequisitesRecursive().All( BuildingPresent );
+                result = research.Ancestors().All( BuildingPresent );
 
             // update cache
             _buildingPresentCache.Add( research, result );
@@ -107,7 +107,7 @@ namespace FluffyResearchTree
 
         public static implicit operator ResearchNode( ResearchProjectDef def )
         {
-            return Tree.Nodes.OfType<ResearchNode>().FirstOrDefault( n => n.Research == def );
+            return def.ResearchNode();
         }
         
         public int Matches( string query )
@@ -132,7 +132,7 @@ namespace FluffyResearchTree
                 return missing;
 
             // get list of all researches required before this
-            List<ResearchProjectDef> thisAndPrerequisites = research.GetPrerequisitesRecursive().Where( rpd => !rpd.IsFinished ).ToList();
+            List<ResearchProjectDef> thisAndPrerequisites = research.Ancestors().Where( rpd => !rpd.IsFinished ).ToList();
             thisAndPrerequisites.Add( research );
 
             // get list of all available research benches
@@ -332,7 +332,7 @@ namespace FluffyResearchTree
         /// <returns>List<Node> prerequisites</Node></returns>
         public List<ResearchNode> GetMissingRequiredRecursive()
         {
-            var parents = Research.prerequisites?.Where( rpd => !rpd.IsFinished ).Select( rpd => rpd.Node() );
+            var parents = Research.prerequisites?.Where( rpd => !rpd.IsFinished ).Select( rpd => rpd.ResearchNode() );
             if (parents == null)
                 return new List<ResearchNode>();
             var allParents = new List<ResearchNode>( parents );

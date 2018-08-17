@@ -495,6 +495,8 @@ namespace FluffyResearchTree
                 foreach ( var prerequisite in node.Research.prerequisites )
                 {
                     ResearchNode prerequisiteNode = prerequisite;
+                    if ( prerequisiteNode == null )
+                        continue;
                     var edge = new Edge<Node, Node>( prerequisiteNode, node );
                     Edges.Add( edge );
                     node.InEdges.Add( edge );
@@ -519,7 +521,7 @@ namespace FluffyResearchTree
                 if ( node.Research.prerequisites.NullOrEmpty() )
                     continue;
 
-                var ancestors = node.Research.prerequisites?.SelectMany(r => r.GetPrerequisitesRecursive()).ToList();
+                var ancestors = node.Research.prerequisites?.SelectMany(r => r.Ancestors()).ToList();
                 var redundant = ancestors.Intersect(node.Research.prerequisites);
                 if (redundant.Any())
                 {
@@ -558,10 +560,19 @@ namespace FluffyResearchTree
         {
             Log.Debug( "Populating nodes." );
             Profiler.Start();
+
+            var projects = DefDatabase<ResearchProjectDef>.AllDefsListForReading;
+
+            // find hidden nodes (nodes that have themselves as a prerequisite)
+            var hidden = projects.Where( p => p.prerequisites?.Contains( p ) ?? false );
+            
+            // find locked nodes (nodes that have a hidden node as a prerequisite)
+            var locked = projects.Where( p => p.Ancestors().Intersect( hidden ).Any() );
+
             // populate all nodes
             _nodes = new List<Node>( DefDatabase<ResearchProjectDef>.AllDefsListForReading
-                // exclude hidden projects (prereq of itself is a common trick to hide research).
-                .Where( def => def.prerequisites.NullOrEmpty() || !def.prerequisites.Contains( def ) )
+                .Except( hidden )
+                .Except( locked )
                 .Select( def => new ResearchNode( def ) as Node ) );
             Log.Debug( "\t{0} nodes", _nodes.Count );
             Profiler.End();
