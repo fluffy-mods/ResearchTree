@@ -1,4 +1,4 @@
-﻿// ResearchTree/LogHeadDB.cs
+// ResearchTree/LogHeadDB.cs
 //
 // Copyright Karel Kroeze, 2015.
 //
@@ -138,10 +138,10 @@ namespace FluffyResearchTree
         }
 
 
-        private void HandleZoom()
+        void HandleZoom()
         {
-            // handle zoom
-            if (Event.current.isScrollWheel)
+            // handle zoom only with shift
+            if (Event.current.isScrollWheel && Event.current.shift)
             {
                 // absolute position of mouse on research tree
                 var absPos = Event.current.mousePosition;
@@ -161,26 +161,38 @@ namespace FluffyResearchTree
             }
         }
 
-        private bool _dragging = false;
-        private Vector2 _mousePosition = Vector2.zero;
-        private void HandleDragging()
+        bool _dragging;
+        Vector2 _mousePosition = Vector2.zero;
+        void HandleDragging()
         {
-            if ( Event.current.type == EventType.mouseDown )
-            {
-                _dragging = true;
-                _mousePosition = Event.current.mousePosition;
-                Event.current.Use();
+            // middle mouse or holding down shift for panning
+            if (Event.current.button == 2 || Event.current.shift) {
+                if (Event.current.type == EventType.mouseDown)
+                {
+                    _dragging = true;
+                    _mousePosition = Event.current.mousePosition;
+                    Event.current.Use();
+                }
+                if (Event.current.type == EventType.mouseUp)
+                {
+                    _dragging = false;
+                    _mousePosition = Vector2.zero;
+                }
+                if (Event.current.type == EventType.mouseDrag)
+                {
+                    var _currentMousePosition = Event.current.mousePosition;
+                    _scrollPosition += _mousePosition - _currentMousePosition;
+                    _mousePosition = _currentMousePosition;
+                }
             }
-            if ( Event.current.type == EventType.mouseUp )
-            {
-                _dragging = false;
-                _mousePosition = Vector2.zero;
-            }
-            if ( Event.current.type == EventType.mouseDrag )
-            {
-                var _currentMousePosition = Event.current.mousePosition;
-                _scrollPosition += _mousePosition - _currentMousePosition;
-                _mousePosition = _currentMousePosition;
+            // scroll wheel vertical, switch to horizontal with alt
+            if (Event.current.isScrollWheel && !Event.current.shift) {
+                float delta = Event.current.delta.y * 15;
+                if (Event.current.alt) {
+                    _scrollPosition.x += delta;
+                } else {
+                    _scrollPosition.y += delta;
+                }
             }
         }
 
