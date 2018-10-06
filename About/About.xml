@@ -49,8 +49,13 @@ Brandes, U., &amp; Köpf, B. (2001, September). Fast and simple horizontal coord
 Eiglsperger M., Siebenhaller M., Kaufmann M. (2005) An Efficient Implementation of Sugiyama’s Algorithm for Layered Graph Drawing.
 Luckily, the crossing reduction and edge length reduction steps partially achieve the goals of the final step. The final graph is not as pretty as it could be, but it’s still pretty good - in most scenarios. 
 
+&lt;size=24&gt;Contributors&lt;/size&gt;
+
+Templarr:    Russian translation
+Temp:    
+
 &lt;size=24&gt;Version&lt;/size&gt;
-This is version 2.21.473, for RimWorld 0.19.2009.
+This is version 2.22.475, for RimWorld 0.19.2009.
 
 </description>
 </ModMetaData>

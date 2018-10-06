@@ -41,6 +41,10 @@ Luckily, the crossing reduction and edge length reduction steps partially achiev
 
 
 
+# Contributors
+ - Templarr:	Russian translation
+ - Temp:	
+
 # Think you found a bug? 
 Please read [this guide](http://steamcommunity.com/sharedfiles/filedetails/?id=725234314) before creating a bug report,
  and then create a bug report [here](https://github.com/FluffierThanThou/ResearchTree/issues)
@@ -60,4 +64,4 @@ Show your appreciation by buying me a coffee (or contribute towards a nice singl
 [![Buy Me a Coffee](http://i.imgur.com/EjWiUwx.gif)](https://ko-fi.com/fluffymods)
 
 # Version
-This is version 2.21.473, for RimWorld 0.19.2009.
+This is version 2.22.475, for RimWorld 0.19.2009.
