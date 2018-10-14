@@ -59,10 +59,17 @@ namespace FluffyResearchTree
 
         public static void Dequeue( ResearchNode node )
         {
+            // remove this node
             _queue.Remove( node );
+
+            // remove all nodes that depend on it
             List<ResearchNode> followUps = _queue.Where( n => n.GetMissingRequiredRecursive().Contains( node ) ).ToList();
             foreach ( ResearchNode followUp in followUps )
                 _queue.Remove( followUp );
+
+            // if currently researching this node, stop that
+            if ( Find.ResearchManager.currentProj == node.Research )
+                Find.ResearchManager.currentProj = null;
         }
 
         public static void DrawLabels( Rect visibleRect )
