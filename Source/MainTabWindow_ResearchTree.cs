@@ -113,6 +113,7 @@ namespace FluffyResearchTree
             GUI.EndScrollView( false );
 
             HandleDragging();
+            HandleDolly();
 
             // reset zoom level
             ResetZoomLevel();
@@ -122,6 +123,20 @@ namespace FluffyResearchTree
             GUI.color = Color.white;
             Text.Anchor = TextAnchor.UpperLeft;
         }
+
+        private void HandleDolly()
+        {
+            var dollySpeed = 10f;
+            if ( KeyBindingDefOf.MapDolly_Left.IsDown )
+                _scrollPosition.x -= dollySpeed;
+            if ( KeyBindingDefOf.MapDolly_Right.IsDown )
+                _scrollPosition.x += dollySpeed;
+            if ( KeyBindingDefOf.MapDolly_Up.IsDown )
+                _scrollPosition.y -= dollySpeed;
+            if ( KeyBindingDefOf.MapDolly_Down.IsDown )
+                _scrollPosition.y += dollySpeed;
+        }
+
 
         private void HandleZoom()
         {
