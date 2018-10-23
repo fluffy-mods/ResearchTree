@@ -138,7 +138,7 @@ namespace FluffyResearchTree
         }
 
 
-        void HandleZoom()
+        private void HandleZoom()
         {
             // handle zoom only with shift
             if (Event.current.isScrollWheel && Event.current.shift)
@@ -161,9 +161,9 @@ namespace FluffyResearchTree
             }
         }
 
-        bool _dragging;
-        Vector2 _mousePosition = Vector2.zero;
-        void HandleDragging()
+        private bool _dragging = false;
+        private Vector2 _mousePosition = Vector2.zero;
+        private void HandleDragging()
         {
             // middle mouse or holding down shift for panning
             if (Event.current.button == 2 || Event.current.shift) {
