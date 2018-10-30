@@ -44,6 +44,7 @@ Luckily, the crossing reduction and edge length reduction steps partially achiev
 # Contributors
  - Templarr:	Russian translation
  - Temp:	
+ - Suh. Junmin:	Korean translation
 
 # Think you found a bug? 
 Please read [this guide](http://steamcommunity.com/sharedfiles/filedetails/?id=725234314) before creating a bug report,
@@ -64,4 +65,4 @@ Show your appreciation by buying me a coffee (or contribute towards a nice singl
 [![Buy Me a Coffee](http://i.imgur.com/EjWiUwx.gif)](https://ko-fi.com/fluffymods)
 
 # Version
-This is version 3.1.487, for RimWorld 1.0.2059.
+This is version 3.2.489, for RimWorld 1.0.2059.
