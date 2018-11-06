@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<LanguageData>
+
+	<Fluffy.ResearchTree.AllowsBuildingX>Ermöglicht die Konstruktion {0}</Fluffy.ResearchTree.AllowsBuildingX>
+	<Fluffy.ResearchTree.AllowsCraftingX>Aktiviert das Rezept {0}</Fluffy.ResearchTree.AllowsCraftingX>
+	<Fluffy.ResearchTree.AllowsSowingXinY>Ermöglicht das Anpflanzen von {0} in {1}</Fluffy.ResearchTree.AllowsSowingXinY>
+	<Fluffy.ResearchTree.AllowsPlantingX>Ermöglicht das Wachsen von {0}</Fluffy.ResearchTree.AllowsPlantingX>
+
+	<Fluffy.ResearchTree.LClickReplaceQueue>Linksklick, um die Warteschlange zu ersetzen</Fluffy.ResearchTree.LClickReplaceQueue>
+	<Fluffy.ResearchTree.LClickRemoveFromQueue>Linksklick, um es von der Warteschlange zu entfernen</Fluffy.ResearchTree.LClickRemoveFromQueue>
+	<Fluffy.ResearchTree.SLClickAddToQueue>Shift-Linksklick, um es zur Warteschlange hinzuzufügen</Fluffy.ResearchTree.SLClickAddToQueue>
+	<!-- <Fluffy.ResearchTree.RClickForDetails>Right click for details</Fluffy.ResearchTree.RClickForDetails> -->
+	<Fluffy.ResearchTree.RClickInstaFinish>(DEBUG) Rechtsklick, um direkt abzuschließen</Fluffy.ResearchTree.RClickInstaFinish>
+
+	<Fluffy.ResearchTree.Requires>Benötigt</Fluffy.ResearchTree.Requires>
+	<Fluffy.ResearchTree.LeadsTo>Führt zu</Fluffy.ResearchTree.LeadsTo>
+
+	<Fluffy.ResearchTree.QueuedNode>Bereits in Warteschlange enthalten</Fluffy.ResearchTree.QueuedNode>
+	<Fluffy.ResearchTree.MissingFacilities>Fehlt {0}</Fluffy.ResearchTree.MissingFacilities>
+
+	<Fluffy.ResearchTree.NoResearchFound>kein aktives Forschungsprojekt gefunden</Fluffy.ResearchTree.NoResearchFound>
+	<Fluffy.ResearchTree.NothingQueued>keine Warteschlange für Forschungsprojekte vorhanden</Fluffy.ResearchTree.NothingQueued>
+	<Fluffy.ResearchTree.NextInQueue>Nächstes in der Warteschlange: {0}</Fluffy.ResearchTree.NextInQueue>
+
+	<Fluffy.ResearchTree.PreparingTree.Setup>Vorbereitung der Forschungsknoten</Fluffy.ResearchTree.PreparingTree.Setup>
+	<Fluffy.ResearchTree.PreparingTree.CrossingReduction>Reduziere Überschneidungen</Fluffy.ResearchTree.PreparingTree.CrossingReduction>
+	<Fluffy.ResearchTree.PreparingTree.Layout>Finalisiere Layout</Fluffy.ResearchTree.PreparingTree.Layout>
+	<Fluffy.ResearchTree.RestoreQueue>Stelle Warteschlange wieder her</Fluffy.ResearchTree.RestoreQueue>
+
+</LanguageData>
