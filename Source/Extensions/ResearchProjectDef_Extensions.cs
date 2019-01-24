@@ -22,35 +22,25 @@ namespace FluffyResearchTree
 
         #region Methods
         
-        public static List<ResearchProjectDef> ExclusiveDescendants( this ResearchProjectDef research )
+        public static List<ResearchProjectDef> Descendants( this ResearchProjectDef research )
         {
-            var descendants = new List<ResearchProjectDef>();
+            var descendants = new HashSet<ResearchProjectDef>();
 
             // recursively go through all children
             // populate initial queue
-            var queue =
-                new Queue<ResearchProjectDef>(
-                    DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where(
-                                                                                res =>
-                                                                                res.prerequisites.Contains( research ) ) );
+            var queue = new Queue<ResearchProjectDef>( DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where( res => res.prerequisites.Contains( research ) ) );
 
-            // for each item in queue, determine if there's something unlocking it
-            // if not, add to the list, and queue up children.
+            // add to the list, and queue up children.
             while ( queue.Count > 0 )
             {
                 ResearchProjectDef current = queue.Dequeue();
-
                 descendants.Add( current );
-                foreach (
-                    ResearchProjectDef descendant in
-                        DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where(
-                                                                                    res =>
-                                                                                    res.prerequisites.Contains( current ) )
-                    )
+
+                foreach ( ResearchProjectDef descendant in DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where( res => res.prerequisites.Contains( current ) && !descendants.Contains( res ) ) )
                     queue.Enqueue( descendant );
             }
 
-            return descendants;
+            return descendants.ToList();
         }
 
         public static IEnumerable<ThingDef> GetPlantsUnlocked( this ResearchProjectDef research )
@@ -110,7 +100,7 @@ namespace FluffyResearchTree
         public static IEnumerable<TerrainDef> GetTerrainUnlocked( this ResearchProjectDef research )
         {
             return DefDatabase<TerrainDef>.AllDefsListForReading
-                                          .Where( td => td.researchPrerequisites?.Contains( research ) ?? false );
+                .Where( td => td.researchPrerequisites?.Contains( research ) ?? false );
         }
 
         public static IEnumerable<ThingDef> GetThingsUnlocked( this ResearchProjectDef research )
@@ -128,36 +118,20 @@ namespace FluffyResearchTree
 
             unlocks.AddRange( research.GetThingsUnlocked()
                                       .Where( d => d.IconTexture() != null )
-                                      .Select(
-                                              d =>
-                                              new Pair<Def, string>( d,
-                                                                     "Fluffy.ResearchTree.AllowsBuildingX".Translate(
-                                                                                                                     d
-                                                                                                                         .LabelCap ) ) ) );
+                                      .Select( d => new Pair<Def, string>( d, "Fluffy.ResearchTree.AllowsBuildingX".Translate( d.LabelCap ) ) ) );
             unlocks.AddRange( research.GetTerrainUnlocked()
                                       .Where( d => d.IconTexture() != null )
-                                      .Select(
-                                              d =>
-                                              new Pair<Def, string>( d,
-                                                                     "Fluffy.ResearchTree.AllowsBuildingX".Translate(
-                                                                                                                     d
-                                                                                                                         .LabelCap ) ) ) );
+                                      .Select( d => new Pair<Def, string>( d, "Fluffy.ResearchTree.AllowsBuildingX".Translate( d.LabelCap ) ) ) );
             unlocks.AddRange( research.GetRecipesUnlocked()
                                       .Where( d => d.IconTexture() != null )
-                                      .Select(
-                                              d =>
-                                              new Pair<Def, string>( d,
-                                                                     "Fluffy.ResearchTree.AllowsCraftingX".Translate(
-                                                                                                                     d
-                                                                                                                         .LabelCap ) ) ) );
+                                      .Select( d => new Pair<Def, string>( d, "Fluffy.ResearchTree.AllowsCraftingX".Translate( d.LabelCap ) ) ) );
             unlocks.AddRange( research.GetPlantsUnlocked()
                                       .Where( d => d.IconTexture() != null )
-                                      .Select(
-                                              d =>
-                                              new Pair<Def, string>( d,
-                                                                     "Fluffy.ResearchTree.AllowsPlantingX".Translate(
-                                                                                                                     d
-                                                                                                                         .LabelCap ) ) ) );
+                                      .Select( d => new Pair<Def, string>( d, "Fluffy.ResearchTree.AllowsPlantingX".Translate( d.LabelCap ) ) ) );
+
+            // get unlocks for all descendant research, and remove duplicates.
+            var descendantUnlocks = research.Descendants().SelectMany( c => c.GetUnlockDefsAndDescs().Select( u => u.First ) ).ToList();
+            unlocks = unlocks.Where( u => !descendantUnlocks.Contains( u.First ) ).ToList();
 
             _unlocksCache.Add( research, unlocks );
             return unlocks;

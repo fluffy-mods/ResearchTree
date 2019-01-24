@@ -3,7 +3,6 @@
   <name>Research Tree</name>
   <author>Fluffy</author>
   <url>https://ludeon.com/forums/index.php?topic=16120</url>
-  <targetVersion>1.0.2059</targetVersion>
   <description>A better research tree.
 
 &lt;size=24&gt;Features&lt;/size&gt;
@@ -55,9 +54,13 @@ Templarr:    Russian translation
 Temp:    
 Suh. Junmin:    Korean translation
 rw-chaos:    German translation
+53N4:    
 
 &lt;size=24&gt;Version&lt;/size&gt;
-This is version 3.3.491, for RimWorld 1.0.2059.
+This is version 3.3.492, for RimWorld 1.0.2150.
 
 </description>
+  <supportedVersions>
+    <li>1.0</li>
+  </supportedVersions>
 </ModMetaData>
