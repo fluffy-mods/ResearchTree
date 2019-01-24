@@ -28,7 +28,7 @@ namespace FluffyResearchTree
 
             // recursively go through all children
             // populate initial queue
-            var queue = new Queue<ResearchProjectDef>( DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where( res => res.prerequisites.Contains( research ) ) );
+            var queue = new Queue<ResearchProjectDef>( DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where( res => res.prerequisites?.Contains( research ) ?? false ) );
 
             // add to the list, and queue up children.
             while ( queue.Count > 0 )
@@ -36,7 +36,7 @@ namespace FluffyResearchTree
                 ResearchProjectDef current = queue.Dequeue();
                 descendants.Add( current );
 
-                foreach ( ResearchProjectDef descendant in DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where( res => res.prerequisites.Contains( current ) && !descendants.Contains( res ) ) )
+                foreach ( ResearchProjectDef descendant in DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where( res => res.prerequisites?.Contains( current ) ?? false && !descendants.Contains( res ) ) )
                     queue.Enqueue( descendant );
             }
 

@@ -46,7 +46,7 @@ Luckily, the crossing reduction and edge length reduction steps partially achiev
  - Temp:	
  - Suh. Junmin:	Korean translation
  - rw-chaos:	German translation
- - 53N4:	
+ - 53N4:	Spanish translation
 
 # Think you found a bug? 
 Please read [this guide](http://steamcommunity.com/sharedfiles/filedetails/?id=725234314) before creating a bug report,
@@ -67,4 +67,4 @@ Show your appreciation by buying me a coffee (or contribute towards a nice singl
 [![Buy Me a Coffee](http://i.imgur.com/EjWiUwx.gif)](https://ko-fi.com/fluffymods)
 
 # Version
-This is version 3.3.492, for RimWorld 1.0.2150.
+This is version 3.4.494, for RimWorld 1.0.2150.
