@@ -233,10 +233,9 @@ namespace FluffyResearchTree
                 if ( detailedMode )
                 {
                     Text.Anchor = TextAnchor.UpperRight;
-                    Text.Font = GameFont.Small;
+                    Text.Font = Research.CostApparent > 1000000 ? GameFont.Tiny : GameFont.Small;
                     Widgets.Label( CostLabelRect, Research.CostApparent.ToStringByStyle( ToStringStyle.Integer ) );
-                    GUI.DrawTexture( CostIconRect, ( !Completed && !Available ) ? Assets.Lock : Assets.ResearchIcon,
-                        ScaleMode.ScaleToFit );
+                    GUI.DrawTexture( CostIconRect, ( !Completed && !Available ) ? Assets.Lock : Assets.ResearchIcon, ScaleMode.ScaleToFit );
                 }
                 Text.WordWrap = true;
 

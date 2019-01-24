@@ -344,7 +344,7 @@ namespace FluffyResearchTree
 
             // see if the label is too big
             _largeLabel = Text.CalcHeight( Label, _labelRect.width ) > _labelRect.height;
-
+            
             // done
             _rectsSet = true;
         }
