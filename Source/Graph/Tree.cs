@@ -642,18 +642,13 @@ namespace FluffyResearchTree
                 Widgets.DrawLine(new Vector2(xMin, visibleRect.yMin), new Vector2(xMin, visibleRect.yMax), Assets.TechLevelColor, 1f);
 
                 // label
-                // NOTE: This is a massive copout, but just don't draw these labels if zoomlevel != 1;
-                if ( MainTabWindow_ResearchTree.Instance.ZoomLevel - 1f < 1e-4 )
-                {
-                    var labelRect = new Rect(
-                        xMin + TechLevelLabelSize.y / 2f - TechLevelLabelSize.x / 2f,
-                        visibleRect.center.y - TechLevelLabelSize.y / 2f,
-                        TechLevelLabelSize.x,
-                        TechLevelLabelSize.y );
-                    UI.RotateAroundPivot( -90, labelRect.center );
-                    Widgets.Label(labelRect, techlevel.ToStringHuman());
-                    UI.RotateAroundPivot( 90, labelRect.center );
-                }
+                var labelRect = new Rect(
+                    xMin + TechLevelLabelSize.y / 2f - TechLevelLabelSize.x / 2f,
+                    visibleRect.center.y - TechLevelLabelSize.y / 2f,
+                    TechLevelLabelSize.x,
+                    TechLevelLabelSize.y );
+
+                VerticalLabel(labelRect, techlevel.ToStringHuman());
             }
 
             // upper bound
@@ -665,13 +660,28 @@ namespace FluffyResearchTree
                     visibleRect.center.y - TechLevelLabelSize.y / 2f,
                     TechLevelLabelSize.x,
                     TechLevelLabelSize.y);
-                UI.RotateAroundPivot(-90, labelRect.center);
-                Widgets.Label(labelRect, techlevel.ToStringHuman());
-                UI.RotateAroundPivot(90, labelRect.center);
+
+                VerticalLabel(labelRect, techlevel.ToStringHuman());
             }
 
             GUI.color = Color.white;
             Text.Anchor = TextAnchor.UpperLeft;
+        }
+
+        private static void VerticalLabel(Rect rect, string text)
+        {
+            // store the scaling matrix
+            Matrix4x4 matrix = GUI.matrix;
+
+            // rotate and then apply the scaling
+            GUI.matrix = Matrix4x4.identity;
+            GUIUtility.RotateAroundPivot(-90f, rect.center);
+            GUI.matrix = matrix * GUI.matrix;
+
+            Widgets.Label(rect, text);
+
+            // restore the original scaling matrix
+            GUI.matrix = matrix;
         }
 
         private static Node NodeAt( int X, int Y ) { return Nodes.FirstOrDefault( n => n.X == X && n.Y == Y ); }
