@@ -20,7 +20,6 @@ Most likely, yes. Added researches and their requirements are automatically pars
 Yep. ResearchPal is based on a legacy version of this mod that was kept up-to-date by SkyArkAngel in the HCSK modpack. I haven't worked on this mod in a long time, but I recently had some spare time and decided to give it another go. Feel free to use whichever you like better (ResearchPal has an entirely different layout algorithm). You can run both mods side by side to check out the different tree layouts, but be aware that the research queue will not work correctly if both mods are loaded.
 
 # Known Issues
- - The vertical labels for tech levels are drawn in the wrong location when UI scale is not 1. This is a known problem for me, the same issue appears in my Work Tab mod. As soon as I have a working solution, I'll go and fix it.
  - Layouts are not perfect, if you have experience with graph layouts - please do feel free to look at the source code, and/or implement a Sugiyama layout algorithm for me that runs in C# .NET 3.5 (Mono 2.0).
 
 # Technical
