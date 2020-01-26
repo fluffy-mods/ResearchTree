@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+
+  <Fluffy.ResearchTree.AllowsBuildingX>解鎖建築：{0}</Fluffy.ResearchTree.AllowsBuildingX>
+  <Fluffy.ResearchTree.AllowsCraftingX>解鎖配方：{0}</Fluffy.ResearchTree.AllowsCraftingX>
+  <Fluffy.ResearchTree.AllowsSowingXinY>{1}可種植新農作物：{0}</Fluffy.ResearchTree.AllowsSowingXinY>
+  <Fluffy.ResearchTree.AllowsPlantingX>解鎖作物：{0}</Fluffy.ResearchTree.AllowsPlantingX>
+
+  <Fluffy.ResearchTree.LClickReplaceQueue>左鍵：變更排程</Fluffy.ResearchTree.LClickReplaceQueue>
+  <Fluffy.ResearchTree.LClickRemoveFromQueue>左鍵：從排程清單中移除該項研究</Fluffy.ResearchTree.LClickRemoveFromQueue>
+  <Fluffy.ResearchTree.SLClickAddToQueue> Shift+滑鼠左鍵將項目添加到隊列後</Fluffy.ResearchTree.SLClickAddToQueue>
+  <!-- <Fluffy.ResearchTree.RClickForDetails>右鍵單擊以獲取詳細信息</Fluffy.ResearchTree.RClickForDetails> -->
+  <Fluffy.ResearchTree.RClickInstaFinish>(DEBUG) 右鍵單擊即可立即完成</Fluffy.ResearchTree.RClickInstaFinish>
+
+  <Fluffy.ResearchTree.Requires>需要</Fluffy.ResearchTree.Requires>
+  <Fluffy.ResearchTree.LeadsTo>導致</Fluffy.ResearchTree.LeadsTo>
+
+  <Fluffy.ResearchTree.QueuedNode>已排隊的研究點</Fluffy.ResearchTree.QueuedNode>
+  <Fluffy.ResearchTree.MissingFacilities>缺少 {0}</Fluffy.ResearchTree.MissingFacilities>
+
+  <Fluffy.ResearchTree.NoResearchFound>找不到相關研究項目</Fluffy.ResearchTree.NoResearchFound>
+  <Fluffy.ResearchTree.NothingQueued>未安排任何研究排程</Fluffy.ResearchTree.NothingQueued>
+  <Fluffy.ResearchTree.NextInQueue>下個項目: {0}</Fluffy.ResearchTree.NextInQueue>
+
+  <Fluffy.ResearchTree.PreparingTree.Setup>研究節點準備中</Fluffy.ResearchTree.PreparingTree.Setup>
+  <Fluffy.ResearchTree.PreparingTree.CrossingReduction>減少交叉</Fluffy.ResearchTree.PreparingTree.CrossingReduction>
+  <Fluffy.ResearchTree.PreparingTree.Layout>完成佈局</Fluffy.ResearchTree.PreparingTree.Layout>
+  <Fluffy.ResearchTree.RestoreQueue>回復隊列</Fluffy.ResearchTree.RestoreQueue>
+
+</LanguageData>
