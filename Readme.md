@@ -47,6 +47,7 @@ Luckily, the crossing reduction and edge length reduction steps partially achiev
  - rw-chaos:	German translation
  - 53N4:	Spanish translation
  - Silverside:	Fix UI scaling bug for vertical text
+ - shiuanyue:	Chinese (traditional) translation
 
 # Think you found a bug? 
 Please read [this guide](http://steamcommunity.com/sharedfiles/filedetails/?id=725234314) before creating a bug report,
@@ -69,4 +70,4 @@ Show your appreciation by buying me a coffee (or contribute towards a nice singl
 [![I Have a Black Dog](https://i.ibb.co/ss59Rwy/New-Project-2.png)](https://www.youtube.com/watch?v=XiCrniLQGYc)
 
 # Version
-This is version 3.5.495, for RimWorld 1.0.2408.
+This is version 3.6.496, for RimWorld 1.0.2408.
