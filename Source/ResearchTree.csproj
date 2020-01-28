@@ -37,6 +37,9 @@
     <Reference Include="0Harmony">
       <HintPath>..\..\..\..\harmony\0Harmony.dll</HintPath>
     </Reference>
+    <Reference Include="0MultiplayerAPI, Version=0.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\RimWorld.MultiplayerAPI.0.1.0\lib\net35\0MultiplayerAPI.dll</HintPath>
+    </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\dlls\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
@@ -57,6 +60,7 @@
     <Compile Include="Constants.cs" />
     <Compile Include="Extensions\Building_ResearchBench_Extensions.cs" />
     <Compile Include="Extensions\Def_Extensions.cs" />
+    <Compile Include="Extensions\SyncWorker_ResearchNode.cs" />
     <Compile Include="FloatMenu_Fixed.cs" />
     <Compile Include="Graph\DummyNode.cs" />
     <Compile Include="Graph\Edge.cs" />
@@ -73,7 +77,9 @@
     <Compile Include="Queue\Queue_HarmonyPatches.cs" />
     <Compile Include="ResearchTree.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>mod update -x</PostBuildEvent>

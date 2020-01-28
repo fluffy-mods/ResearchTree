@@ -3,6 +3,7 @@
 
 using System.Reflection;
 using Harmony;
+using Multiplayer.API;
 using Verse;
 
 namespace FluffyResearchTree
@@ -13,6 +14,9 @@ namespace FluffyResearchTree
         {
             var harmony = HarmonyInstance.Create( "Fluffy.ResearchTree" );
             harmony.PatchAll( Assembly.GetExecutingAssembly() );
+
+            if ( MP.enabled )
+                MP.RegisterAll();
         }
     }
 }

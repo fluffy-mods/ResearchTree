@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using Multiplayer.API;
 using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
@@ -113,6 +114,8 @@ namespace FluffyResearchTree
 
         public static void Enqueue( ResearchNode node, bool add )
         {
+            Log.Debug($"Enqueuing: {node.Research.defName }");
+
             // if we're not adding, clear the current queue and current research project
             if ( !add )
             {
@@ -129,8 +132,11 @@ namespace FluffyResearchTree
             Find.ResearchManager.currentProj = next?.Research; // null if next is null.
         }
 
+        [SyncMethod]
         public static void EnqueueRange( IEnumerable<ResearchNode> nodes, bool add )
         {
+            TutorSystem.Notify_Event( "StartResearchProject" );
+
             // clear current Queue if not adding
             if ( !add )
             {
