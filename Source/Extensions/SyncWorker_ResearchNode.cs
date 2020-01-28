@@ -14,7 +14,6 @@ namespace FluffyResearchTree
         [SyncWorker]
         static void SyncResearchNode( SyncWorker worker, ref ResearchNode node )
         {
-
             Log.Debug( $"Syncing" );
             if ( worker.isWriting )
             {
@@ -28,7 +27,6 @@ namespace FluffyResearchTree
                 node = ( DefDatabase<ResearchProjectDef>.GetNamed( researchDef ) ).ResearchNode();
             }
         }
-
 
         [SyncWorker]
         static void SyncResearchNodes( SyncWorker worker, ref IEnumerable<ResearchNode> nodes )

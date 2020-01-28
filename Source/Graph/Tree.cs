@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using Multiplayer.API;
 using UnityEngine;
 using Verse;
 using static FluffyResearchTree.Constants;
@@ -72,8 +73,11 @@ namespace FluffyResearchTree
         }
 
         private static bool _initializing = false;
+        [SyncMethod]
         public static void Initialize()
         {
+            if ( Initialized ) return;
+
             // make sure we only have one initializer running
             if (_initializing)
                 return;
@@ -105,7 +109,7 @@ namespace FluffyResearchTree
             // done!
             LongEventHandler.QueueLongEvent( () => { Initialized = true; }, "Fluffy.ResearchTree.PreparingTree.Layout", false, null );
 
-            // tell researh tab we're ready
+            // tell research tab we're ready
             LongEventHandler.QueueLongEvent( MainTabWindow_ResearchTree.Instance.Notify_TreeInitialized, "Fluffy.ResearchTree.RestoreQueue", false, null);
 
         }

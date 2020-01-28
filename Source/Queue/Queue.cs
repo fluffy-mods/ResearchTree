@@ -58,6 +58,7 @@ namespace FluffyResearchTree
                 Dequeue( node );
         }
 
+        [SyncMethod]
         public static void Dequeue( ResearchNode node )
         {
             // remove this node
