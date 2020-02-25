@@ -115,9 +115,9 @@ namespace FluffyResearchTree
             var culture = CultureInfo.CurrentUICulture;
             query = query.ToLower( culture );
 
-            if ( Research.LabelCap.ToLower(culture).Contains( query ) )
+            if ( Research.LabelCap.RawText.ToLower(culture).Contains( query ) )
                 return 1;
-            if ( Research.GetUnlockDefsAndDescs().Any( unlock => unlock.First.LabelCap.ToLower(culture).Contains( query ) ) )
+            if ( Research.GetUnlockDefsAndDescs().Any( unlock => unlock.First.LabelCap.RawText.ToLower(culture).Contains( query ) ) )
                 return 2;
             if ( Research.description.ToLower(culture).Contains( query ) )
                 return 3;

@@ -165,18 +165,18 @@ namespace FluffyResearchTree
         private Vector2 _mousePosition = Vector2.zero;
         private void HandleDragging()
         {
-            if ( Event.current.type == EventType.mouseDown )
+            if ( Event.current.type == EventType.MouseDown )
             {
                 _dragging = true;
                 _mousePosition = Event.current.mousePosition;
                 Event.current.Use();
             }
-            if ( Event.current.type == EventType.mouseUp )
+            if ( Event.current.type == EventType.MouseUp )
             {
                 _dragging = false;
                 _mousePosition = Vector2.zero;
             }
-            if ( Event.current.type == EventType.mouseDrag )
+            if ( Event.current.type == EventType.MouseDrag )
             {
                 var _currentMousePosition = Event.current.mousePosition;
                 _scrollPosition += _mousePosition - _currentMousePosition;

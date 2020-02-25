@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using Multiplayer.API;
+//using Multiplayer.API;
 using UnityEngine;
 using Verse;
 using static FluffyResearchTree.Constants;
@@ -73,7 +73,7 @@ namespace FluffyResearchTree
         }
 
         private static bool _initializing = false;
-        [SyncMethod]
+//        [SyncMethod]
         public static void Initialize()
         {
             if ( Initialized ) return;

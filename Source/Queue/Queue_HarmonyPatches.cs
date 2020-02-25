@@ -2,7 +2,7 @@
 // Copyright Karel Kroeze, 2018-2018
 
 using System;
-using Harmony;
+using HarmonyLib;
 using RimWorld;
 using Verse;
 

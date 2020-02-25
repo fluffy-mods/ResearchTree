@@ -14,6 +14,7 @@
 
 	<Fluffy.ResearchTree.Requires>Requires</Fluffy.ResearchTree.Requires>
 	<Fluffy.ResearchTree.LeadsTo>Leads to</Fluffy.ResearchTree.LeadsTo>
+	<Fluffy.ResearchTree.None>none</Fluffy.ResearchTree.None>
 
 	<Fluffy.ResearchTree.QueuedNode>Already queued node</Fluffy.ResearchTree.QueuedNode>
 	<Fluffy.ResearchTree.MissingFacilities>Missing {0}</Fluffy.ResearchTree.MissingFacilities>
