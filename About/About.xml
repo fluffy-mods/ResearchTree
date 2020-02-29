@@ -58,10 +58,11 @@ Silverside:    Fix UI scaling bug for vertical text
 shiuanyue:    Chinese (traditional) translation
 
 &lt;size=24&gt;Version&lt;/size&gt;
-This is version 3.8.498, for RimWorld 1.1.2552.
+This is version 3.8.498, for RimWorld 1.1.2558.
 
 </description>
   <supportedVersions>
     <li>1.1</li>
   </supportedVersions>
+  <packageId>fluffy.researchtree</packageId>
 </ModMetaData>
