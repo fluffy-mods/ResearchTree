@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Manifest>
-  <version>3.7.497</version>
-  <manifestUri>https://cdn.jsdelivr.net/gh/fluffy-mods/ResearchTree/About/Manifest.xml</manifestUri>
-  <downloadUri>https://github.com/fluffy-mods/ResearchTree/releases/v3.7.497</downloadUri>
+  <version>3.9.499</version>
+  <manifestUri>https://raw.githubusercontent.com/fluffy-mods/ResearchTree/1/About/Manifest.xml</manifestUri>
+  <downloadUri>https://github.com/fluffy-mods/ResearchTree/releases/v3.9.499</downloadUri>
 </Manifest>
