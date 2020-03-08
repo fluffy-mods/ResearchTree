@@ -16,14 +16,10 @@ namespace FluffyResearchTree
 {
     public class Queue : WorldComponent
     {
-        #region Fields
+        private readonly List<ResearchNode> _queue = new List<ResearchNode>();
+        private List<ResearchProjectDef> _saveableQueue;
 
-        private static readonly List<ResearchNode> _queue = new List<ResearchNode>();
-        private static List<ResearchProjectDef> _saveableQueue;
-
-        #endregion Fields
-
-        #region Properties
+        private static Queue _instance;
 
         /// <summary>
         /// Removes and returns the first node in the queue.
@@ -33,10 +29,10 @@ namespace FluffyResearchTree
         {
             get
             {
-                if ( _queue != null && _queue.Count > 0 )
+                if ( _instance._queue != null && _instance._queue.Count > 0 )
                 {
-                    ResearchNode node = _queue[0];
-                    _queue.RemoveAt( 0 );
+                    ResearchNode node = _instance._queue[0];
+                    _instance._queue.RemoveAt( 0 );
                     return node;
                 }
 
@@ -44,17 +40,14 @@ namespace FluffyResearchTree
             }
         }
 
-        #endregion Properties
-
         public Queue(World world) : base(world)
         {
+            _instance = this;
         }
-
-        #region Methods
 
         public static void TryDequeue( ResearchNode node )
         {
-            if ( _queue.Contains( node ) )
+            if ( _instance._queue.Contains( node ) )
                 Dequeue( node );
         }
 
@@ -62,12 +55,12 @@ namespace FluffyResearchTree
         public static void Dequeue( ResearchNode node )
         {
             // remove this node
-            _queue.Remove( node );
+            _instance._queue.Remove( node );
 
             // remove all nodes that depend on it
-            List<ResearchNode> followUps = _queue.Where( n => n.GetMissingRequiredRecursive().Contains( node ) ).ToList();
+            List<ResearchNode> followUps = _instance._queue.Where( n => n.GetMissingRequiredRecursive().Contains( node ) ).ToList();
             foreach ( ResearchNode followUp in followUps )
-                _queue.Remove( followUp );
+                _instance._queue.Remove( followUp );
 
             // if currently researching this node, stop that
             if ( Find.ResearchManager.currentProj == node.Research )
@@ -78,7 +71,7 @@ namespace FluffyResearchTree
         {
             Profiler.Start("Queue.DrawLabels");
             var i = 1;
-            foreach ( ResearchNode node in _queue )
+            foreach ( ResearchNode node in _instance._queue )
             {
                 if ( node.IsVisible( visibleRect ) )
                 {
@@ -111,7 +104,7 @@ namespace FluffyResearchTree
             Text.Anchor = TextAnchor.UpperLeft;
         }
 
-        public static int NumQueued => _queue.Count - 1;
+        public static int NumQueued => _instance._queue.Count - 1;
 
         public static void Enqueue( ResearchNode node, bool add )
         {
@@ -120,16 +113,16 @@ namespace FluffyResearchTree
             // if we're not adding, clear the current queue and current research project
             if ( !add )
             {
-                _queue.Clear();
+                _instance._queue.Clear();
                 Find.ResearchManager.currentProj = null;
             }
 
             // add to the queue if not already in it
-            if ( !_queue.Contains( node ) )
-                _queue.Add( node );
+            if ( !_instance._queue.Contains( node ) )
+                _instance._queue.Add( node );
 
             // try set the first research in the queue to be the current project.
-            ResearchNode next = _queue.First();
+            ResearchNode next = _instance._queue.First();
             Find.ResearchManager.currentProj = next?.Research; // null if next is null.
         }
 
@@ -141,7 +134,7 @@ namespace FluffyResearchTree
             // clear current Queue if not adding
             if ( !add )
             {
-                _queue.Clear();
+                _instance._queue.Clear();
                 Find.ResearchManager.currentProj = null;
             }
 
@@ -152,20 +145,20 @@ namespace FluffyResearchTree
 
         public static bool IsQueued( ResearchNode node )
         {
-            return _queue.Contains( node );
+            return _instance._queue.Contains( node );
         }
 
         public static void TryStartNext( ResearchProjectDef finished )
         {
-            var current = _queue.FirstOrDefault()?.Research;
+            var current = _instance._queue.FirstOrDefault()?.Research;
             Log.Debug( "TryStartNext: current; {0}, finished; {1}", current, finished );
-            if ( finished != _queue.FirstOrDefault()?.Research )
+            if ( finished != _instance._queue.FirstOrDefault()?.Research )
             {
                 TryDequeue( finished );
                 return;
             }
-            _queue.RemoveAt( 0 );
-            var next = _queue.FirstOrDefault()?.Research;
+            _instance._queue.RemoveAt( 0 );
+            var next = _instance._queue.FirstOrDefault()?.Research;
             Log.Debug( "TryStartNext: next; {0}", next );
             Find.ResearchManager.currentProj = next;
             DoCompletionLetter( current, next );
@@ -221,12 +214,10 @@ namespace FluffyResearchTree
             }
         }
         
-        #endregion Methods
-
         public static void DrawQueue( Rect canvas, bool interactible )
         {
             Profiler.Start( "Queue.DrawQueue" );
-            if ( !_queue.Any() )
+            if ( !_instance._queue.Any() )
             {
                 Text.Anchor = TextAnchor.MiddleCenter;
                 GUI.color = TechLevelColor;
@@ -237,9 +228,9 @@ namespace FluffyResearchTree
             }
 
             var pos = canvas.min;
-            for ( int i = 0; i < _queue.Count && pos.x + NodeSize.x < canvas.xMax; i++ )
+            for ( int i = 0; i < _instance._queue.Count && pos.x + NodeSize.x < canvas.xMax; i++ )
             {
-                var node = _queue[i];
+                var node = _instance._queue[i];
                 var rect = new Rect(
                     pos.x - Margin,
                     pos.y - Margin,
@@ -256,11 +247,11 @@ namespace FluffyResearchTree
 
         public static void Notify_InstantFinished()
         {
-            foreach ( var node in new List<ResearchNode>( _queue ) )
+            foreach ( var node in new List<ResearchNode>( _instance._queue ) )
                 if ( node.Research.IsFinished )
                     TryDequeue( node );
 
-            Find.ResearchManager.currentProj = _queue.FirstOrDefault()?.Research;
+            Find.ResearchManager.currentProj = _instance._queue.FirstOrDefault()?.Research;
         }
     }
 }
