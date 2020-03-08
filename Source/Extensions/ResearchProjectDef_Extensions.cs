@@ -1,42 +1,39 @@
-﻿// Karel Kroeze
-// ResearchProjectDef_Extensions.cs
-// 2016-12-28
+﻿// ResearchProjectDef_Extensions.cs
+// Copyright Karel Kroeze, 2019-2020
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using RimWorld;
 using Verse;
 
 namespace FluffyResearchTree
 {
     public static class ResearchProjectDef_Extensions
     {
-        #region Fields
-
-        private static Dictionary<Def, List<Pair<Def, string>>> _unlocksCache =
+        private static readonly Dictionary<Def, List<Pair<Def, string>>> _unlocksCache =
             new Dictionary<Def, List<Pair<Def, string>>>();
 
-        #endregion Fields
-
-        #region Methods
-        
         public static List<ResearchProjectDef> Descendants( this ResearchProjectDef research )
         {
             var descendants = new HashSet<ResearchProjectDef>();
 
             // recursively go through all children
             // populate initial queue
-            var queue = new Queue<ResearchProjectDef>( DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where( res => res.prerequisites?.Contains( research ) ?? false ) );
+            var queue = new Queue<ResearchProjectDef>(
+                DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where(
+                    res => res.prerequisites?.Contains( research ) ?? false ) );
 
             // add to the list, and queue up children.
             while ( queue.Count > 0 )
             {
-                ResearchProjectDef current = queue.Dequeue();
+                var current = queue.Dequeue();
                 descendants.Add( current );
 
-                foreach ( ResearchProjectDef descendant in DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where( res => res.prerequisites?.Contains( current ) ?? false && !descendants.Contains( res ) ) )
+                foreach ( var descendant in DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where(
+                    res =>
+                        res.prerequisites?.Contains(
+                            current ) ??
+                        false && !descendants.Contains(
+                            res ) ) )
                     queue.Enqueue( descendant );
             }
 
@@ -46,7 +43,8 @@ namespace FluffyResearchTree
         public static IEnumerable<ThingDef> GetPlantsUnlocked( this ResearchProjectDef research )
         {
             return DefDatabase<ThingDef>.AllDefsListForReading
-                                        .Where( td => td.plant?.sowResearchPrerequisites?.Contains( research ) ?? false );
+                                        .Where(
+                                             td => td.plant?.sowResearchPrerequisites?.Contains( research ) ?? false );
         }
 
         public static List<ResearchProjectDef> Ancestors( this ResearchProjectDef research )
@@ -63,19 +61,15 @@ namespace FluffyResearchTree
             while ( stack.Count > 0 )
             {
                 // add to list of prereqs
-                ResearchProjectDef parent = stack.Pop();
+                var parent = stack.Pop();
                 prerequisites.Add( parent );
 
                 // add prerequitsite's prereqs to the stack
                 if ( !parent.prerequisites.NullOrEmpty() )
-                {
-                    foreach ( ResearchProjectDef grandparent in parent.prerequisites )
-                    {
+                    foreach ( var grandparent in parent.prerequisites )
                         // but only if not a prerequisite of itself, and not a cyclic prerequisite
                         if ( grandparent != parent && !prerequisites.Contains( grandparent ) )
                             stack.Push( grandparent );
-                    }
-                }
             }
 
             return prerequisites.Distinct().ToList();
@@ -84,14 +78,16 @@ namespace FluffyResearchTree
         public static IEnumerable<RecipeDef> GetRecipesUnlocked( this ResearchProjectDef research )
         {
             // recipe directly locked behind research
-            IEnumerable<RecipeDef> direct = DefDatabase<RecipeDef>.AllDefsListForReading.Where( rd => rd.researchPrerequisite == research );
+            var direct =
+                DefDatabase<RecipeDef>.AllDefsListForReading.Where( rd => rd.researchPrerequisite == research );
 
             // recipe building locked behind research
-            IEnumerable<RecipeDef> building = DefDatabase<ThingDef>.AllDefsListForReading
-                                     .Where( td => ( td.researchPrerequisites?.Contains( research ) ?? false )
-                                                   && !td.AllRecipes.NullOrEmpty() )
-                                     .SelectMany( td => td.AllRecipes )
-                                     .Where( rd => rd.researchPrerequisite == null );
+            var building = DefDatabase<ThingDef>.AllDefsListForReading
+                                                .Where(
+                                                     td => ( td.researchPrerequisites?.Contains( research ) ?? false )
+                                                        && !td.AllRecipes.NullOrEmpty() )
+                                                .SelectMany( td => td.AllRecipes )
+                                                .Where( rd => rd.researchPrerequisite == null );
 
             // return union of these two sets
             return direct.Concat( building ).Distinct();
@@ -100,7 +96,7 @@ namespace FluffyResearchTree
         public static IEnumerable<TerrainDef> GetTerrainUnlocked( this ResearchProjectDef research )
         {
             return DefDatabase<TerrainDef>.AllDefsListForReading
-                .Where( td => td.researchPrerequisites?.Contains( research ) ?? false );
+                                          .Where( td => td.researchPrerequisites?.Contains( research ) ?? false );
         }
 
         public static IEnumerable<ThingDef> GetThingsUnlocked( this ResearchProjectDef research )
@@ -118,19 +114,25 @@ namespace FluffyResearchTree
 
             unlocks.AddRange( research.GetThingsUnlocked()
                                       .Where( d => d.IconTexture() != null )
-                                      .Select( d => new Pair<Def, string>( d, "Fluffy.ResearchTree.AllowsBuildingX".Translate( d.LabelCap ) ) ) );
+                                      .Select( d => new Pair<Def, string>(
+                                                   d, "Fluffy.ResearchTree.AllowsBuildingX".Translate( d.LabelCap ) ) ) );
             unlocks.AddRange( research.GetTerrainUnlocked()
                                       .Where( d => d.IconTexture() != null )
-                                      .Select( d => new Pair<Def, string>( d, "Fluffy.ResearchTree.AllowsBuildingX".Translate( d.LabelCap ) ) ) );
+                                      .Select( d => new Pair<Def, string>(
+                                                   d, "Fluffy.ResearchTree.AllowsBuildingX".Translate( d.LabelCap ) ) ) );
             unlocks.AddRange( research.GetRecipesUnlocked()
                                       .Where( d => d.IconTexture() != null )
-                                      .Select( d => new Pair<Def, string>( d, "Fluffy.ResearchTree.AllowsCraftingX".Translate( d.LabelCap ) ) ) );
+                                      .Select( d => new Pair<Def, string>(
+                                                   d, "Fluffy.ResearchTree.AllowsCraftingX".Translate( d.LabelCap ) ) ) );
             unlocks.AddRange( research.GetPlantsUnlocked()
                                       .Where( d => d.IconTexture() != null )
-                                      .Select( d => new Pair<Def, string>( d, "Fluffy.ResearchTree.AllowsPlantingX".Translate( d.LabelCap ) ) ) );
+                                      .Select( d => new Pair<Def, string>(
+                                                   d, "Fluffy.ResearchTree.AllowsPlantingX".Translate( d.LabelCap ) ) ) );
 
             // get unlocks for all descendant research, and remove duplicates.
-            var descendantUnlocks = research.Descendants().SelectMany( c => c.GetUnlockDefsAndDescs().Select( u => u.First ) ).ToList();
+            var descendantUnlocks = research.Descendants()
+                                            .SelectMany( c => c.GetUnlockDefsAndDescs().Select( u => u.First ) )
+                                            .ToList();
             unlocks = unlocks.Where( u => !descendantUnlocks.Contains( u.First ) ).ToList();
 
             _unlocksCache.Add( research, unlocks );
@@ -140,12 +142,9 @@ namespace FluffyResearchTree
         public static ResearchNode ResearchNode( this ResearchProjectDef research )
         {
             var node = Tree.Nodes.OfType<ResearchNode>().FirstOrDefault( n => n.Research == research );
-            if (node == null){
+            if ( node == null )
                 Log.Error( "Node for {0} not found. Was it intentionally hidden or locked?", true, research.LabelCap );
-            }
-            return node;            
+            return node;
         }
-
-        #endregion Methods
     }
 }

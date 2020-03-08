@@ -1,7 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿// Building_ResearchBench_Extensions.cs
+// Copyright Karel Kroeze, 2016-2020
+
 using System.Linq;
-using System.Text;
 using RimWorld;
 using Verse;
 
@@ -11,7 +11,7 @@ namespace FluffyResearchTree
     {
         public static bool HasFacility( this Building_ResearchBench building, ThingDef facility )
         {
-            CompAffectedByFacilities comp = building.GetComp<CompAffectedByFacilities>();
+            var comp = building.GetComp<CompAffectedByFacilities>();
             if ( comp == null )
                 return false;
 

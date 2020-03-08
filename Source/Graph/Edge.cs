@@ -1,10 +1,8 @@
 ﻿// Edge.cs
-// Copyright Karel Kroeze, 2018-2018
+// Copyright Karel Kroeze, 2018-2020
 
 using System;
-using System.Collections.Generic;
 using UnityEngine;
-using Verse;
 using static FluffyResearchTree.Assets;
 using static FluffyResearchTree.Constants;
 
@@ -14,36 +12,37 @@ namespace FluffyResearchTree
     {
         private T1 _in;
         private T2 _out;
-        private bool _dummy;
+
+        public Edge( T1 @in, T2 @out )
+        {
+            _in     = @in;
+            _out    = @out;
+            IsDummy = _out is DummyNode;
+        }
+
         public T1 In
         {
             get => _in;
             set
             {
-                _in = value;
-                _dummy = _out is DummyNode;
-            } 
+                _in     = value;
+                IsDummy = _out is DummyNode;
+            }
         }
+
         public T2 Out
         {
             get => _out;
             set
             {
-                _out = value;
-                _dummy = _out is DummyNode;
+                _out    = value;
+                IsDummy = _out is DummyNode;
             }
         }
 
-        public Edge( T1 @in, T2 @out )
-        {
-            _in = @in;
-            _out = @out;
-            _dummy = _out is DummyNode;
-        }
-
-        public int Span => _out.X - _in.X;
-        public float Length => Mathf.Abs( _in.Yf - _out.Yf ) * ( IsDummy ? 10 : 1 );
-        public bool IsDummy => _dummy;
+        public int   Span    => _out.X - _in.X;
+        public float Length  => Mathf.Abs( _in.Yf - _out.Yf ) * ( IsDummy ? 10 : 1 );
+        public bool  IsDummy { get; private set; }
 
         public int DrawOrder
         {
@@ -64,50 +63,50 @@ namespace FluffyResearchTree
             if ( !In.IsVisible( visibleRect ) && !Out.IsVisible( visibleRect ) )
                 return;
 
-            Color color = Out.EdgeColor;
+            var color = Out.EdgeColor;
             GUI.color = color;
 
-            var left = In.Right;
+            var left  = In.Right;
             var right = Out.Left;
 
             // if left and right are on the same level, just draw a straight line.
             if ( Math.Abs( left.y - right.y ) < Epsilon )
             {
-                var line = new Rect(left.x, left.y - 2f, right.x - left.x, 4f);
-                GUI.DrawTexture(line, Lines.EW );
+                var line = new Rect( left.x, left.y - 2f, right.x - left.x, 4f );
+                GUI.DrawTexture( line, Lines.EW );
             }
 
             // draw three line pieces and two curves.
             else
             {
                 // determine top and bottom y positions
-                float top = Math.Min(left.y, right.y) + NodeMargins.x / 4f;
-                float bottom = Math.Max(left.y, right.y) - NodeMargins.x / 4f;
-                
+                var top    = Math.Min( left.y, right.y ) + NodeMargins.x / 4f;
+                var bottom = Math.Max( left.y, right.y ) - NodeMargins.x / 4f;
+
                 // straight bits
                 // left to curve
                 var leftToCurve = new Rect(
                     left.x,
                     left.y - 2f,
                     NodeMargins.x / 4f,
-                    4f);
-                GUI.DrawTexture(leftToCurve, Lines.EW );
+                    4f );
+                GUI.DrawTexture( leftToCurve, Lines.EW );
 
                 // curve to curve
                 var curveToCurve = new Rect(
                     left.x + NodeMargins.x / 2f - 2f,
                     top,
-                    4f, 
-                    bottom - top);
-                GUI.DrawTexture(curveToCurve, Lines.NS );
+                    4f,
+                    bottom - top );
+                GUI.DrawTexture( curveToCurve, Lines.NS );
 
                 // curve to right
                 var curveToRight = new Rect(
-                    left.x + NodeMargins.x / 4f * 3,
-                    right.y - 2f,
+                    left.x           + NodeMargins.x / 4f * 3,
+                    right.y          - 2f,
                     right.x - left.x - NodeMargins.x / 4f * 3,
-                    4f);
-                GUI.DrawTexture(curveToRight, Lines.EW );
+                    4f );
+                GUI.DrawTexture( curveToRight, Lines.EW );
 
                 // curve positions
                 var curveLeft = new Rect(
@@ -116,13 +115,13 @@ namespace FluffyResearchTree
                     NodeMargins.x / 2f,
                     NodeMargins.x / 2f );
                 var curveRight = new Rect(
-                    left.x + NodeMargins.x / 4f,
+                    left.x  + NodeMargins.x / 4f,
                     right.y - NodeMargins.x / 4f,
                     NodeMargins.x / 2f,
                     NodeMargins.x / 2f );
 
                 // going down
-                if (left.y < right.y)
+                if ( left.y < right.y )
                 {
                     GUI.DrawTextureWithTexCoords( curveLeft, Lines.Circle, new Rect( 0.5f, 0.5f, 0.5f, 0.5f ) );
                     // bottom right quadrant
@@ -142,7 +141,7 @@ namespace FluffyResearchTree
             // draw the end arrow (if not dummy)
             if ( !IsDummy )
             {
-                var end = new Rect( 
+                var end = new Rect(
                     right.x - 16f,
                     right.y - 8f,
                     16f,
@@ -154,11 +153,11 @@ namespace FluffyResearchTree
             else
             {
                 var through = new Rect(
-                        right.x,
-                        right.y - 2,
-                        NodeSize.x,
-                        4f
-                    );
+                    right.x,
+                    right.y - 2,
+                    NodeSize.x,
+                    4f
+                );
                 GUI.DrawTexture( through, Lines.EW );
             }
 

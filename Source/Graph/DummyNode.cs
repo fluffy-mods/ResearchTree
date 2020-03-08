@@ -1,6 +1,5 @@
-﻿// Karel Kroeze
-// DummyNode.cs
-// 2017-01-05
+﻿// DummyNode.cs
+// Copyright Karel Kroeze, 2018-2020
 
 using System.Linq;
 using UnityEngine;
@@ -11,10 +10,7 @@ namespace FluffyResearchTree
     {
         #region Overrides of Node
 
-        public override string Label
-        {
-            get { return "DUMMY: " + ( Parent?.Label ?? "??" ) + " -> " + ( Child?.Label ?? "??" ); }
-        }
+        public override string Label => "DUMMY: " + ( Parent?.Label ?? "??" ) + " -> " + ( Child?.Label ?? "??" );
 
         #endregion
 
@@ -39,7 +35,8 @@ namespace FluffyResearchTree
         }
 #endif
 
-#endregion
+        #endregion
+
         public ResearchNode Parent
         {
             get
@@ -53,7 +50,7 @@ namespace FluffyResearchTree
                 return dummyParent?.Parent;
             }
         }
-        
+
         public ResearchNode Child
         {
             get
@@ -68,10 +65,10 @@ namespace FluffyResearchTree
             }
         }
 
-        public override bool Completed => OutNodes.FirstOrDefault()?.Completed ?? false;
-        public override bool Available => OutNodes.FirstOrDefault()?.Available ?? false;
-        public override bool Highlighted => OutNodes.FirstOrDefault()?.Highlighted ?? false;
-        public override Color Color => OutNodes.FirstOrDefault()?.Color ?? Color.white;
-        public override Color EdgeColor => OutNodes.FirstOrDefault()?.EdgeColor ?? Color.white;
+        public override bool  Completed   => OutNodes.FirstOrDefault()?.Completed   ?? false;
+        public override bool  Available   => OutNodes.FirstOrDefault()?.Available   ?? false;
+        public override bool  Highlighted => OutNodes.FirstOrDefault()?.Highlighted ?? false;
+        public override Color Color       => OutNodes.FirstOrDefault()?.Color       ?? Color.white;
+        public override Color EdgeColor   => OutNodes.FirstOrDefault()?.EdgeColor   ?? Color.white;
     }
 }

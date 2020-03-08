@@ -1,10 +1,9 @@
-﻿// Karel Kroeze
-// Def_Extensions.cs
-// 2016-12-28
+﻿// Def_Extensions.cs
+// Copyright Karel Kroeze, 2018-2020
 
-using RimWorld;
 using System.Collections.Generic;
 using System.Linq;
+using RimWorld;
 using UnityEngine;
 using Verse;
 
@@ -12,18 +11,12 @@ namespace FluffyResearchTree
 {
     public static class Def_Extensions
     {
-        #region Fields
-
         /// <summary>
-        /// hold a cached list of icons per def
+        ///     hold a cached list of icons per def
         /// </summary>
-        private static Dictionary<Def, Texture2D> _cachedDefIcons = new Dictionary<Def, Texture2D>();
+        private static readonly Dictionary<Def, Texture2D> _cachedDefIcons = new Dictionary<Def, Texture2D>();
 
-        private static Dictionary<Def, Color> _cachedIconColors = new Dictionary<Def, Color>();
-
-        #endregion Fields
-
-        #region Methods
+        private static readonly Dictionary<Def, Color> _cachedIconColors = new Dictionary<Def, Color>();
 
         public static void DrawColouredIcon( this Def def, Rect canvas )
         {
@@ -33,18 +26,15 @@ namespace FluffyResearchTree
         }
 
         /// <summary>
-        /// Gets an appropriate drawColor for this def.
-        /// Will use a default stuff or DrawColor, if defined.
+        ///     Gets an appropriate drawColor for this def.
+        ///     Will use a default stuff or DrawColor, if defined.
         /// </summary>
         /// <param name="def"></param>
         /// <returns></returns>
         public static Color IconColor( this Def def )
         {
             // check cache
-            if ( _cachedIconColors.ContainsKey( def ) )
-            {
-                return _cachedIconColors[def];
-            }
+            if ( _cachedIconColors.ContainsKey( def ) ) return _cachedIconColors[def];
 
             // otherwise try to determine icon
             var bdef = def as BuildableDef;
@@ -54,13 +44,11 @@ namespace FluffyResearchTree
 
             // get product color for recipes
             if ( rdef != null )
-            {
                 if ( !rdef.products.NullOrEmpty() )
                 {
                     _cachedIconColors.Add( def, rdef.products.First().thingDef.IconColor() );
                     return _cachedIconColors[def];
                 }
-            }
 
             // get color from final lifestage for pawns
             if ( pdef != null )
@@ -78,9 +66,9 @@ namespace FluffyResearchTree
 
             // built def != listed def
             if (
-                ( tdef != null ) &&
-                ( tdef.entityDefToBuild != null )
-                )
+                tdef                  != null &&
+                tdef.entityDefToBuild != null
+            )
             {
                 _cachedIconColors.Add( def, tdef.entityDefToBuild.IconColor() );
                 return _cachedIconColors[def];
@@ -95,11 +83,11 @@ namespace FluffyResearchTree
 
             // stuff used?
             if (
-                ( tdef != null ) &&
+                tdef != null &&
                 tdef.MadeFromStuff
-                )
+            )
             {
-                ThingDef stuff = GenStuff.DefaultStuffFor( tdef );
+                var stuff = GenStuff.DefaultStuffFor( tdef );
                 _cachedIconColors.Add( def, stuff.stuffProps.color );
                 return _cachedIconColors[def];
             }
@@ -110,7 +98,7 @@ namespace FluffyResearchTree
         }
 
         /// <summary>
-        /// Get a texture for the def, where defined.
+        ///     Get a texture for the def, where defined.
         /// </summary>
         /// <param name="def"></param>
         /// <returns></returns>
@@ -122,15 +110,15 @@ namespace FluffyResearchTree
 
             // otherwise try to determine icon
             var buildableDef = def as BuildableDef;
-            var thingDef = def as ThingDef;
-            var pawnKindDef = def as PawnKindDef;
-            var recipeDef = def as RecipeDef;
+            var thingDef     = def as ThingDef;
+            var pawnKindDef  = def as PawnKindDef;
+            var recipeDef    = def as RecipeDef;
 
             // recipes will be passed icon of first product, if defined.
             if (
-                ( recipeDef != null ) &&
+                recipeDef != null &&
                 !recipeDef.products.NullOrEmpty()
-                )
+            )
             {
                 _cachedDefIcons.Add( def, recipeDef.products.First().thingDef.IconTexture() );
                 return _cachedDefIcons[def];
@@ -138,17 +126,16 @@ namespace FluffyResearchTree
 
             // animals need special treatment ( this will still only work for animals, pawns are a whole different can o' worms ).
             if ( pawnKindDef != null )
-            {
                 try
                 {
-                    _cachedDefIcons.Add( def, pawnKindDef.lifeStages.Last().bodyGraphicData.Graphic.MatSouth.mainTexture as Texture2D );
+                    _cachedDefIcons.Add(
+                        def, pawnKindDef.lifeStages.Last().bodyGraphicData.Graphic.MatSouth.mainTexture as Texture2D );
                     return _cachedDefIcons[def];
                 }
                 catch
                 {
                     // ignored
                 }
-            }
 
             if ( buildableDef != null )
             {
@@ -167,7 +154,5 @@ namespace FluffyResearchTree
             _cachedDefIcons.Add( def, null );
             return null;
         }
-
-        #endregion Methods
     }
 }
