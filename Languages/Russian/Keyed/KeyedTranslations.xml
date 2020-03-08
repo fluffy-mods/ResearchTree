@@ -16,6 +16,7 @@
 
 	<Fluffy.ResearchTree.QueuedNode>Уже в очереди</Fluffy.ResearchTree.QueuedNode>
 	<Fluffy.ResearchTree.MissingFacilities>Отсутствует {0}</Fluffy.ResearchTree.MissingFacilities>
+	<Fluffy.ResearchTree.MissingTechprints>Недостаточно технологических отпечатков {0}/{1}</Fluffy.ResearchTree.MissingTechprints>
 
 	<Fluffy.ResearchTree.NoResearchFound>нечего исследовать</Fluffy.ResearchTree.NoResearchFound>
 	<Fluffy.ResearchTree.NothingQueued>исследований не назначено</Fluffy.ResearchTree.NothingQueued>

@@ -99,6 +99,11 @@ namespace FluffyResearchTree
             return result;
         }
 
+        public static bool TechprintAvailable( ResearchProjectDef research )
+        {
+            return research.TechprintRequirementMet;
+        }
+
         public static void ClearCaches()
         {
             _buildingPresentCache.Clear();
@@ -169,7 +174,12 @@ namespace FluffyResearchTree
         {
             return BuildingPresent( Research );
         }
-        
+
+        public bool TechprintAvailable()
+        {
+            return TechprintAvailable( Research );
+        }
+
         /// <summary>
         /// Draw the node, including interactions.
         /// </summary>
@@ -247,6 +257,11 @@ namespace FluffyResearchTree
                         "Fluffy.ResearchTree.MissingFacilities".Translate( string.Join( ", ",
                             MissingFacilities().Select( td => td.LabelCap ).ToArray() ) ) );
                 }
+                else if ( !TechprintAvailable() )
+                {
+                    TooltipHandler.TipRegion(Rect,
+                        "Fluffy.ResearchTree.MissingTechprints".Translate(Research.TechprintsApplied, Research.techprintCount));
+                }
 
                 // draw unlock icons
                 if ( detailedMode )
@@ -299,7 +314,7 @@ namespace FluffyResearchTree
             }
 
             // if clicked and not yet finished, queue up this research and all prereqs.
-            if ( Widgets.ButtonInvisible( Rect ) && BuildingPresent() )
+            if ( Widgets.ButtonInvisible( Rect ) && Available )
             {
                 // LMB is queue operations, RMB is info
                 if ( Event.current.button == 0 && !Research.IsFinished )
@@ -342,7 +357,7 @@ namespace FluffyResearchTree
         }
 
         public override bool Completed => Research.IsFinished;
-        public override bool Available => !Research.IsFinished && ( DebugSettings.godMode || BuildingPresent() );
+        public override bool Available => !Research.IsFinished && ( DebugSettings.godMode || (BuildingPresent() && TechprintAvailable()));
 
         public List<ThingDef> MissingFacilities()
         {

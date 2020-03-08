@@ -17,6 +17,7 @@
 
 	<Fluffy.ResearchTree.QueuedNode>El nodo de investigación ya está en cola</Fluffy.ResearchTree.QueuedNode>
 	<Fluffy.ResearchTree.MissingFacilities>Falta {0}</Fluffy.ResearchTree.MissingFacilities>
+	<Fluffy.ResearchTree.MissingTechprints>Planos tecnológicos insuficientes {0}/{1}</Fluffy.ResearchTree.MissingTechprints>
 
 	<Fluffy.ResearchTree.NoResearchFound>no se ha encontrado ninguna investigación</Fluffy.ResearchTree.NoResearchFound>
 	<Fluffy.ResearchTree.NothingQueued>no hay una cola para investigar</Fluffy.ResearchTree.NothingQueued>

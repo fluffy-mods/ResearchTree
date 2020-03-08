@@ -17,6 +17,7 @@
 
   <Fluffy.ResearchTree.QueuedNode>已排隊的研究點</Fluffy.ResearchTree.QueuedNode>
   <Fluffy.ResearchTree.MissingFacilities>缺少 {0}</Fluffy.ResearchTree.MissingFacilities>
+  <Fluffy.ResearchTree.MissingTechprints>科技藍圖要求 {0}/{1}</Fluffy.ResearchTree.MissingTechprints>
 
   <Fluffy.ResearchTree.NoResearchFound>找不到相關研究項目</Fluffy.ResearchTree.NoResearchFound>
   <Fluffy.ResearchTree.NothingQueued>未安排任何研究排程</Fluffy.ResearchTree.NothingQueued>

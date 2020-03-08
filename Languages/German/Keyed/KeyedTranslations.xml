@@ -17,6 +17,7 @@
 
 	<Fluffy.ResearchTree.QueuedNode>Bereits in Warteschlange enthalten</Fluffy.ResearchTree.QueuedNode>
 	<Fluffy.ResearchTree.MissingFacilities>Fehlt {0}</Fluffy.ResearchTree.MissingFacilities>
+	<Fluffy.ResearchTree.MissingTechprints>Techprints benötigt {0}/{1}</Fluffy.ResearchTree.MissingTechprints>
 
 	<Fluffy.ResearchTree.NoResearchFound>kein aktives Forschungsprojekt gefunden</Fluffy.ResearchTree.NoResearchFound>
 	<Fluffy.ResearchTree.NothingQueued>keine Warteschlange für Forschungsprojekte vorhanden</Fluffy.ResearchTree.NothingQueued>
