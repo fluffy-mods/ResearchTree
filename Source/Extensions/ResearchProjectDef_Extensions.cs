@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Remoting.Messaging;
 using Verse;
 
 namespace FluffyResearchTree
@@ -105,7 +106,7 @@ namespace FluffyResearchTree
                                         .Where( td => td.researchPrerequisites?.Contains( research ) ?? false );
         }
 
-        public static List<Pair<Def, string>> GetUnlockDefsAndDescs( this ResearchProjectDef research )
+        public static List<Pair<Def, string>> GetUnlockDefsAndDescs( this ResearchProjectDef research, bool dedupe = true )
         {
             if ( _unlocksCache.ContainsKey( research ) )
                 return _unlocksCache[research];
@@ -130,10 +131,15 @@ namespace FluffyResearchTree
                                                    d, "Fluffy.ResearchTree.AllowsPlantingX".Translate( d.LabelCap ) ) ) );
 
             // get unlocks for all descendant research, and remove duplicates.
-            var descendantUnlocks = research.Descendants()
-                                            .SelectMany( c => c.GetUnlockDefsAndDescs().Select( u => u.First ) )
-                                            .ToList();
-            unlocks = unlocks.Where( u => !descendantUnlocks.Contains( u.First ) ).ToList();
+            var descendants = research.Descendants();
+            if ( dedupe && descendants.Any() )
+            {
+                var descendantUnlocks = research.Descendants()
+                                                .SelectMany( c => c.GetUnlockDefsAndDescs( false ).Select( u => u.First ) )
+                                                .Distinct()
+                                                .ToList();
+                unlocks = unlocks.Where( u => !descendantUnlocks.Contains( u.First ) ).ToList();
+            }
 
             _unlocksCache.Add( research, unlocks );
             return unlocks;

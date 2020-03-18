@@ -33,6 +33,10 @@ namespace FluffyResearchTree
         /// <returns></returns>
         public static Color IconColor( this Def def )
         {
+            // garbage in, garbage out
+            if ( def == null )
+                return Color.cyan;
+
             // check cache
             if ( _cachedIconColors.ContainsKey( def ) ) return _cachedIconColors[def];
 
@@ -104,6 +108,10 @@ namespace FluffyResearchTree
         /// <returns></returns>
         public static Texture2D IconTexture( this Def def )
         {
+            // garbage in, garbage out
+            if ( def == null )
+                return null;
+
             // check cache
             if ( _cachedDefIcons.ContainsKey( def ) )
                 return _cachedDefIcons[def];
