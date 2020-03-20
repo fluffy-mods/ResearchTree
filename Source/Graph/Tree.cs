@@ -18,7 +18,10 @@ namespace FluffyResearchTree
 
     public class Tree
     {
+        public const string ALL_TAB_NAME = "All";
+
         public static Tree ActiveTree;
+        public static Tree AllTreeTab;
         public static Dictionary<string, Tree> Trees = new Dictionary<string, Tree>();
         public static List<ResearchTabDef> Tabs = new List<ResearchTabDef>();
         private List<Edge<Node, Node>> _edges;
@@ -34,6 +37,22 @@ namespace FluffyResearchTree
         public IntVec2 Size = IntVec2.Zero;
         public string TabName;
         public string TabLabel;
+        private  Rect _treeRect;
+
+        public Rect TreeRect
+        {
+            get
+            {
+                if (_treeRect == default)
+                {
+                    var width = Size.x * (NodeSize.x + NodeMargins.x);
+                    var height =Size.z * (NodeSize.y + NodeMargins.y);
+                    _treeRect = new Rect(0f, 0f, width, height);
+                }
+
+                return _treeRect;
+            }
+        }
 
 
         public Tree(ResearchTabDef tab)
@@ -43,6 +62,22 @@ namespace FluffyResearchTree
             Trees.Add(TabName, this);
             Tabs.Add(tab);
             // Initialize();
+        }
+
+        public Tree(){}
+        public static Tree AllTab()
+        {
+            var allTree = new Tree()
+            {
+                TabName = ALL_TAB_NAME,
+                TabLabel = ALL_TAB_NAME,
+
+            };
+            AllTreeTab = allTree;
+
+            Trees.Add(ALL_TAB_NAME, allTree);
+            Tabs.Add(new ResearchTabDef(){defName = "All"});
+            return allTree;
         }
 
         public Dictionary<TechLevel, IntRange> TechLevelBounds
@@ -64,7 +99,7 @@ namespace FluffyResearchTree
                         .Cast<TechLevel>()
                         // filter down to relevant tech levels only.
                         .Where(
-                            tl => DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where(def => def.tab.defName == TabName).Any(
+                            tl => (TabName==ALL_TAB_NAME? DefDatabase<ResearchProjectDef>.AllDefsListForReading:DefDatabase<ResearchProjectDef>.AllDefsListForReading.Where(def => def.tab.defName == TabName)).Any(
                                 rp => rp.techLevel ==
                                       tl))
                         .ToList();
@@ -118,7 +153,7 @@ namespace FluffyResearchTree
 
                 Text.Anchor = TextAnchor.MiddleCenter;
                 Text.WordWrap = false;
-                Text.Font = GameFont.Small;
+                Text.Font = visibleRect.width > 100?GameFont.Small:GameFont.Tiny;
                 Widgets.Label(visibleRect, TabLabel);
 
             }
@@ -131,6 +166,7 @@ namespace FluffyResearchTree
                     ActiveTree = Trees[TabName];
                     ActiveTree.Initialize();
                     ActiveTree.OrderDirty = true;
+                    
                 }
         }
 
@@ -635,46 +671,63 @@ namespace FluffyResearchTree
 
             // find locked nodes (nodes that have a hidden node as a prerequisite)
             var locked = projects.Where(p => p.Ancestors().Intersect(hidden).Any());
-
-            // populate all nodes
-            _nodes = new List<Node>(DefDatabase<ResearchProjectDef>.AllDefsListForReading
-                .Where(def => def.tab.defName == TabName)
-                .Except(hidden)
-                .Except(locked)
-                .Select(def => new ResearchNode(def) as Node));
-            _nodes.RemoveAll(n => n == null);
-            List<Node> nodesToAdd = new List<Node>();
-            List<ResearchProjectDef> addedDefs = new List<ResearchProjectDef>();
-            foreach (var node in _nodes)
+            if (TabName == ALL_TAB_NAME)
             {
-                var missedNodes = (node as ResearchNode).Research.Ancestors().Where(n => n.tab.defName != TabName);
+                _nodes = new List<Node>(DefDatabase<ResearchProjectDef>.AllDefsListForReading
+//                    .Where(def => def.tab.defName == TabName)
+                    .Except(hidden)
+                    .Except(locked)
+                    .Select(def => new ResearchNode(def) as Node));
+                _nodes.RemoveAll(n => n == null);
 
-                foreach (var researchProjectDef in missedNodes.Except(hidden).Except(locked).Except(addedDefs))
+            }
+            else
+            {
+                // populate all nodes
+                _nodes = new List<Node>(DefDatabase<ResearchProjectDef>.AllDefsListForReading
+                    .Where(def => def.tab.defName == TabName)
+                    .Except(hidden)
+                    .Except(locked)
+                    .Select(def => new ResearchNode(def) as Node));
+
+                _nodes.RemoveAll(n => n == null);
+
+                List<Node> nodesToAdd = new List<Node>();
+                List<ResearchProjectDef> addedDefs = new List<ResearchProjectDef>();
+                foreach (var node in _nodes)
                 {
-                    Verse.Log.Message("NameDef");
-                    Verse.Log.Message(researchProjectDef.defName);
-                    Verse.Log.Message("Tree");
-                    Verse.Log.Message(Trees[researchProjectDef.tab.defName].TabName);
-                    Verse.Log.Message("Nodes");
-                    Verse.Log.Message(Trees[researchProjectDef.tab.defName].Nodes.Count.ToString());
-                    Verse.Log.Message("Select");
-                    var s = Trees[researchProjectDef.tab.defName].Nodes.Select(n => n as ResearchNode);
-                    var l = s.ToList();
-                    Verse.Log.Message("Exist");
-                    Verse.Log.Message(l[0].Research.defName);
-                    Verse.Log.Message(l.Exists(n => n!=null && n.Research !=null && n.Research.defName == researchProjectDef.defName)?"true":"false");
-                    Verse.Log.Message("Find");
-                    var r = l.Find(n => n != null && n.Research != null && n.Research.defName == researchProjectDef.defName);
-                    Verse.Log.Message("Fake");
+                    var missedNodes = (node as ResearchNode).Research.Ancestors().Where(n => n.tab.defName != TabName);
 
-                    nodesToAdd.Add( new FakeResearchNode (r)); //.Find(n=>n.r)
+                    foreach (var researchProjectDef in missedNodes.Except(hidden).Except(locked).Except(addedDefs))
+                    {
+                        Verse.Log.Message("NameDef");
+                        Verse.Log.Message(researchProjectDef.defName);
+                        Verse.Log.Message("Tree");
+                        Verse.Log.Message(Trees[researchProjectDef.tab.defName].TabName);
+                        Verse.Log.Message("Nodes");
+                        Verse.Log.Message(Trees[researchProjectDef.tab.defName].Nodes.Count.ToString());
+                        Verse.Log.Message("Select");
+                        var s = Trees[researchProjectDef.tab.defName].Nodes.Select(n => n as ResearchNode);
+                        var l = s.ToList();
+                        Verse.Log.Message("Exist");
+                        Verse.Log.Message(l[0].Research.defName);
+                        Verse.Log.Message(l.Exists(n => n != null && n.Research != null && n.Research.defName == researchProjectDef.defName) ? "true" : "false");
+                        Verse.Log.Message("Find");
+                        var r = l.Find(n => n != null && n.Research != null && n.Research.defName == researchProjectDef.defName);
+                        Verse.Log.Message("Fake");
+
+                        nodesToAdd.Add(new FakeResearchNode(r)); //.Find(n=>n.r)
+                    }
+
+                    addedDefs.AddRange(missedNodes);
                 }
-                addedDefs.AddRange(missedNodes);
+
+                _nodes.AddRange(nodesToAdd.Distinct());
+                _nodes.RemoveAll(n => n == null);
+
             }
 
-            _nodes.AddRange(nodesToAdd.Distinct());
-            _nodes.RemoveAll(n => n == null);
-
+          
             //foreach (var node in _nodes )
             //{
             //    var missingNodes = (node as ResearchNode).GetMissingRequiredRecursive().Select((researchNode) => researchNode.Research);

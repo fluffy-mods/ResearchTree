@@ -189,7 +189,7 @@ namespace FluffyResearchTree
         /// </summary>
         public override void Draw( Rect visibleRect, bool forceDetailedMode = false )
         {
-            if ( !IsVisible( visibleRect ) )
+            if ( !IsVisible( visibleRect ) && !forceDetailedMode)
             {
                 Highlighted = false;
                 return;

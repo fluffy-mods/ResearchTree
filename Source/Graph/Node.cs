@@ -340,7 +340,7 @@ namespace FluffyResearchTree
                 Rect.xMin > visibleRect.xMax ||
                 Rect.xMax < visibleRect.xMin ||
                 Rect.yMin > visibleRect.yMax ||
-                Rect.yMax < visibleRect.yMin );
+                Rect.yMax < visibleRect.yMin || !Tree.ActiveTree.Nodes.Contains(this));
         }
 
         public virtual void Draw( Rect visibleRect, bool forceDetailedMode = false )

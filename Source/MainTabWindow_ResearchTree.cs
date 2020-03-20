@@ -14,7 +14,6 @@ namespace FluffyResearchTree
     {
         internal static Vector2 _scrollPosition = Vector2.zero;
 
-        private static Rect _treeRect;
 
         private Rect _baseViewRect;
         private Rect _baseViewRect_Inner;
@@ -85,20 +84,6 @@ namespace FluffyResearchTree
             }
         }
 
-        public Rect TreeRect
-        {
-            get
-            {
-                if ( _treeRect == default )
-                {
-                    var width  = Tree.ActiveTree.Size.x * ( NodeSize.x + NodeMargins.x );
-                    var height = Tree.ActiveTree.Size.z * ( NodeSize.y + NodeMargins.y );
-                    _treeRect = new Rect( 0f, 0f, width, height );
-                }
-
-                return _treeRect;
-            }
-        }
 
         public Rect VisibleRect =>
             new Rect(
@@ -112,8 +97,8 @@ namespace FluffyResearchTree
             get
             {
                 // get the minimum zoom level at which the entire tree fits onto the screen, or a static maximum zoom level.
-                var fitZoomLevel = Mathf.Max( TreeRect.width  / _baseViewRect_Inner.width,
-                                              TreeRect.height / _baseViewRect_Inner.height );
+                var fitZoomLevel = Mathf.Max( Tree.ActiveTree.TreeRect.width  / _baseViewRect_Inner.width,
+                    Tree.ActiveTree.TreeRect.height / _baseViewRect_Inner.height );
                 return Mathf.Min( fitZoomLevel, AbsoluteMaxZoomLevel );
             }
         }
@@ -147,6 +132,8 @@ namespace FluffyResearchTree
                 var projects = DefDatabase<ResearchProjectDef>.AllDefsListForReading;
 
                 var groups = projects.GroupBy(def => def.tab);
+                Tree.AllTab();//.Initialize();
+
                 foreach (var @group in groups)
                 {
                     if (!Tree.Trees.ContainsKey(@group.Key.defName))
@@ -207,13 +194,13 @@ namespace FluffyResearchTree
 
             // draw the actual tree
             // TODO: stop scrollbars scaling with zoom
-            _scrollPosition = GUI.BeginScrollView( ViewRect, _scrollPosition, TreeRect );
+            _scrollPosition = GUI.BeginScrollView( ViewRect, _scrollPosition, Tree.ActiveTree.TreeRect );
             GUI.BeginGroup(
                 new Rect(
                     ScaledMargin,
                     ScaledMargin,
-                    TreeRect.width  + ScaledMargin * 2f,
-                    TreeRect.height + ScaledMargin * 2f
+                    Tree.ActiveTree.TreeRect.width  + ScaledMargin * 2f,
+                    Tree.ActiveTree.TreeRect.height + ScaledMargin * 2f
                 )
             );
             if(Tree.ActiveTree.Initialized)
@@ -243,19 +230,23 @@ namespace FluffyResearchTree
           
 
             var pos = canvas.min;
+
+            var tabAmount = Tree.Tabs.Count;
+            var resolution = UI.screenWidth;
+            var size = Mathf.Min(NodeSize.x + Margin, (resolution - 2 * Margin) / tabAmount);
             for (var i = 0; i < Tree.Tabs.Count && pos.x + NodeSize.x < canvas.xMax; i++)
             {
                 var node = Tree.Trees[Tree.Tabs[i].defName];
                 var rect = new Rect(
                     pos.x ,
                     pos.y ,
-                    NodeSize.x + Margin,
+                    size,
                     NodeSize.y/2 + Margin
                 );
 
                 node.DrawTab(rect);
 
-                pos.x += NodeSize.x + Margin;
+                pos.x += size;
             }
 
             Profiler.End();
@@ -423,8 +414,8 @@ namespace FluffyResearchTree
 
             position -= new Vector2( UI.screenWidth, UI.screenHeight ) / 2f;
 
-            position.x      = Mathf.Clamp( position.x, 0f, TreeRect.width  - ViewRect.width );
-            position.y      = Mathf.Clamp( position.y, 0f, TreeRect.height - ViewRect.height );
+            position.x      = Mathf.Clamp( position.x, 0f, Tree.ActiveTree.TreeRect.width  - ViewRect.width );
+            position.y      = Mathf.Clamp( position.y, 0f, Tree.ActiveTree.TreeRect.height - ViewRect.height );
             _scrollPosition = position;
         }
     }
