@@ -111,6 +111,8 @@ namespace FluffyResearchTree
             }
         }
 
+        public Rect RealQueueRect;
+
         /// <summary>
         ///     Tag UI Rect
         /// </summary>

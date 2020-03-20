@@ -176,6 +176,7 @@ namespace FluffyResearchTree
                 canvas.yMin,
                 canvas.width,
                 TopBarHeight );
+
             DrawTopBar( topRect );
 
             ApplyZoomLevel();
@@ -203,7 +204,7 @@ namespace FluffyResearchTree
             GUI.EndGroup();
             GUI.EndScrollView( false );
 
-            HandleDragging();
+            HandleDragging(topRect);
             HandleDolly();
 
             // reset zoom level
@@ -252,14 +253,26 @@ namespace FluffyResearchTree
             }
         }
 
-        private void HandleDragging()
+
+        private void HandleDragging(Rect topRect)
         {
-            if ( Event.current.type == EventType.MouseDown )
+            var inTopRect = topRect.Contains(Event.current.mousePosition);
+            if ( Event.current.type == EventType.MouseDown && !inTopRect)
             {
                 _dragging      = true;
                 _mousePosition = Event.current.mousePosition;
                 Event.current.Use();
             }
+
+            //Dragging Queue
+            if (Event.current.type == EventType.MouseDown && inTopRect)
+            {
+                _dragging = true;
+                _mousePosition = Event.current.mousePosition;
+                Event.current.Use();
+            }
+
+
 
             if ( Event.current.type == EventType.MouseUp )
             {
@@ -267,7 +280,7 @@ namespace FluffyResearchTree
                 _mousePosition = Vector2.zero;
             }
 
-            if ( Event.current.type == EventType.MouseDrag )
+            if ( Event.current.type == EventType.MouseDrag && !inTopRect)
             {
                 var _currentMousePosition = Event.current.mousePosition;
                 _scrollPosition += _mousePosition - _currentMousePosition;

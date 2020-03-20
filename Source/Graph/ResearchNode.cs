@@ -83,6 +83,9 @@ namespace FluffyResearchTree
 
         public override string Label => Research.LabelCap;
 
+        public bool isBeingDrag;
+
+
         public static bool BuildingPresent( ResearchProjectDef research )
         {
             if ( DebugSettings.godMode && Prefs.DevMode )
@@ -314,8 +317,9 @@ namespace FluffyResearchTree
                 }
             }
 
+            var btn = Widgets.ButtonInvisibleDraggable(Rect);
             // if clicked and not yet finished, queue up this research and all prereqs.
-            if ( Widgets.ButtonInvisible( Rect ) && BuildingPresent() )
+            if ( btn == Widgets.DraggableResult.Pressed && BuildingPresent() )
             {
                 // LMB is queue operations, RMB is info
                 if ( Event.current.button == 0 && !Research.IsFinished )
@@ -326,10 +330,18 @@ namespace FluffyResearchTree
                         var queue = GetMissingRequiredRecursive()
                                    .Concat( new List<ResearchNode>( new[] {this} ) )
                                    .Distinct();
-                        Queue.EnqueueRange( queue, Event.current.shift );
+                        if (Event.current.control)
+                        {
+                            Queue.InsertAtBeginningRange(queue);
+                        }
+                        else
+                        {
+                            Queue.EnqueueRange( queue, Event.current.shift );
+                        }
                     }
                     else
                     {
+
                         Queue.Dequeue( this );
                     }
                 }
@@ -338,6 +350,29 @@ namespace FluffyResearchTree
                 {
                     Find.ResearchManager.FinishProject( Research );
                     Queue.Notify_InstantFinished();
+                }
+            }
+            //Only Queue
+            if (forceDetailedMode)
+            {
+                if (btn == Widgets.DraggableResult.Dragged)
+                {
+                    isBeingDrag = true;
+                    Verse.Log.Message("dragStart");
+                }
+
+                if (isBeingDrag)
+                {
+                    if (Event.current.type == EventType.MouseUp)
+                    {
+                        if (Queue.TryToMove(this))
+                        {
+                            isBeingDrag = false;
+                            Verse.Log.Message("dragStop");
+
+                        }
+
+                    }
                 }
             }
         }

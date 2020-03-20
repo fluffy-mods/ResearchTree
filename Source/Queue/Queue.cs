@@ -49,6 +49,53 @@ namespace FluffyResearchTree
         {
             if ( _instance._queue.Contains( node ) )
                 Dequeue( node );
+
+        public static bool TryToMove(ResearchNode node)
+        {
+            var dropPosition = Event.current.mousePosition;
+            // Check if Mouse is Outside node
+            if (node.RealQueueRect.Contains(dropPosition)) return false;
+
+            // Order Queue by distance to mouse 
+            var queueByDistance = _instance._queue.OrderBy(item => Vector2.Distance(item.RealQueueRect.center, dropPosition));
+            var nearestItem = queueByDistance.First();
+            var indexToPlace = _instance._queue.IndexOf(nearestItem);
+
+            // Move node to new Position
+            _instance._queue.Remove(node);
+            _instance._queue.Insert(indexToPlace, node);
+
+            // Sort nodes required to complete this node
+            SortRequiredRecursive(node);
+
+            // Sort nodes which require this node to complete
+            var children = node.Research.Descendants();
+            if (children != null && children.Count > 0)
+            {
+                var childrenNodes = children
+                    .Where(def => !def.IsFinished && IsQueued(def))
+                    .Select(def => def.ResearchNode()).ToList();
+                foreach (var child in childrenNodes) SortRequiredRecursive(child);
+            }
+
+            return true;
+        }
+
+        private static void SortRequiredRecursive(ResearchNode node)
+        {
+            var indexToPlace = _instance._queue.IndexOf(node);
+            var requiredResearchNodes = node.GetMissingRequiredRecursive().ToList();
+            foreach (var requiredResearchNode in requiredResearchNodes)
+                if (IsQueued(requiredResearchNode))
+                {
+                    var requiredNodeIndex = _instance._queue.IndexOf(requiredResearchNode);
+                    if (requiredNodeIndex > indexToPlace)
+                    {
+                        _instance._queue.Remove(requiredResearchNode);
+                        _instance._queue.Insert(indexToPlace, requiredResearchNode);
+                        SortRequiredRecursive(requiredResearchNode);
+                    }
+                }
         }
 
 //        [SyncMethod]
@@ -124,6 +171,34 @@ namespace FluffyResearchTree
             // try set the first research in the queue to be the current project.
             var next = _instance._queue.First();
             Find.ResearchManager.currentProj = next?.Research; // null if next is null.
+        }
+
+        public static void InsertAtBeginning(ResearchNode node)
+        {
+            Log.Debug($"Enqueuing: {node.Research.defName}");
+            
+            // add to the queue if not already in it
+            if (!_instance._queue.Contains(node))
+                _instance._queue.Insert(0, node);
+            else
+            {
+                // move to the beginning if already on queue
+                _instance._queue.Remove(node);
+                _instance._queue.Insert(0, node);
+            }
+            // try set the first research in the queue to be the current project.
+            var next = _instance._queue.First();
+            Find.ResearchManager.currentProj = next?.Research; // null if next is null.
+        }
+
+        public static void InsertAtBeginningRange(IEnumerable<ResearchNode> nodes)
+        {
+            TutorSystem.Notify_Event("StartResearchProject");
+
+            foreach (var node in nodes.OrderByDescending(node => node.X).ThenBy(node => node.Research.CostApparent))
+            {
+                InsertAtBeginning(node);
+            }
         }
 
 //        [SyncMethod]
@@ -236,9 +311,10 @@ namespace FluffyResearchTree
                     NodeSize.x + 2 * Margin,
                     NodeSize.y + 2 * Margin
                 );
-                node.DrawAt( pos, rect, true );
-                if ( interactible && Mouse.IsOver( rect ) )
-                    MainTabWindow_ResearchTree.Instance.CenterOn( node );
+                node.RealQueueRect = rect;
+                node.DrawAt(pos, node.RealQueueRect, true);
+                if (interactible && Mouse.IsOver(rect))
+                    MainTabWindow_ResearchTree.Instance.CenterOn(node);
                 pos.x += NodeSize.x + Margin;
             }
 
