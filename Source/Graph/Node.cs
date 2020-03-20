@@ -183,8 +183,8 @@ namespace FluffyResearchTree
 
                 // update caches
                 _rectsSet       = false;
-                Tree.Size.x     = Tree.Nodes.Max( n => n.X );
-                Tree.OrderDirty = true;
+                Tree.ActiveTree.Size.x     = Tree.ActiveTree.Nodes.Max( n => n.X );
+                Tree.ActiveTree.OrderDirty = true;
             }
         }
 
@@ -203,8 +203,8 @@ namespace FluffyResearchTree
 
                 // update caches
                 _rectsSet       = false;
-                Tree.Size.z     = Tree.Nodes.Max( n => n.Y );
-                Tree.OrderDirty = true;
+                Tree.ActiveTree.Size.z     = Tree.ActiveTree.Nodes.Max( n => n.Y );
+                Tree.ActiveTree.OrderDirty = true;
             }
         }
 
@@ -221,8 +221,8 @@ namespace FluffyResearchTree
                 _pos.y = value;
 
                 // update caches
-                Tree.Size.z     = Tree.Nodes.Max( n => n.Y ) + 1;
-                Tree.OrderDirty = true;
+                Tree.ActiveTree.Size.z     = Tree.ActiveTree.Nodes.Max( n => n.Y ) + 1;
+                Tree.ActiveTree.OrderDirty = true;
             }
         }
 

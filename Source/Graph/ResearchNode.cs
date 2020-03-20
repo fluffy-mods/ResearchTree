@@ -324,26 +324,7 @@ namespace FluffyResearchTree
                 // LMB is queue operations, RMB is info
                 if ( Event.current.button == 0 && !Research.IsFinished )
                 {
-                    if ( !Queue.IsQueued( this ) )
-                    {
-                        // if shift is held, add to queue, otherwise replace queue
-                        var queue = GetMissingRequiredRecursive()
-                                   .Concat( new List<ResearchNode>( new[] {this} ) )
-                                   .Distinct();
-                        if (Event.current.control)
-                        {
-                            Queue.InsertAtBeginningRange(queue);
-                        }
-                        else
-                        {
-                            Queue.EnqueueRange( queue, Event.current.shift );
-                        }
-                    }
-                    else
-                    {
-
-                        Queue.Dequeue( this );
-                    }
+                    OnClick();
                 }
 
                 if ( DebugSettings.godMode && Prefs.DevMode && Event.current.button == 1 && !Research.IsFinished )
@@ -374,6 +355,29 @@ namespace FluffyResearchTree
 
                     }
                 }
+            }
+        }
+
+        protected virtual void OnClick()
+        {
+            if (!Queue.IsQueued(this))
+            {
+                // if shift is held, add to queue, otherwise replace queue
+                var queue = GetMissingRequiredRecursive()
+                    .Concat(new List<ResearchNode>(new[] {this}))
+                    .Distinct();
+                if (Event.current.control)
+                {
+                    Queue.InsertAtBeginningRange(queue);
+                }
+                else
+                {
+                    Queue.EnqueueRange(queue, Event.current.shift);
+                }
+            }
+            else
+            {
+                Queue.Dequeue(this);
             }
         }
 

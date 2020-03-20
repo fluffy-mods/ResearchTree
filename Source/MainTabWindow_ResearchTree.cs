@@ -91,8 +91,8 @@ namespace FluffyResearchTree
             {
                 if ( _treeRect == default )
                 {
-                    var width  = Tree.Size.x * ( NodeSize.x + NodeMargins.x );
-                    var height = Tree.Size.z * ( NodeSize.y + NodeMargins.y );
+                    var width  = Tree.ActiveTree.Size.x * ( NodeSize.x + NodeMargins.x );
+                    var height = Tree.ActiveTree.Size.z * ( NodeSize.y + NodeMargins.y );
                     _treeRect = new Rect( 0f, 0f, width, height );
                 }
 
@@ -135,10 +135,26 @@ namespace FluffyResearchTree
             base.PreOpen();
             SetRects();
 
-            if ( !Tree.Initialized )
-                // initialize tree
-                Tree.Initialize();
+            if (Tree.ActiveTree == null)
+            {
+                if (!Tree.Trees.ContainsKey("Main"))
+                {
+                    Tree.ActiveTree = new Tree(DefDatabase <ResearchTabDef>.GetNamed("Main"));
+                    Tree.ActiveTree.Initialize();
+                }
 
+
+                var projects = DefDatabase<ResearchProjectDef>.AllDefsListForReading;
+
+                var groups = projects.GroupBy(def => def.tab);
+                foreach (var @group in groups)
+                {
+                    if (!Tree.Trees.ContainsKey(@group.Key.defName))
+                        new Tree(@group.Key);
+                }
+
+            }
+                
             // clear node availability caches
             ResearchNode.ClearCaches();
 
@@ -151,9 +167,9 @@ namespace FluffyResearchTree
             // tree view rects, have to deal with UIScale and ZoomLevel manually.
             _baseViewRect = new Rect(
                 StandardMargin                                            / Prefs.UIScale,
-                ( TopBarHeight + Constants.Margin + StandardMargin )      / Prefs.UIScale,
+                ( TopBarHeight*2 + Constants.Margin + StandardMargin )      / Prefs.UIScale,
                 ( Screen.width                    - StandardMargin * 2f ) / Prefs.UIScale,
-                ( Screen.height - MainButtonDef.ButtonHeight - StandardMargin * 2f - TopBarHeight - Constants.Margin ) /
+                ( Screen.height - MainButtonDef.ButtonHeight - StandardMargin * 2f - TopBarHeight*2 - Constants.Margin ) /
                 Prefs.UIScale );
             _baseViewRect_Inner = _baseViewRect.ContractedBy( Constants.Margin / Prefs.UIScale );
 
@@ -166,17 +182,22 @@ namespace FluffyResearchTree
 
         public override void DoWindowContents( Rect canvas )
         {
-            if ( !Tree.Initialized )
+            if ( Tree.ActiveTree == null || !Tree.ActiveTree.Initialized )
                 return;
 
 
             // top bar
-            var topRect = new Rect(
+            var tabBarRect = new Rect(
                 canvas.xMin,
                 canvas.yMin,
                 canvas.width,
-                TopBarHeight );
-
+                TopBarHeight/2 );
+            DrawTabBar(tabBarRect);
+            var topRect = new Rect(
+                canvas.xMin,
+                tabBarRect.yMax+Margin,
+                tabBarRect.width,
+                TopBarHeight);
             DrawTopBar( topRect );
 
             ApplyZoomLevel();
@@ -195,8 +216,8 @@ namespace FluffyResearchTree
                     TreeRect.height + ScaledMargin * 2f
                 )
             );
-
-            Tree.Draw( VisibleRect );
+            if(Tree.ActiveTree.Initialized)
+                Tree.ActiveTree.Draw( VisibleRect );
             Queue.DrawLabels( VisibleRect );
 
             HandleZoom();
@@ -214,6 +235,30 @@ namespace FluffyResearchTree
             // cleanup;
             GUI.color   = Color.white;
             Text.Anchor = TextAnchor.UpperLeft;
+        }
+
+        private void DrawTabBar(Rect canvas)
+        {
+            Profiler.Start("Tree.DrawTab");
+          
+
+            var pos = canvas.min;
+            for (var i = 0; i < Tree.Tabs.Count && pos.x + NodeSize.x < canvas.xMax; i++)
+            {
+                var node = Tree.Trees[Tree.Tabs[i].defName];
+                var rect = new Rect(
+                    pos.x ,
+                    pos.y ,
+                    NodeSize.x + Margin,
+                    NodeSize.y/2 + Margin
+                );
+
+                node.DrawTab(rect);
+
+                pos.x += NodeSize.x + Margin;
+            }
+
+            Profiler.End();
         }
 
         private void HandleDolly()
@@ -348,7 +393,7 @@ namespace FluffyResearchTree
                     // open float menu with search results, if any.
                     var options = new List<FloatMenuOption>();
 
-                    foreach ( var result in Tree.Nodes.OfType<ResearchNode>()
+                    foreach ( var result in Tree.ActiveTree.Nodes.OfType<ResearchNode>()
                                                 .Select( n => new {node = n, match = n.Matches( query )} )
                                                 .Where( result => result.match > 0 )
                                                 .OrderBy( result => result.match ) )

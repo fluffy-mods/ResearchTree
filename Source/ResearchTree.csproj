@@ -73,6 +73,7 @@
     <Compile Include="FloatMenu_Fixed.cs" />
     <Compile Include="Graph\DummyNode.cs" />
     <Compile Include="Graph\Edge.cs" />
+    <Compile Include="Graph\FakeResearchNode.cs" />
     <Compile Include="Graph\ResearchNode.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="MainButtonWorker_ResearchTree.cs" />

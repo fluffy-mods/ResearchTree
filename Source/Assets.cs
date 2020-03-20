@@ -8,6 +8,8 @@ using Verse;
 
 namespace FluffyResearchTree
 {
+    using System;
+    using System.Linq;
     [StaticConstructorOnStartup]
     public static class Assets
     {
@@ -30,9 +32,19 @@ namespace FluffyResearchTree
         public static Texture2D Search =
             ContentFinder<Texture2D>.Get( "Icons/magnifying-glass" );
 
+
+
         static Assets()
         {
-            var techlevels = Tree.RelevantTechLevels;
+            var techlevels = Enum.GetValues(typeof(TechLevel))
+                .Cast<TechLevel>()
+                // filter down to relevant tech levels only.
+                .Where(
+                    tl => DefDatabase<ResearchProjectDef>.AllDefsListForReading.Any(
+                        rp => rp.techLevel ==
+                              tl))
+                .ToList();
+            
             var n          = techlevels.Count;
             for ( var i = 0; i < n; i++ )
             {
