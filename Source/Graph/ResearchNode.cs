@@ -78,9 +78,6 @@ namespace FluffyResearchTree
             }
         }
 
-        public override bool Completed => Research.IsFinished;
-        public override bool Available => !Research.IsFinished && ( DebugSettings.godMode || BuildingPresent() );
-
         public override string Label => Research.LabelCap;
 
         public static bool BuildingPresent( ResearchProjectDef research )
@@ -190,7 +187,7 @@ namespace FluffyResearchTree
         {
             return TechprintAvailable( Research );
         }
-        
+
         /// <summary>
         ///     Draw the node, including interactions.
         /// </summary>
@@ -263,15 +260,14 @@ namespace FluffyResearchTree
                 // attach description and further info to a tooltip
                 TooltipHandler.TipRegion( Rect, GetResearchTooltipString, Research.GetHashCode() );
                 if ( !BuildingPresent() )
-                    TooltipHandler.TipRegion( Rect,
-                        "Fluffy.ResearchTree.MissingFacilities".Translate( string.Join( ", ",
-                            MissingFacilities().Select( td => td.LabelCap ).ToArray() ) ) );
-                }
+                    TooltipHandler.TipRegion( Rect, "Fluffy.ResearchTree.MissingFacilities".Translate(
+                                                  string.Join( ", ",
+                                                               MissingFacilities()
+                                                                  .Select( td => td.LabelCap ).ToArray() ) ) );
+
                 else if ( !TechprintAvailable() )
-                {
-                    TooltipHandler.TipRegion(Rect,
-                        "Fluffy.ResearchTree.MissingTechprints".Translate(Research.TechprintsApplied, Research.techprintCount));
-                }
+                    TooltipHandler.TipRegion( Rect, "Fluffy.ResearchTree.MissingTechprints".Translate(
+                                                  Research.TechprintsApplied, Research.techprintCount ) );
 
                 // draw unlock icons
                 if ( detailedMode )
