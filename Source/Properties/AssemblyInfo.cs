@@ -1,4 +1,7 @@
-﻿using System.Reflection;
+﻿// AssemblyInfo.cs
+// Copyright Karel Kroeze, 2020-2020
+
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 // General Information about an assembly is controlled through the following
@@ -32,4 +35,4 @@ using System.Runtime.InteropServices;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("3.0.0")]
-[assembly: AssemblyFileVersion("3.11.501")]
+[assembly: AssemblyFileVersion("3.13.503")]

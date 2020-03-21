@@ -1,7 +1,6 @@
 ﻿// Log.cs
-// Copyright Karel Kroeze, 2018-2018
+// Copyright Karel Kroeze, 2018-2020
 
-using System;
 using System.Diagnostics;
 
 namespace FluffyResearchTree
@@ -20,18 +19,19 @@ namespace FluffyResearchTree
 
         private static string Format( string msg, params object[] args )
         {
-            return "ResearchTree :: " + String.Format( msg, args );
+            return "ResearchTree :: " + string.Format( msg, args );
         }
 
-        public static void Error( string msg, bool once, params object[] args ){
+        public static void Error( string msg, bool once, params object[] args )
+        {
             var _msg = Format( msg, args );
-            if (once)
+            if ( once )
                 Verse.Log.ErrorOnce( _msg, _msg.GetHashCode() );
-            else 
+            else
                 Verse.Log.Error( _msg );
         }
 
-        [Conditional("DEBUG")]
+        [Conditional( "DEBUG" )]
         public static void Debug( string msg, params object[] args )
         {
             Verse.Log.Message( Format( msg, args ) );

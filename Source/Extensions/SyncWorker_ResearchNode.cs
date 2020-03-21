@@ -1,6 +1,6 @@
-﻿//// SyncWorker_ResearchNode.cs
-//// Copyright Karel Kroeze, 2020-2020
-//
+﻿// SyncWorker_ResearchNode.cs
+// Copyright Karel Kroeze, 2020-2020
+
 //using System.Collections.Generic;
 //using System.Linq;
 //using Multiplayer.API;
@@ -48,3 +48,4 @@
 //
 //
 //}
+
