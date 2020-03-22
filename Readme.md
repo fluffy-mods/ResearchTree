@@ -48,7 +48,8 @@ Luckily, the crossing reduction and edge length reduction steps partially achiev
  - 53N4:	Spanish translation
  - Silverside:	Fix UI scaling bug for vertical text
  - shiuanyue:	Chinese (traditional) translation
- - notfood:	
+ - notfood:	Implement techprint requirements
+ - BaalEvan:	
 
 # Think you found a bug? 
 Please read [this guide](http://steamcommunity.com/sharedfiles/filedetails/?id=725234314) before creating a bug report,

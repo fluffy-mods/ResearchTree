@@ -2,6 +2,7 @@
 // Copyright Karel Kroeze, 2018-2020
 
 using UnityEngine;
+using Verse;
 
 namespace FluffyResearchTree
 {
@@ -15,10 +16,9 @@ namespace FluffyResearchTree
         public const           float   SmallQueueLabelSize         = 20f;
         public const           float   AbsoluteMaxZoomLevel        = 3f;
         public const           float   ZoomStep                    = .05f;
-        public static readonly Vector2 IconSize                    = new Vector2( 18f, 18f );
-        public static readonly Vector2 NodeMargins                 = new Vector2( 50f, 10f );
-        public static readonly Vector2 NodeSize                    = new Vector2( 200f, 50f );
-        public static readonly float   TopBarHeight                = NodeSize.y + Margin * 2;
-        public static readonly Vector2 TechLevelLabelSize          = new Vector2( 200f, 30f );
+        public static readonly IntVec2 IconSize                    = new IntVec2( 18, 18 );
+        public static readonly IntVec2 NodeMargins                 = new IntVec2( 50, 10 );
+        public static readonly IntVec2 NodeSize                    = new IntVec2( 200, 50 );
+        public static readonly float   TopBarHeight                = NodeSize.z + Margin * 2;
     }
 }

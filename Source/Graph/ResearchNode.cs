@@ -25,18 +25,13 @@ namespace FluffyResearchTree
         public ResearchNode( ResearchProjectDef research )
         {
             Research = research;
-
-            // initialize position at vanilla y position, leave x at zero - we'll determine this ourselves
-            _pos = new Vector2( 0, research.researchViewY + 1 );
         }
 
         public List<ResearchNode> Parents
         {
             get
             {
-                var parents = InNodes.OfType<ResearchNode>();
-                parents.Concat( InNodes.OfType<DummyNode>().Select( dn => dn.Parent ) );
-                return parents.ToList();
+                return InEdges.Select( e => e.Source ).OfType<ResearchNode>().ToList();
             }
         }
 
@@ -68,15 +63,7 @@ namespace FluffyResearchTree
             }
         }
 
-        public List<ResearchNode> Children
-        {
-            get
-            {
-                var children = OutNodes.OfType<ResearchNode>();
-                children.Concat( OutNodes.OfType<DummyNode>().Select( dn => dn.Child ) );
-                return children.ToList();
-            }
-        }
+        public List<ResearchNode> Children => OutEdges.Select( e => e.Target ).OfType<ResearchNode>().ToList();
 
         public override string Label => Research.LabelCap;
 
@@ -199,8 +186,7 @@ namespace FluffyResearchTree
                 return;
             }
 
-            var detailedMode = forceDetailedMode ||
-                               MainTabWindow_ResearchTree.Instance.ZoomLevel < DetailedModeZoomLevelCutoff;
+            var detailedMode = forceDetailedMode || MainTabWindow_ResearchTree.Instance.ZoomLevel < DetailedModeZoomLevelCutoff;
             var mouseOver = Mouse.IsOver( Rect );
             if ( Event.current.type == EventType.Repaint )
             {
@@ -277,9 +263,9 @@ namespace FluffyResearchTree
                     {
                         var iconRect = new Rect(
                             IconsRect.xMax - ( i                + 1 )          * ( IconSize.x + 4f ),
-                            IconsRect.yMin + ( IconsRect.height - IconSize.y ) / 2f,
+                            IconsRect.yMin + ( IconsRect.height - IconSize.z ) / 2f,
                             IconSize.x,
-                            IconSize.y );
+                            IconSize.z );
 
                         if ( iconRect.xMin - IconSize.x < IconsRect.xMin &&
                              i             + 1          < unlocks.Count )

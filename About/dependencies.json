@@ -9,5 +9,8 @@
     ],
     "after": [
         "brrainz.harmony"
+    ],
+    "incompatible": [
+        "notfood.researchpal"
     ]
 }

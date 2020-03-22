@@ -56,7 +56,8 @@ rw-chaos:    German translation
 53N4:    Spanish translation
 Silverside:    Fix UI scaling bug for vertical text
 shiuanyue:    Chinese (traditional) translation
-notfood:    
+notfood:    Implement techprint requirements
+BaalEvan:    
 
 &lt;size=24&gt;Version&lt;/size&gt;
 This is version 3.13.503, for RimWorld 1.1.2579.
@@ -77,4 +78,7 @@ This is version 3.13.503, for RimWorld 1.1.2579.
   <loadAfter>
     <li>brrainz.harmony</li>
   </loadAfter>
+  <incompatibleWith>
+    <li>notfood.researchpal</li>
+  </incompatibleWith>
 </ModMetaData>

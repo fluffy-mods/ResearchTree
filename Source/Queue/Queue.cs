@@ -234,7 +234,7 @@ namespace FluffyResearchTree
                     pos.x      - Margin,
                     pos.y      - Margin,
                     NodeSize.x + 2 * Margin,
-                    NodeSize.y + 2 * Margin
+                    NodeSize.z + 2 * Margin
                 );
                 node.DrawAt( pos, rect, true );
                 if ( interactible && Mouse.IsOver( rect ) )

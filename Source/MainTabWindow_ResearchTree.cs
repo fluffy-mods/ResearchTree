@@ -14,8 +14,6 @@ namespace FluffyResearchTree
     {
         internal static Vector2 _scrollPosition = Vector2.zero;
 
-        private static Rect _treeRect;
-
         private Rect _baseViewRect;
         private Rect _baseViewRect_Inner;
 
@@ -85,21 +83,6 @@ namespace FluffyResearchTree
             }
         }
 
-        public Rect TreeRect
-        {
-            get
-            {
-                if ( _treeRect == default )
-                {
-                    var width  = Tree.Size.x * ( NodeSize.x + NodeMargins.x );
-                    var height = Tree.Size.z * ( NodeSize.y + NodeMargins.y );
-                    _treeRect = new Rect( 0f, 0f, width, height );
-                }
-
-                return _treeRect;
-            }
-        }
-
         public Rect VisibleRect =>
             new Rect(
                 _scrollPosition.x,
@@ -112,8 +95,8 @@ namespace FluffyResearchTree
             get
             {
                 // get the minimum zoom level at which the entire tree fits onto the screen, or a static maximum zoom level.
-                var fitZoomLevel = Mathf.Max( TreeRect.width  / _baseViewRect_Inner.width,
-                                              TreeRect.height / _baseViewRect_Inner.height );
+                var fitZoomLevel = Mathf.Max( Tree.Rect.width  / _baseViewRect_Inner.width,
+                                              Tree.Rect.height / _baseViewRect_Inner.height );
                 return Mathf.Min( fitZoomLevel, AbsoluteMaxZoomLevel );
             }
         }
@@ -185,13 +168,13 @@ namespace FluffyResearchTree
 
             // draw the actual tree
             // TODO: stop scrollbars scaling with zoom
-            _scrollPosition = GUI.BeginScrollView( ViewRect, _scrollPosition, TreeRect );
+            _scrollPosition = GUI.BeginScrollView( ViewRect, _scrollPosition, Tree.Rect );
             GUI.BeginGroup(
                 new Rect(
                     ScaledMargin,
                     ScaledMargin,
-                    TreeRect.width  + ScaledMargin * 2f,
-                    TreeRect.height + ScaledMargin * 2f
+                    Tree.Rect.width  + ScaledMargin * 2f,
+                    Tree.Rect.height + ScaledMargin * 2f
                 )
             );
 
@@ -359,14 +342,14 @@ namespace FluffyResearchTree
         {
             var position = new Vector2(
                 ( NodeSize.x + NodeMargins.x ) * ( node.X - .5f ),
-                ( NodeSize.y + NodeMargins.y ) * ( node.Y - .5f ) );
+                ( NodeSize.z + NodeMargins.z ) * ( node.Y - .5f ) );
 
             node.Highlighted = true;
 
             position -= new Vector2( UI.screenWidth, UI.screenHeight ) / 2f;
 
-            position.x      = Mathf.Clamp( position.x, 0f, TreeRect.width  - ViewRect.width );
-            position.y      = Mathf.Clamp( position.y, 0f, TreeRect.height - ViewRect.height );
+            position.x      = Mathf.Clamp( position.x, 0f, Tree.Rect.width  - ViewRect.width );
+            position.y      = Mathf.Clamp( position.y, 0f, Tree.Rect.height - ViewRect.height );
             _scrollPosition = position;
         }
     }
