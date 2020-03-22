@@ -17,11 +17,9 @@ namespace FluffyResearchTree
     {
         protected const float                  Offset   = 2f;
         protected       List<Edge<Node, Node>> _inEdges = new List<Edge<Node, Node>>();
-
-        protected bool                   _largeLabel;
-        protected List<Edge<Node, Node>> _outEdges = new List<Edge<Node, Node>>();
-
-        protected Vector2 _pos = Vector2.zero;
+        protected       bool                   _largeLabel;
+        protected       List<Edge<Node, Node>> _outEdges = new List<Edge<Node, Node>>();
+        protected       Vector2                _pos      = Vector2.zero;
 
         protected Rect
             _queueRect,
