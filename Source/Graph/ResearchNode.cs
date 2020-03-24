@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Security.Policy;
 using System.Text;
 using RimWorld;
 using UnityEngine;
@@ -31,7 +32,8 @@ namespace FluffyResearchTree
         {
             get
             {
-                return InEdges.Select( e => e.Source ).OfType<ResearchNode>().ToList();
+
+                return Research.prerequisites?.Select( r => r.ResearchNode() ).ToList() ?? new List<ResearchNode>();
             }
         }
 

@@ -14,10 +14,15 @@ using static FluffyResearchTree.Constants;
 
 namespace FluffyResearchTree
 {
-    public class Node: Microsoft.Msagl.Core.Layout.Node
+    public class Node : Microsoft.Msagl.Core.Layout.Node
     {
-        protected bool                   _largeLabel;
+        protected bool    _largeLabel;
         protected IntVec2 _pos = IntVec2.Zero;
+        protected bool    _rectsSet;
+
+        protected Vector2 _topLeft = Vector2.zero,
+                          _right   = Vector2.zero,
+                          _left    = Vector2.zero;
 
         protected Rect
             _queueRect,
@@ -28,19 +33,24 @@ namespace FluffyResearchTree
             _iconsRect,
             _lockRect;
 
-        protected bool _rectsSet;
-
-        protected Vector2 _topLeft = Vector2.zero,
-                          _right   = Vector2.zero,
-                          _left    = Vector2.zero;
-
-        public Node(): base( CurveFactory.CreateRectangle( NodeSize.z, NodeSize.x, new Point() ) ) 
+        public Node() : base( CurveFactory.CreateRectangle( NodeSize.z, NodeSize.x, new Point() ) )
         // note that nodes are sideways, we want a left -> right layering and msagl gives us a top->down layering, so we'll rotate in post
-        {}
+        {
+        }
+
+        public Node( IntVec2 size ) : base( CurveFactory.CreateRectangle( size.z, size.x, new Point() ) )
+        {
+        }
+
+        public int Layer { get; set; }
 
         public List<Node> Descendants
         {
-            get { return OutEdges.Select( e => e.Target ).OfType<ResearchNode>().SelectMany( n => n.Descendants ).ToList(); }
+            get
+            {
+                return OutEdges.Select( e => e.Target ).OfType<ResearchNode>().SelectMany( n => n.Descendants )
+                               .ToList();
+            }
         }
 
         public Rect CostIconRect
