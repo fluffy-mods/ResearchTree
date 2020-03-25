@@ -94,6 +94,7 @@ namespace FluffyResearchTree
             bool anyChange;
             var  iteration     = 1;
             var  maxIterations = 250;
+            var maxPerLayer = Screen.height / ( Constants.NodeSize.z + Constants.NodeMargins.z ) - 2;
 
             // assign horizontal positions based on tech levels and prerequisites
             do
@@ -123,15 +124,95 @@ namespace FluffyResearchTree
                 }
             } while ( anyChange && iteration++ < maxIterations );
 
-
+#if DEBUG
             for ( int l = 1; l <= Nodes.Max( n => n.Layer ); l++ )
             {
-                Log.Debug( l.ToString() );
-                foreach ( var node in Nodes.Where( n => n.Layer == l ) )
-                    Log.Debug( "\t" + node.Research.LabelCap );
+                var layer = Nodes.Where( n => n.Layer == l );
+                Log.Debug( $"{l} ({layer.Count()})" );
+                foreach ( var node in layer )
+                    Log.Debug( $"\t{node.Research.techLevel} :: {node.Research.LabelCap}" );
             }
+#endif
 
-            // TODO: flatten layers, max N nodes per layer (because MSAGL is inflexible).
+            // move nodes / create new layers where possible.
+            iteration = 1;
+            List<ResearchNode> prevNodes = null;
+            List<ResearchNode> nextNodes = null;
+            do
+            {
+                anyChange = false;
+                for ( int l = 1; l <= Nodes.Max( n => n.Layer ); l++ )
+                {
+                    var nodes = Nodes.Where( n => n.Layer == l ).ToList();
+
+                    // collapse layer if empty, and break from this iteration
+                    if ( !nodes.Any() )
+                    {
+                        foreach ( var node in Nodes.Where( n => n.Layer > l ))
+                            node.Layer -= 1;
+                        anyChange = true;
+                        break;
+                    }
+
+                    // move nodes up/down the ladder, if necessary
+                    nextNodes = Nodes.Where( n => n.Layer == l + 1 ).ToList();
+                    var subIters = 1;
+                    while ( nodes.Count > maxPerLayer && subIters++ < maxIterations )
+                    {
+                        if ( prevNodes?.Count < maxPerLayer )
+                        {
+                            foreach ( var node in nodes )
+                            {
+                                if ( !prevNodes.Any( n => n.Research.techLevel != node.Research.techLevel ) &&
+                                     node.Parents.All( n => n.Layer < l - 1 ) )
+                                {
+                                    node.Layer--;
+                                    prevNodes.Add( node );
+                                    nodes.Remove( node );
+                                    anyChange = true;
+                                    goto next;
+                                }
+                            }
+                        }
+
+                        if ( nextNodes?.Count < maxPerLayer )
+                        {
+                            foreach ( var node in nodes )
+                            {
+                                if ( !nextNodes.Any( n => n.Research.techLevel != node.Research.techLevel ) &&
+                                     node.Children.All( n => n.Layer > l + 1 ) )
+                                {
+                                    node.Layer++;
+                                    nextNodes.Add( node );
+                                    nodes.Remove( node );
+                                    anyChange = true;
+                                    goto next;
+                                }
+                            }
+                        }
+
+                        // insert layer here.
+                        foreach ( var node in Nodes.Where( n => n.Layer > l ) )
+                            node.Layer += 1;
+                        nextNodes = new List<ResearchNode>();
+                        anyChange = true;
+
+                        next: ;
+                    }
+
+                    prevNodes = nodes;
+                }
+            } while ( anyChange && iteration++ < maxIterations );
+
+#if DEBUG
+            for ( int l = 1; l <= Nodes.Max( n => n.Layer ); l++ )
+            {
+                var layer = Nodes.Where( n => n.Layer == l );
+                Log.Debug( $"{l} ({layer.Count()})" );
+                foreach ( var node in layer )
+                    Log.Debug( $"\t{node.Research.techLevel} :: {node.Research.LabelCap}" );
+            }
+#endif
         }
 
         public static void CreateGraph()
@@ -162,16 +243,16 @@ namespace FluffyResearchTree
             }
 
 
-//            // add dummy nodes for each techlevel in an attempt to at least roughly cluster tech levels together
-//            var dummies = new List<Node>();
-//            foreach ( var level in RelevantTechLevels )
-//            {
-//                var dummy = new Node( new IntVec2( 10, 10 ) );
-//                graph.Nodes.Add( dummy );
-//                dummies.Add( dummy );
-//                foreach ( var node in Nodes.Where( n => n.Research.techLevel == level  ) )
-//                    graph.Edges.Add( new Edge( dummy, node ) );
-//            }
+            // add dummy nodes for each techlevel in an attempt to at least roughly cluster tech levels together
+            var dummies = new List<Node>();
+            foreach ( var level in RelevantTechLevels )
+            {
+                var dummy = new Node( new IntVec2( 10, 10 ) );
+                graph.Nodes.Add( dummy );
+                dummies.Add( dummy );
+                foreach ( var node in Nodes.Where( n => n.Research.techLevel == level  ) )
+                    graph.Edges.Add( new Edge( dummy, node ) );
+            }
 
             var edgeSettings = new EdgeRoutingSettings();
             edgeSettings.EdgeRoutingMode = EdgeRoutingMode.SugiyamaSplines;
@@ -181,18 +262,28 @@ namespace FluffyResearchTree
             {
                 NodeSeparation  = Constants.NodeMargins.z,
                 LayerSeparation = Constants.NodeMargins.x,
-                GridSizeByX = Constants.NodeMargins.z,
+                GridSizeByX = Constants.NodeMargins.z / 2f,
                 GridSizeByY = Constants.NodeMargins.x,
-//                PackingMethod = PackingMethod.Columns,
-                EdgeRoutingSettings = edgeSettings
+                EdgeRoutingSettings = edgeSettings,
             };
             
-            // enforce layers
+            // enforce layers - but not really
+            ResearchNode[] prevLayer = null;
+            ResearchNode[] layer = null;
             for ( int l = 1; l <= Nodes.Max( n => n.Layer ); l++ )
-                sugiyamaSettings.PinNodesToSameLayer( Nodes.Where( n => n.Layer == l ).ToArray() );
+            {
+                layer = Nodes.Where( n => n.Layer == l ).ToArray();
+                sugiyamaSettings.PinNodesToSameLayer(  );
+                if ( !prevLayer.NullOrEmpty() )
+                    foreach( var prev in prevLayer )
+                        foreach ( var node in layer )
+                            sugiyamaSettings.AddUpDownConstraint( prev, node );
 
-            // line up era dummies
-//            sugiyamaSettings.AddUpDownVerticalConstraints( dummies.ToArray() );
+                prevLayer = layer;
+            }
+
+            for ( int i = 1; i < dummies.Count; i++ )
+                sugiyamaSettings.AddUpDownConstraint( dummies[i - 1], dummies[i] );
 
             LayoutHelpers.CalculateLayout( graph, sugiyamaSettings, null );
 
