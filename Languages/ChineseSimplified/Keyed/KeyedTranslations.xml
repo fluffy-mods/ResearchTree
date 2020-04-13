@@ -8,7 +8,7 @@
 
   <Fluffy.ResearchTree.LClickReplaceQueue>左键：替换队列</Fluffy.ResearchTree.LClickReplaceQueue>
   <Fluffy.ResearchTree.LClickRemoveFromQueue>左键：从队列中移除</Fluffy.ResearchTree.LClickRemoveFromQueue>
-  <Fluffy.ResearchTree.SLClickAddToQueue> Shift+左键：添加到队列</Fluffy.ResearchTree.SLClickAddToQueue>
+  <Fluffy.ResearchTree.SLClickAddToQueue>Shift+左键：添加到队列</Fluffy.ResearchTree.SLClickAddToQueue>
   <!-- <Fluffy.ResearchTree.RClickForDetails>右键：详细信息</Fluffy.ResearchTree.RClickForDetails> -->
   <Fluffy.ResearchTree.RClickInstaFinish>(DEBUG) 右键：立即完成</Fluffy.ResearchTree.RClickInstaFinish>
 
