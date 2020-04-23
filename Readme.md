@@ -42,14 +42,13 @@ Luckily, the crossing reduction and edge length reduction steps partially achiev
 
 # Contributors
  - Templarr:	Russian translation
- - Temp:	
  - Suh. Junmin:	Korean translation
  - rw-chaos:	German translation
  - 53N4:	Spanish translation
  - Silverside:	Fix UI scaling bug for vertical text
  - shiuanyue:	Chinese (traditional) translation
  - notfood:	Implement techprint requirements
- - BaalEvan:	
+ - HanYaodong:	Add simplified Chinese translation
 
 # Think you found a bug? 
 Please read [this guide](http://steamcommunity.com/sharedfiles/filedetails/?id=725234314) before creating a bug report,
@@ -72,4 +71,4 @@ Show your appreciation by buying me a coffee (or contribute towards a nice singl
 [![I Have a Black Dog](https://i.ibb.co/ss59Rwy/New-Project-2.png)](https://www.youtube.com/watch?v=XiCrniLQGYc)
 
 # Version
-This is version 3.13.503, for RimWorld 1.1.2579.
+This is version 3.17.533, for RimWorld 1.1.2610.
