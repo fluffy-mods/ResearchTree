@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+
+  <Fluffy.ResearchTree.AllowsBuildingX>解锁建筑：{0}</Fluffy.ResearchTree.AllowsBuildingX>
+  <Fluffy.ResearchTree.AllowsCraftingX>解锁配方：{0}</Fluffy.ResearchTree.AllowsCraftingX>
+  <Fluffy.ResearchTree.AllowsSowingXinY>{1} 中可种植作物：{0}</Fluffy.ResearchTree.AllowsSowingXinY>
+  <Fluffy.ResearchTree.AllowsPlantingX>解锁作物：{0}</Fluffy.ResearchTree.AllowsPlantingX>
+
+  <Fluffy.ResearchTree.LClickReplaceQueue>左键：替换队列</Fluffy.ResearchTree.LClickReplaceQueue>
+  <Fluffy.ResearchTree.LClickRemoveFromQueue>左键：从队列中移除</Fluffy.ResearchTree.LClickRemoveFromQueue>
+  <Fluffy.ResearchTree.SLClickAddToQueue>Shift+左键：添加到队列</Fluffy.ResearchTree.SLClickAddToQueue>
+  <!-- <Fluffy.ResearchTree.RClickForDetails>右键：详细信息</Fluffy.ResearchTree.RClickForDetails> -->
+  <Fluffy.ResearchTree.RClickInstaFinish>(DEBUG) 右键：立即完成</Fluffy.ResearchTree.RClickInstaFinish>
+
+  <Fluffy.ResearchTree.Requires>需要</Fluffy.ResearchTree.Requires>
+  <Fluffy.ResearchTree.LeadsTo>导向</Fluffy.ResearchTree.LeadsTo>
+
+  <Fluffy.ResearchTree.QueuedNode>已在队列内的研究节点</Fluffy.ResearchTree.QueuedNode>
+  <Fluffy.ResearchTree.MissingFacilities>缺少 {0}</Fluffy.ResearchTree.MissingFacilities>
+  <Fluffy.ResearchTree.MissingTechprints>科研蓝图不足 {0}/{1}</Fluffy.ResearchTree.MissingTechprints>
+
+  <Fluffy.ResearchTree.NoResearchFound>找不到研究项目</Fluffy.ResearchTree.NoResearchFound>
+  <Fluffy.ResearchTree.NothingQueued>研究队列为空</Fluffy.ResearchTree.NothingQueued>
+  <Fluffy.ResearchTree.NextInQueue>下个项目: {0}</Fluffy.ResearchTree.NextInQueue>
+
+  <Fluffy.ResearchTree.PreparingTree.Setup>研究节点准备中</Fluffy.ResearchTree.PreparingTree.Setup>
+  <Fluffy.ResearchTree.PreparingTree.CrossingReduction>减少交叉</Fluffy.ResearchTree.PreparingTree.CrossingReduction>
+  <Fluffy.ResearchTree.PreparingTree.Layout>完成布局</Fluffy.ResearchTree.PreparingTree.Layout>
+  <Fluffy.ResearchTree.RestoreQueue>恢复队列</Fluffy.ResearchTree.RestoreQueue>
+
+</LanguageData>
