@@ -2,13 +2,19 @@
 
 A better research tree.
 
-# Features
+
+  
+  
+![Features](https://banners.karel-kroeze.nl/title/Features.png)
  - automatically generated to maximize readability*. 
  - shows research projects, buildings, plants and recipes unlocked by each research project.
  - projects can be queued, and colonists will automatically start the next project when the current research project completes.
  - search functionality to quickly find research projects.
 
-# FAQ
+
+  
+  
+![FAQ](https://banners.karel-kroeze.nl/title/FAQ.png)
 *Can I add/remove this from an existing save?*
 You can add it to existing saves without problems. Removing this mod will lead to some errors when loading, but these should not affect gameplay - and will go away after saving.
 
@@ -21,10 +27,19 @@ Most likely, yes. Added researches and their requirements are automatically pars
 *This looks very similar to ResearchPal*
 Yep. ResearchPal is based on a legacy version of this mod that was kept up-to-date by SkyArkAngel in the HCSK modpack. I haven't worked on this mod in a long time, but I recently had some spare time and decided to give it another go. Feel free to use whichever you like better (ResearchPal has an entirely different layout algorithm). You can run both mods side by side to check out the different tree layouts, but be aware that the research queue will not work correctly if both mods are loaded.
 
-# Known Issues
- - Layouts are not perfect, if you have experience with graph layouts - please do feel free to look at the source code, and/or implement a Sugiyama layout algorithm for me that runs in C# .NET 3.5 (Mono 2.0).
 
-# Technical
+  
+  
+![Known Issues](https://banners.karel-kroeze.nl/title/Known%20Issues.png)
+ - Layouts are not perfect, if you have experience with graph layouts - please do feel free to look at the source code, and/or implement a Sugiyama layout algorithm for me that runs in C
+  
+  
+![.NET 3.5 (Mono 2.0).](https://banners.karel-kroeze.nl/title/.NET%203.5%20(Mono%202.0)..png)
+
+
+  
+  
+![Technical](https://banners.karel-kroeze.nl/title/Technical.png)
 So how does this all work?
 
 Creating an optimal layout is a known problem in the area of *Graph Theory*. There's serious mathematicians who've spent years of their live trying to figure out this problem, and numerous solutions exist. The group of solutions most relevant to our research tree (a *directed acyclic graph*, or *DAG*) is that derived from Sugiyama's work. Generally speaking, these algorithms have four steps;
@@ -40,36 +55,53 @@ Luckily, the crossing reduction and edge length reduction steps partially achiev
 
 
 
-# Contributors
+
+  
+  
+![Contributors](https://banners.karel-kroeze.nl/title/Contributors.png)
  - Templarr:	Russian translation
- - Temp:	
  - Suh. Junmin:	Korean translation
  - rw-chaos:	German translation
  - 53N4:	Spanish translation
  - Silverside:	Fix UI scaling bug for vertical text
  - shiuanyue:	Chinese (traditional) translation
  - notfood:	Implement techprint requirements
- - BaalEvan:	
+ - HanYaodong:	Add simplified Chinese translation
 
-# Think you found a bug? 
+
+  
+  
+![Think you found a bug?](https://banners.karel-kroeze.nl/title/Think%20you%20found%20a%20bug%3F.png)
 Please read [this guide](http://steamcommunity.com/sharedfiles/filedetails/?id=725234314) before creating a bug report,
  and then create a bug report [here](https://github.com/fluffy-mods/ResearchTree/issues)
 
-# Older versions
+
+  
+  
+![Older versions](https://banners.karel-kroeze.nl/title/Older%20versions.png)
 All current and past versions of this mod can be downloaded from [GitHub](https://github.com/fluffy-mods/ResearchTree/releases).
 
-# License
+
+  
+  
+![License](https://banners.karel-kroeze.nl/title/License.png)
 All original code in this mod is licensed under the [MIT license](https://opensource.org/licenses/MIT). Do what you want, but give me credit. 
 All original content (e.g. text, imagery, sounds) in this mod is licensed under the [CC-BY-SA 4.0 license](http://creativecommons.org/licenses/by-sa/4.0/).
 
 Parts of the code in this mod, and some content may be licensed by their original authors. If this is the case, the original author & license will either be given in the source code, or be in a LICENSE file next to the content. Please do not decompile my mods, but use the original source code available on [GitHub](https://github.com/fluffy-mods/ResearchTree/), so license information in the source code is preserved.
 
-# Are you enjoying my mods?
+
+  
+  
+![Are you enjoying my mods?](https://banners.karel-kroeze.nl/title/Are%20you%20enjoying%20my%20mods%3F.png)
 Show your appreciation by buying me a coffee (or contribute towards a nice single malt).
 
 [![Buy Me a Coffee](http://i.imgur.com/EjWiUwx.gif)](https://ko-fi.com/fluffymods)
 
 [![I Have a Black Dog](https://i.ibb.co/ss59Rwy/New-Project-2.png)](https://www.youtube.com/watch?v=XiCrniLQGYc)
 
-# Version
-This is version 3.15.505, for RimWorld 1.1.2579.
+
+  
+  
+![Version](https://banners.karel-kroeze.nl/title/Version.png)
+This is version 3.17.534, for RimWorld 1.1.2652.
