@@ -150,11 +150,10 @@ namespace FluffyResearchTree
         {
             // tree view rects, have to deal with UIScale and ZoomLevel manually.
             _baseViewRect = new Rect(
-                StandardMargin                                            / Prefs.UIScale,
-                ( TopBarHeight + Constants.Margin + StandardMargin )      / Prefs.UIScale,
-                ( Screen.width                    - StandardMargin * 2f ) / Prefs.UIScale,
-                ( Screen.height - MainButtonDef.ButtonHeight - StandardMargin * 2f - TopBarHeight - Constants.Margin ) /
-                Prefs.UIScale );
+                StandardMargin / Prefs.UIScale,
+                (TopBarHeight + Constants.Margin + StandardMargin),
+                (Screen.width - StandardMargin * 2f) / Prefs.UIScale,
+                ((Screen.height - MainButtonDef.ButtonHeight - StandardMargin * 2) / Prefs.UIScale) - TopBarHeight - Constants.Margin);
             _baseViewRect_Inner = _baseViewRect.ContractedBy( Constants.Margin / Prefs.UIScale );
 
             // windowrect, set to topleft (for some reason vanilla alignment overlaps bottom buttons).
