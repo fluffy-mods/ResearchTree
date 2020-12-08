@@ -59,11 +59,11 @@ notfood:    Implement techprint requirements
 HanYaodong:    Add simplified Chinese translation
 
 &lt;size=24&gt;Version&lt;/size&gt;
-This is version 3.17.534, for RimWorld 1.1.2654.
+This is version 3.17.536, for RimWorld 1.2.2753.
 
 </description>
   <supportedVersions>
-    <li>1.1</li>
+    <li>1.2</li>
   </supportedVersions>
   <packageId>fluffy.researchtree</packageId>
   <modDependencies>
