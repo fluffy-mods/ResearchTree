@@ -150,12 +150,10 @@ namespace FluffyResearchTree
         {
             // tree view rects, have to deal with UIScale and ZoomLevel manually.
             _baseViewRect = new Rect(
-                StandardMargin                                            / Prefs.UIScale,
-                ( TopBarHeight + Constants.Margin + StandardMargin )      / Prefs.UIScale,
-                ( Screen.width                    - StandardMargin * 2f ) / Prefs.UIScale,
-                ( Screen.height - MainButtonDef.ButtonHeight - StandardMargin * 2f - TopBarHeight - Constants.Margin ) /
-                Prefs.UIScale );
-            _baseViewRect_Inner = _baseViewRect.ContractedBy( Constants.Margin / Prefs.UIScale );
+                StandardMargin / Prefs.UIScale,
+                (TopBarHeight + Constants.Margin + StandardMargin),
+                (Screen.width - StandardMargin * 2f) / Prefs.UIScale,
+                ((Screen.height - MainButtonDef.ButtonHeight - StandardMargin * 2) / Prefs.UIScale) - TopBarHeight - Constants.Margin);
 
             // windowrect, set to topleft (for some reason vanilla alignment overlaps bottom buttons).
             windowRect.x      = 0f;
@@ -338,12 +336,11 @@ namespace FluffyResearchTree
                     foreach ( var result in Tree.Nodes.OfType<ResearchNode>()
                                                 .Select( n => new {node = n, match = n.Matches( query )} )
                                                 .Where( result => result.match > 0 )
-                                                .OrderBy( result => result.match ) )
-                        options.Add( new FloatMenuOption( result.node.Label, () => CenterOn( result.node ),
-                                                          MenuOptionPriority.Default, () => CenterOn( result.node ) ) );
+												.OrderBy(result => result.match))
+						options.Add(new FloatMenuOption(result.node.Label, () => CenterOn(result.node), MenuOptionPriority.Default));
 
-                    if ( !options.Any() )
-                        options.Add( new FloatMenuOption( "Fluffy.ResearchTree.NoResearchFound".Translate(), null ) );
+					if (!options.Any())
+						options.Add(new FloatMenuOption("Fluffy.ResearchTree.NoResearchFound".Translate(), null));
 
                     Find.WindowStack.Add( new FloatMenu_Fixed( options,
                                                                UI.GUIToScreenPoint(
