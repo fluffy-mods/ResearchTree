@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -230,6 +231,7 @@ namespace FluffyResearchTree
                 return;
 
             var layer = Layer( l, true );
+            //Couldn't parallelize
             foreach ( var node in layer )
             {
                 // we only need to loop over positions that might be better for this node.
@@ -699,18 +701,23 @@ namespace FluffyResearchTree
             return Nodes.FirstOrDefault( n => n.X == X && n.Y == Y );
         }
 
-        public static void MinimizeCrossings()
-        {
+		public static void MinimizeCrossings()
+		{
             // initialize each layer by putting nodes with the most (recursive!) children on bottom
+            //shown in-game as "reducing crossings"
             Log.Debug( "Minimize crossings." );
             Profiler.Start();
 
-            for ( var X = 1; X <= Size.x; X++ )
+            int X = Size.x;
+            var options = new ParallelOptions() { MaxDegreeOfParallelism = Convert.ToInt32(Math.Ceiling((Environment.ProcessorCount * 0.75) * 2.0)) };
+            Parallel.For (1, X, options, i => 
             {
                 var nodes = Layer( X ).OrderBy( n => n.Descendants.Count ).ToList();
-                for ( var i = 0; i < nodes.Count; i++ )
-                    nodes[i].Y = i + 1;
-            }
+                for( var z = 0; z < nodes.Count; z++)
+                {
+                   nodes[i].Y = i + 1;
+                }
+            });
 
             // up-down sweeps of mean reordering
             var progress  = false;
@@ -915,12 +922,14 @@ namespace FluffyResearchTree
 
             // count number of inversions
             var inversions = 0;
-            for ( var i = 0; i < edges.Count - 1; i++ )
+            int X = edges.Count;
+            var options = new ParallelOptions() { MaxDegreeOfParallelism = Convert.ToInt32(Math.Ceiling((Environment.ProcessorCount * 0.75) * 2.0)) };
+            Parallel.For(0, X - 1, options, i =>
             {
-                for ( var j = i + 1; j < edges.Count; j++ )
-                    if ( edges[j].Out.Y < edges[i].Out.Y )
-                        inversions++;
-            }
+               for (var j = i + 1; j < edges.Count; j++)
+                   if (edges[j].Out.Y < edges[i].Out.Y)
+                       inversions++;
+            });
 
             return inversions;
         }
@@ -956,6 +965,7 @@ namespace FluffyResearchTree
             return Nodes.Where( n => n.Y == Y ).ToList();
         }
 
+        //This one is probably unsafe to execute in parallel
         public new static string ToString()
         {
             var text = new StringBuilder();
