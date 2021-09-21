@@ -190,7 +190,11 @@ namespace FluffyResearchTree
             var after = EdgeLength();
 
             // return progress
+            /*
             Log.Debug( $"EdgeLengthSweep_Global, iteration {iteration}: {before} -> {after}" );
+            Profiler.End();
+            return after < before;
+            */
             Profiler.End();
             return after < before;
         }
@@ -214,7 +218,11 @@ namespace FluffyResearchTree
             var after = EdgeLength();
 
             // return progress
-            Log.Debug( $"EdgeLengthSweep_Local, iteration {iteration}: {before} -> {after}" );
+            /*
+            Log.Debug( $"EdgeLengthSweep_Global, iteration {iteration}: {before} -> {after}" );
+            Profiler.End();
+            return after < before;
+            */
             Profiler.End();
             return after < before;
         }
@@ -471,19 +479,20 @@ namespace FluffyResearchTree
                 var yOffset = ( edge.Out.Yf - edge.In.Yf ) / edge.Span;
 
                 // create and hook up dummy chain
-                for ( var x = edge.In.X + 1; x < edge.Out.X; x++ )
+                var x = edge.In.X;
+                Parallel.For(x + 1, Convert.ToInt32(x < edge.Out.X), i =>
                 {
-                    var dummy = new DummyNode();
-                    dummy.X  = x;
-                    dummy.Yf = edge.In.Yf + yOffset * ( x - edge.In.X );
-                    var dummyEdge = new Edge<Node, Node>( cur, dummy );
-                    cur.OutEdges.Add( dummyEdge );
-                    dummy.InEdges.Add( dummyEdge );
-                    _nodes.Add( dummy );
-                    Edges.Add( dummyEdge );
-                    cur = dummy;
-                    Log.Trace( "\t\tCreated dummy {0}", dummy );
-                }
+                  var dummy = new DummyNode();
+                  dummy.X = x;
+                  dummy.Yf = edge.In.Yf + yOffset * (x - edge.In.X);
+                  var dummyEdge = new Edge<Node, Node>(cur, dummy);
+                  cur.OutEdges.Add(dummyEdge);
+                  dummy.InEdges.Add(dummyEdge);
+                  _nodes.Add(dummy);
+                  Edges.Add(dummyEdge);
+                  cur = dummy;
+                  Log.Trace("\t\tCreated dummy {0}", dummy);
+				});
 
                 // hook up final dummy to out node
                 var finalEdge = new Edge<Node, Node>( cur, edge.Out );
