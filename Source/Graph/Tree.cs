@@ -1,7 +1,7 @@
 // Tree.cs
 // Copyright Karel Kroeze, 2020-2020
 
-//using Multiplayer.API;
+using Multiplayer.API;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -190,11 +190,7 @@ namespace FluffyResearchTree
             var after = EdgeLength();
 
             // return progress
-            /*
             Log.Debug( $"EdgeLengthSweep_Global, iteration {iteration}: {before} -> {after}" );
-            Profiler.End();
-            return after < before;
-            */
             Profiler.End();
             return after < before;
         }
@@ -218,11 +214,7 @@ namespace FluffyResearchTree
             var after = EdgeLength();
 
             // return progress
-            /*
-            Log.Debug( $"EdgeLengthSweep_Global, iteration {iteration}: {before} -> {after}" );
-            Profiler.End();
-            return after < before;
-            */
+            Log.Debug( $"EdgeLengthSweep_Local, iteration {iteration}: {before} -> {after}" );
             Profiler.End();
             return after < before;
         }
@@ -479,20 +471,22 @@ namespace FluffyResearchTree
                 var yOffset = ( edge.Out.Yf - edge.In.Yf ) / edge.Span;
 
                 // create and hook up dummy chain
-                var x = edge.In.X;
+                int x = edge.In.X;
                 Parallel.For(x + 1, Convert.ToInt32(x < edge.Out.X), i =>
                 {
-                  var dummy = new DummyNode();
-                  dummy.X = x;
-                  dummy.Yf = edge.In.Yf + yOffset * (x - edge.In.X);
-                  var dummyEdge = new Edge<Node, Node>(cur, dummy);
+					var dummy = new DummyNode
+					{
+						X = x,
+						Yf = edge.In.Yf + yOffset * (x - edge.In.X)
+					};
+					var dummyEdge = new Edge<Node, Node>(cur, dummy);
                   cur.OutEdges.Add(dummyEdge);
                   dummy.InEdges.Add(dummyEdge);
                   _nodes.Add(dummy);
                   Edges.Add(dummyEdge);
                   cur = dummy;
                   Log.Trace("\t\tCreated dummy {0}", dummy);
-				});
+                });
 
                 // hook up final dummy to out node
                 var finalEdge = new Edge<Node, Node>( cur, edge.Out );
@@ -907,17 +901,7 @@ namespace FluffyResearchTree
             return Crossings( layer, true ) + Crossings( layer, false );
         }
 
-        private static float EdgeLength( int layer )
-        {
-            if ( layer == 0 )
-                return EdgeLength( layer, false );
-            if ( layer == Size.x )
-                return EdgeLength( layer, true );
-            return EdgeLength( layer, true ) *
-                   EdgeLength( layer, false ); // multply to favor moving nodes closer to one endpoint
-        }
-
-        private static int Crossings( int layer, bool @in )
+		private static int Crossings( int layer, bool @in )
         {
             // get in/out edges for layer
             var edges = Layer( layer )
