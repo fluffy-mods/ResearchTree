@@ -713,12 +713,16 @@ namespace FluffyResearchTree
 
             int X = Size.x;
             var options = new ParallelOptions() { MaxDegreeOfParallelism = Convert.ToInt32(Math.Ceiling((Environment.ProcessorCount * 0.75) * 2.0)) };
+            object exceptionRemover = new object(); //prevent the "Index was out of range. Must be non-negative and less than the size of the collection." error
             Parallel.For (1, X, options, i => 
             {
                 var nodes = Layer( X ).OrderBy( n => n.Descendants.Count ).ToList();
-                for( var z = 0; z < nodes.Count; z++)
+                lock(exceptionRemover)
                 {
-                   nodes[i].Y = i + 1;
+                    for (var z = 0; z < nodes.Count; z++)
+                    {
+                        nodes[i].Y = i + 1;
+                    }
                 }
             });
 
@@ -803,9 +807,13 @@ namespace FluffyResearchTree
 
         private static void Swap( Node A, Node B )
         {
-            if ( A.X != B.X )
-                throw new Exception( "Can't swap nodes on different layers" );
-
+            //checks if the adjacent nodes have the same X cords, throws exception if no. Not sure if needed.
+            /*
+            if ( A.X != B.X) 
+            {
+                throw new Exception("Can't swap nodes on different layers");
+            }
+            */
             // swap Y positions of adjacent nodes
             var tmp = A.Y;
             A.Y = B.Y;
@@ -942,6 +950,7 @@ namespace FluffyResearchTree
             return edges.Sum( e => e.Length ) * ( @in ? 2 : 1 );
         }
 
+        
         public static List<Node> Layer( int depth, bool ordered = false )
         {
             if ( ordered && OrderDirty )
