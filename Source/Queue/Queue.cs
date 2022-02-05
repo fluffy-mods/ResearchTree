@@ -1,7 +1,7 @@
 ﻿// Queue.cs
 // Copyright Karel Kroeze, 2020-2020
 
-//using Multiplayer.API;
+using Multiplayer.API;
 using System.Collections.Generic;
 using System.Linq;
 using RimWorld;
@@ -28,20 +28,7 @@ namespace FluffyResearchTree
         ///     Removes and returns the first node in the queue.
         /// </summary>
         /// <returns></returns>
-        public static ResearchNode Pop
-        {
-            get
-            {
-                if ( _instance._queue != null && _instance._queue.Count > 0 )
-                {
-                    var node = _instance._queue[0];
-                    _instance._queue.RemoveAt( 0 );
-                    return node;
-                }
-
-                return null;
-            }
-        }
+		/// 
 
         public static int NumQueued => _instance._queue.Count - 1;
 
@@ -66,7 +53,7 @@ namespace FluffyResearchTree
             if ( Find.ResearchManager.currentProj == node.Research )
                 Find.ResearchManager.currentProj = null;
         }
-
+        
         public static void DrawLabels( Rect visibleRect )
         {
             Profiler.Start( "Queue.DrawLabels" );
