@@ -10,7 +10,7 @@ namespace FluffyResearchTree
     {
         #region Overrides of Node
 
-        public override string Label => "DUMMY: " + ( Parent?.Label ?? "??" ) + " -> " + ( Child?.Label ?? "??" );
+        public override string Label => "DUMMY: " + (Parent?.Label ?? "??") + " -> " + (Child?.Label ?? "??");
 
         #endregion
 
@@ -41,8 +41,7 @@ namespace FluffyResearchTree
         {
             get
             {
-                var parent = InNodes.FirstOrDefault() as ResearchNode;
-                if ( parent != null )
+                if (InNodes.FirstOrDefault() is ResearchNode parent)
                     return parent;
 
                 var dummyParent = InNodes.FirstOrDefault() as DummyNode;
@@ -55,8 +54,7 @@ namespace FluffyResearchTree
         {
             get
             {
-                var child = OutNodes.FirstOrDefault() as ResearchNode;
-                if ( child != null )
+                if (OutNodes.FirstOrDefault() is ResearchNode child)
                     return child;
 
                 var dummyChild = OutNodes.FirstOrDefault() as DummyNode;
@@ -65,10 +63,10 @@ namespace FluffyResearchTree
             }
         }
 
-        public override bool  Completed   => OutNodes.FirstOrDefault()?.Completed   ?? false;
-        public override bool  Available   => OutNodes.FirstOrDefault()?.Available   ?? false;
-        public override bool  Highlighted => OutNodes.FirstOrDefault()?.Highlighted ?? false;
-        public override Color Color       => OutNodes.FirstOrDefault()?.Color       ?? Color.white;
-        public override Color EdgeColor   => OutNodes.FirstOrDefault()?.EdgeColor   ?? Color.white;
+        public override bool Completed => OutNodes.FirstOrDefault()?.Completed ?? false;
+        public override bool Available => OutNodes.FirstOrDefault()?.Available ?? false;
+        public override bool Highlighted => OutNodes.FirstOrDefault()?.Highlighted ?? false;
+        public override Color Color => OutNodes.FirstOrDefault()?.Color ?? Color.white;
+        public override Color EdgeColor => OutNodes.FirstOrDefault()?.EdgeColor ?? Color.white;
     }
 }

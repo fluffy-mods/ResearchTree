@@ -12,7 +12,7 @@ namespace FluffyResearchTree
         [HarmonyPatch(typeof(ResearchManager), "FinishProject")]
         public class DoCompletionDialog
         {
-            //If Semi Random Research mod is loaded, suppress vanilla completion dialog.
+            //If Semi Random Research mod is not loaded, suppress vanilla completion dialog.
             [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "It is used, ignore compiler messages")]
             private static void Prefix(ref bool doCompletionDialog)
             {

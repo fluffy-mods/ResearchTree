@@ -1,13 +1,13 @@
 // Tree.cs
 // Copyright Karel Kroeze, 2020-2020
 
+using RimWorld;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using RimWorld;
 using UnityEngine;
 using Verse;
 using static FluffyResearchTree.Constants;
@@ -808,9 +808,7 @@ namespace FluffyResearchTree
                 throw new Exception("Can't swap nodes on different layers");
 
             // swap Y positions of adjacent nodes
-            var tmp = A.Y;
-            A.Y = B.Y;
-            B.Y = tmp;
+            (B.Y, A.Y) = (A.Y, B.Y);
         }
 
         private static bool BarymetricSweep(int iteration)

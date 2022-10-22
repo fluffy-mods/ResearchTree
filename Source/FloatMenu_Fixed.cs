@@ -11,19 +11,19 @@ namespace FluffyResearchTree
     {
         private readonly Vector2 _position;
 
-        public FloatMenu_Fixed( List<FloatMenuOption> options, Vector2 position, bool focus = false ) : base( options )
+        public FloatMenu_Fixed(List<FloatMenuOption> options, Vector2 position, bool focus = false) : base(options)
         {
-            _position            = position;
+            _position = position;
             vanishIfMouseDistant = false;
-            focusWhenOpened      = focus;
+            focusWhenOpened = focus;
         }
 
         protected override void SetInitialSizeAndPosition()
         {
-            var position                                                   = _position;
-            if ( position.x + InitialSize.x > UI.screenWidth ) position.x  = UI.screenWidth  - InitialSize.x;
-            if ( position.y + InitialSize.y > UI.screenHeight ) position.y = UI.screenHeight - InitialSize.y;
-            windowRect = new Rect( position.x, position.y, InitialSize.x, InitialSize.y );
+            var position = _position;
+            if (position.x + InitialSize.x > UI.screenWidth) position.x = UI.screenWidth - InitialSize.x;
+            if (position.y + InitialSize.y > UI.screenHeight) position.y = UI.screenHeight - InitialSize.y;
+            windowRect = new Rect(position.x, position.y, InitialSize.x, InitialSize.y);
         }
     }
 }
