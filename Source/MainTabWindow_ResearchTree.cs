@@ -2,11 +2,13 @@
 // Copyright Karel Kroeze, 2020-2020
 
 using RimWorld;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Verse;
 using static FluffyResearchTree.Constants;
+using static RimWorld.MainTabWindow_Research;
 
 namespace FluffyResearchTree
 {
@@ -118,6 +120,31 @@ namespace FluffyResearchTree
             }
         }
 
+        public void ShowDebugButton()
+        {
+            Rect rect = new Rect(0f, 0f, 140f, 0f);
+            float leftStartAreaHeight = 68f;
+            float leftViewDebugHeight = 0f;
+            float num = 0f;
+            float num2 = 0f;
+            var selectedProject = Find.ResearchManager.currentProj;
+            Rect outRect = new Rect(0f, 0f, rect.width, num);
+            Rect viewRect = new Rect(0f, 0f, outRect.width - 16f, leftViewDebugHeight);
+            Rect rect11 = new Rect(0f, outRect.yMax + 10f , rect.width, leftStartAreaHeight);
+            if (Prefs.DevMode && selectedProject != Find.ResearchManager.currentProj && !selectedProject.IsFinished)
+            {
+                Text.Font = GameFont.Tiny;
+                Rect rect13 = new Rect(rect11.x, outRect.yMax, 120f, 30f);
+                if (Widgets.ButtonText(rect13, "Debug: Finish now"))
+                {
+                    Find.ResearchManager.currentProj = selectedProject;
+                    Find.ResearchManager.FinishProject(selectedProject);
+                }
+                Text.Font = GameFont.Small;
+                leftViewDebugHeight = rect13.height;
+            }
+        }
+
         public override void PreClose()
         {
             base.PreClose();
@@ -167,7 +194,10 @@ namespace FluffyResearchTree
             if (!Tree.Initialized)
                 return;
 
-
+            if(Prefs.DevMode)
+            {
+                ShowDebugButton();
+            }
             // top bar
             var topRect = new Rect(
                 canvas.xMin,
