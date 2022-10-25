@@ -1,12 +1,14 @@
 ﻿// MainTabWindow_ResearchTree.cs
 // Copyright Karel Kroeze, 2020-2020
 
+using RimWorld;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using RimWorld;
 using UnityEngine;
 using Verse;
 using static FluffyResearchTree.Constants;
+using static RimWorld.MainTabWindow_Research;
 
 namespace FluffyResearchTree
 {
@@ -19,22 +21,22 @@ namespace FluffyResearchTree
         private Rect _baseViewRect;
         private Rect _baseViewRect_Inner;
 
-        private bool    _dragging;
+        private bool _dragging;
         private Vector2 _mousePosition = Vector2.zero;
 
         private string _query = "";
-        private Rect   _viewRect;
+        private Rect _viewRect;
 
         private Rect _viewRect_Inner;
         private bool _viewRect_InnerDirty = true;
-        private bool _viewRectDirty       = true;
+        private bool _viewRectDirty = true;
 
         private float _zoomLevel = 1f;
 
         public MainTabWindow_ResearchTree()
         {
             closeOnClickedOutside = false;
-            Instance              = this;
+            Instance = this;
         }
 
         public static MainTabWindow_ResearchTree Instance { get; private set; }
@@ -46,8 +48,8 @@ namespace FluffyResearchTree
             get => _zoomLevel;
             set
             {
-                _zoomLevel           = Mathf.Clamp( value, 1f, MaxZoomLevel );
-                _viewRectDirty       = true;
+                _zoomLevel = Mathf.Clamp(value, 1f, MaxZoomLevel);
+                _viewRectDirty = true;
                 _viewRect_InnerDirty = true;
             }
         }
@@ -56,12 +58,12 @@ namespace FluffyResearchTree
         {
             get
             {
-                if ( _viewRectDirty )
+                if (_viewRectDirty)
                 {
                     _viewRect = new Rect(
-                        _baseViewRect.xMin   * ZoomLevel,
-                        _baseViewRect.yMin   * ZoomLevel,
-                        _baseViewRect.width  * ZoomLevel,
+                        _baseViewRect.xMin * ZoomLevel,
+                        _baseViewRect.yMin * ZoomLevel,
+                        _baseViewRect.width * ZoomLevel,
                         _baseViewRect.height * ZoomLevel
                     );
                     _viewRectDirty = false;
@@ -75,9 +77,9 @@ namespace FluffyResearchTree
         {
             get
             {
-                if ( _viewRect_InnerDirty )
+                if (_viewRect_InnerDirty)
                 {
-                    _viewRect_Inner      = _viewRect.ContractedBy( Margin * ZoomLevel );
+                    _viewRect_Inner = _viewRect.ContractedBy(Margin * ZoomLevel);
                     _viewRect_InnerDirty = false;
                 }
 
@@ -89,11 +91,11 @@ namespace FluffyResearchTree
         {
             get
             {
-                if ( _treeRect == default )
+                if (_treeRect == default)
                 {
-                    var width  = Tree.Size.x * ( NodeSize.x + NodeMargins.x );
-                    var height = Tree.Size.z * ( NodeSize.y + NodeMargins.y );
-                    _treeRect = new Rect( 0f, 0f, width, height );
+                    var width = Tree.Size.x * (NodeSize.x + NodeMargins.x);
+                    var height = Tree.Size.z * (NodeSize.y + NodeMargins.y);
+                    _treeRect = new Rect(0f, 0f, width, height);
                 }
 
                 return _treeRect;
@@ -105,24 +107,49 @@ namespace FluffyResearchTree
                 _scrollPosition.x,
                 _scrollPosition.y,
                 ViewRect_Inner.width,
-                ViewRect_Inner.height );
+                ViewRect_Inner.height);
 
         internal float MaxZoomLevel
         {
             get
             {
                 // get the minimum zoom level at which the entire tree fits onto the screen, or a static maximum zoom level.
-                var fitZoomLevel = Mathf.Max( TreeRect.width  / _baseViewRect_Inner.width,
-                                              TreeRect.height / _baseViewRect_Inner.height );
-                return Mathf.Min( fitZoomLevel, AbsoluteMaxZoomLevel );
+                var fitZoomLevel = Mathf.Max(TreeRect.width / _baseViewRect_Inner.width,
+                                              TreeRect.height / _baseViewRect_Inner.height);
+                return Mathf.Min(fitZoomLevel, AbsoluteMaxZoomLevel);
+            }
+        }
+
+        public void ShowDebugButton()
+        {
+            Rect rect = new Rect(0f, 0f, 140f, 0f);
+            float leftStartAreaHeight = 68f;
+            float leftViewDebugHeight = 0f;
+            float num = 0f;
+            float num2 = 0f;
+            var selectedProject = Find.ResearchManager.currentProj;
+            Rect outRect = new Rect(0f, 0f, rect.width, num);
+            Rect viewRect = new Rect(0f, 0f, outRect.width - 16f, leftViewDebugHeight);
+            Rect rect11 = new Rect(0f, outRect.yMax + 10f , rect.width, leftStartAreaHeight);
+            if (Prefs.DevMode && selectedProject != Find.ResearchManager.currentProj && !selectedProject.IsFinished)
+            {
+                Text.Font = GameFont.Tiny;
+                Rect rect13 = new Rect(rect11.x, outRect.yMax, 120f, 30f);
+                if (Widgets.ButtonText(rect13, "Debug: Finish now"))
+                {
+                    Find.ResearchManager.currentProj = selectedProject;
+                    Find.ResearchManager.FinishProject(selectedProject);
+                }
+                Text.Font = GameFont.Small;
+                leftViewDebugHeight = rect13.height;
             }
         }
 
         public override void PreClose()
         {
             base.PreClose();
-            Log.Debug( "CloseOnClickedOutside: {0}", closeOnClickedOutside );
-            Log.Debug( StackTraceUtility.ExtractStackTrace() );
+            Log.Debug("CloseOnClickedOutside: {0}", closeOnClickedOutside);
+            Log.Debug(StackTraceUtility.ExtractStackTrace());
         }
 
         public void Notify_TreeInitialized()
@@ -135,14 +162,14 @@ namespace FluffyResearchTree
             base.PreOpen();
             SetRects();
 
-            if ( !Tree.Initialized )
+            if (!Tree.Initialized)
                 // initialize tree
                 Tree.Initialize();
 
             // clear node availability caches
             ResearchNode.ClearCaches();
 
-            _dragging             = false;
+            _dragging = false;
             closeOnClickedOutside = false;
         }
 
@@ -150,58 +177,59 @@ namespace FluffyResearchTree
         {
             // tree view rects, have to deal with UIScale and ZoomLevel manually.
             _baseViewRect = new Rect(
-                StandardMargin                                            / Prefs.UIScale,
-                ( TopBarHeight + Constants.Margin + StandardMargin )      / Prefs.UIScale,
-                ( Screen.width                    - StandardMargin * 2f ) / Prefs.UIScale,
-                ( Screen.height - MainButtonDef.ButtonHeight - StandardMargin * 2f - TopBarHeight - Constants.Margin ) /
-                Prefs.UIScale );
-            _baseViewRect_Inner = _baseViewRect.ContractedBy( Constants.Margin / Prefs.UIScale );
+                StandardMargin / Prefs.UIScale,
+                (TopBarHeight + Constants.Margin + StandardMargin),
+                (Screen.width - StandardMargin * 2f) / Prefs.UIScale,
+                ((Screen.height - MainButtonDef.ButtonHeight - StandardMargin * 2) / Prefs.UIScale) - TopBarHeight - Constants.Margin);
 
             // windowrect, set to topleft (for some reason vanilla alignment overlaps bottom buttons).
-            windowRect.x      = 0f;
-            windowRect.y      = 0f;
-            windowRect.width  = UI.screenWidth;
+            windowRect.x = 0f;
+            windowRect.y = 0f;
+            windowRect.width = UI.screenWidth;
             windowRect.height = UI.screenHeight - MainButtonDef.ButtonHeight;
         }
 
-        public override void DoWindowContents( Rect canvas )
+        public override void DoWindowContents(Rect canvas)
         {
-            if ( !Tree.Initialized )
+            if (!Tree.Initialized)
                 return;
 
-
+            if(Prefs.DevMode)
+            {
+                ShowDebugButton();
+            }
             // top bar
             var topRect = new Rect(
                 canvas.xMin,
                 canvas.yMin,
                 canvas.width,
-                TopBarHeight );
-            DrawTopBar( topRect );
+                TopBarHeight);
+            DrawTopBar(topRect);
 
             ApplyZoomLevel();
 
             // draw background
-            GUI.DrawTexture( ViewRect, Assets.SlightlyDarkBackground );
+            GUI.DrawTexture(ViewRect, Assets.SlightlyDarkBackground);
 
             // draw the actual tree
             // TODO: stop scrollbars scaling with zoom
-            _scrollPosition = GUI.BeginScrollView( ViewRect, _scrollPosition, TreeRect );
+            _scrollPosition = GUI.BeginScrollView(ViewRect, _scrollPosition, TreeRect);
             GUI.BeginGroup(
                 new Rect(
                     ScaledMargin,
                     ScaledMargin,
-                    TreeRect.width  + ScaledMargin * 2f,
+                    TreeRect.width + ScaledMargin * 2f,
                     TreeRect.height + ScaledMargin * 2f
                 )
             );
 
-            Tree.Draw( VisibleRect );
-            Queue.DrawLabels( VisibleRect );
+            Tree.Draw(VisibleRect);
+            Queue.DrawLabels(VisibleRect);
 
             HandleZoom();
 
             GUI.EndGroup();
-            GUI.EndScrollView( false );
+            GUI.EndScrollView(false);
 
             HandleDragging();
             HandleDolly();
@@ -211,20 +239,20 @@ namespace FluffyResearchTree
 
 
             // cleanup;
-            GUI.color   = Color.white;
+            GUI.color = Color.white;
             Text.Anchor = TextAnchor.UpperLeft;
         }
 
         private void HandleDolly()
         {
             var dollySpeed = 10f;
-            if ( KeyBindingDefOf.MapDolly_Left.IsDown )
+            if (KeyBindingDefOf.MapDolly_Left.IsDown)
                 _scrollPosition.x -= dollySpeed;
-            if ( KeyBindingDefOf.MapDolly_Right.IsDown )
+            if (KeyBindingDefOf.MapDolly_Right.IsDown)
                 _scrollPosition.x += dollySpeed;
-            if ( KeyBindingDefOf.MapDolly_Up.IsDown )
+            if (KeyBindingDefOf.MapDolly_Up.IsDown)
                 _scrollPosition.y -= dollySpeed;
-            if ( KeyBindingDefOf.MapDolly_Down.IsDown )
+            if (KeyBindingDefOf.MapDolly_Down.IsDown)
                 _scrollPosition.y += dollySpeed;
         }
 
@@ -232,14 +260,14 @@ namespace FluffyResearchTree
         private void HandleZoom()
         {
             // handle zoom
-            if ( Event.current.isScrollWheel )
+            if (Event.current.isScrollWheel)
             {
                 // absolute position of mouse on research tree
                 var absPos = Event.current.mousePosition;
                 // Log.Debug( "Absolute position: {0}", absPos );
 
                 // relative normalized position of mouse on visible tree
-                var relPos = ( Event.current.mousePosition - _scrollPosition ) / ZoomLevel;
+                var relPos = (Event.current.mousePosition - _scrollPosition) / ZoomLevel;
                 // Log.Debug( "Normalized position: {0}", relPos );
 
                 // update zoom level
@@ -254,24 +282,24 @@ namespace FluffyResearchTree
 
         private void HandleDragging()
         {
-            if ( Event.current.type == EventType.MouseDown )
+            if (Event.current.type == EventType.MouseDown)
             {
-                _dragging      = true;
+                _dragging = true;
                 _mousePosition = Event.current.mousePosition;
                 Event.current.Use();
             }
 
-            if ( Event.current.type == EventType.MouseUp )
+            if (Event.current.type == EventType.MouseUp)
             {
-                _dragging      = false;
+                _dragging = false;
                 _mousePosition = Vector2.zero;
             }
 
-            if ( Event.current.type == EventType.MouseDrag )
+            if (Event.current.type == EventType.MouseDrag)
             {
                 var _currentMousePosition = Event.current.mousePosition;
                 _scrollPosition += _mousePosition - _currentMousePosition;
-                _mousePosition  =  _currentMousePosition;
+                _mousePosition = _currentMousePosition;
             }
         }
 
@@ -279,8 +307,8 @@ namespace FluffyResearchTree
         {
             GUI.EndClip(); // window contents
             GUI.EndClip(); // window itself?
-            GUI.matrix = Matrix4x4.TRS( new Vector3( 0f, 0f, 0f ), Quaternion.identity,
-                                        new Vector3( Prefs.UIScale / ZoomLevel, Prefs.UIScale / ZoomLevel, 1f ) );
+            GUI.matrix = Matrix4x4.TRS(new Vector3(0f, 0f, 0f), Quaternion.identity,
+                                        new Vector3(Prefs.UIScale / ZoomLevel, Prefs.UIScale / ZoomLevel, 1f));
         }
 
         private void ResetZoomLevel()
@@ -288,85 +316,84 @@ namespace FluffyResearchTree
             // dummies to maintain correct stack size
             // TODO; figure out how to get actual clipping rects in ApplyZoomLevel();
             UI.ApplyUIScale();
-            GUI.BeginClip( windowRect );
-            GUI.BeginClip( new Rect( 0f, 0f, UI.screenWidth, UI.screenHeight ) );
+            GUI.BeginClip(windowRect);
+            GUI.BeginClip(new Rect(0f, 0f, UI.screenWidth, UI.screenHeight));
         }
 
-        private void DrawTopBar( Rect canvas )
+        private void DrawTopBar(Rect canvas)
         {
             var searchRect = canvas;
-            var queueRect  = canvas;
-            searchRect.width =  200f;
-            queueRect.xMin   += 200f + Constants.Margin;
+            var queueRect = canvas;
+            searchRect.width = 200f;
+            queueRect.xMin += 200f + Constants.Margin;
 
-            GUI.DrawTexture( searchRect, Assets.SlightlyDarkBackground );
-            GUI.DrawTexture( queueRect, Assets.SlightlyDarkBackground );
+            GUI.DrawTexture(searchRect, Assets.SlightlyDarkBackground);
+            GUI.DrawTexture(queueRect, Assets.SlightlyDarkBackground);
 
-            DrawSearchBar( searchRect.ContractedBy( Constants.Margin ) );
-            Queue.DrawQueue( queueRect.ContractedBy( Constants.Margin ), !_dragging );
+            DrawSearchBar(searchRect.ContractedBy(Constants.Margin));
+            Queue.DrawQueue(queueRect.ContractedBy(Constants.Margin), !_dragging);
         }
 
-        private void DrawSearchBar( Rect canvas )
+        private void DrawSearchBar(Rect canvas)
         {
-            Profiler.Start( "DrawSearchBar" );
+            Profiler.Start("DrawSearchBar");
             var iconRect = new Rect(
                     canvas.xMax - Constants.Margin - 16f,
                     0f,
                     16f,
-                    16f )
-               .CenteredOnYIn( canvas );
+                    16f)
+               .CenteredOnYIn(canvas);
             var searchRect = new Rect(
                     canvas.xMin,
                     0f,
                     canvas.width,
-                    30f )
-               .CenteredOnYIn( canvas );
+                    30f)
+               .CenteredOnYIn(canvas);
 
-            GUI.DrawTexture( iconRect, Assets.Search );
-            var query = Widgets.TextField( searchRect, _query );
+            GUI.DrawTexture(iconRect, Assets.Search);
+            var query = Widgets.TextField(searchRect, _query);
 
-            if ( query != _query )
+            if (query != _query)
             {
                 _query = query;
-                Find.WindowStack.FloatMenu?.Close( false );
+                Find.WindowStack.FloatMenu?.Close(false);
 
-                if ( query.Length > 2 )
+                if (query.Length > 2)
                 {
                     // open float menu with search results, if any.
                     var options = new List<FloatMenuOption>();
 
-                    foreach ( var result in Tree.Nodes.OfType<ResearchNode>()
-                                                .Select( n => new {node = n, match = n.Matches( query )} )
-                                                .Where( result => result.match > 0 )
-                                                .OrderBy( result => result.match ) )
-                        options.Add( new FloatMenuOption( result.node.Label, () => CenterOn( result.node ),
-                                                          MenuOptionPriority.Default, () => CenterOn( result.node ) ) );
+                    foreach (var result in Tree.Nodes.OfType<ResearchNode>()
+                                                .Select(n => new { node = n, match = n.Matches(query) })
+                                                .Where(result => result.match > 0)
+                                                .OrderBy(result => result.match))
+                        options.Add(new FloatMenuOption(result.node.Label, () => CenterOn(result.node), MenuOptionPriority.Default));
 
-                    if ( !options.Any() )
-                        options.Add( new FloatMenuOption( "Fluffy.ResearchTree.NoResearchFound".Translate(), null ) );
+                    if (!options.Any())
+                        options.Add(new FloatMenuOption("Fluffy.ResearchTree.NoResearchFound".Translate(), null));
 
-                    Find.WindowStack.Add( new FloatMenu_Fixed( options,
+                    Find.WindowStack.Add(new FloatMenu_Fixed(options,
                                                                UI.GUIToScreenPoint(
                                                                    new Vector2(
-                                                                       searchRect.xMin, searchRect.yMax ) ) ) );
+                                                                       searchRect.xMin, searchRect.yMax))));
                 }
             }
 
             Profiler.End();
         }
 
-        public void CenterOn( Node node )
+        public void CenterOn(Node node)
         {
             var position = new Vector2(
-                ( NodeSize.x + NodeMargins.x ) * ( node.X - .5f ),
-                ( NodeSize.y + NodeMargins.y ) * ( node.Y - .5f ) );
+                (NodeSize.x + NodeMargins.x) * (node.X - .5f),
+                (NodeSize.y + NodeMargins.y) * (node.Y - .5f));
 
             node.Highlighted = true;
 
-            position -= new Vector2( UI.screenWidth, UI.screenHeight ) / 2f;
+            position -= new Vector2(UI.screenWidth, UI.screenHeight) / 2f;
 
-            position.x      = Mathf.Clamp( position.x, 0f, TreeRect.width  - ViewRect.width );
-            position.y      = Mathf.Clamp( position.y, 0f, TreeRect.height - ViewRect.height );
+            position.x = Mathf.Clamp(position.x, 0f, TreeRect.width - ViewRect.width);
+            position.y = Mathf.Clamp(position.y, 0f, TreeRect.height - ViewRect.height);
             _scrollPosition = position;
         }
     }

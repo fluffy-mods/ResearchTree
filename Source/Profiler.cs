@@ -8,13 +8,13 @@ namespace FluffyResearchTree
 {
     public class Profiler
     {
-        [Conditional( "DEBUG" )]
-        public static void Start( string label = null )
+        [Conditional("DEBUG")]
+        public static void Start(string label = null)
         {
-            DeepProfiler.Start( label );
+            DeepProfiler.Start(label);
         }
 
-        [Conditional( "DEBUG" )]
+        [Conditional("DEBUG")]
         public static void End()
         {
             DeepProfiler.End();

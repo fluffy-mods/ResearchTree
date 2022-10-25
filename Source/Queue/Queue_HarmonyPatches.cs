@@ -9,36 +9,28 @@ namespace FluffyResearchTree
 {
     public class HarmonyPatches_Queue
     {
-        [HarmonyPatch( typeof( ResearchManager ), "ResearchPerformed", typeof( float ), typeof( Pawn ) )]
-        public class ResearchPerformed
-        {
-            // check if last active project was finished. If so, try start the next project.
-            // Thanks to NotFood for this nice simplification, I've adapted his/her code;
-            // https://github.com/notfood/RimWorld-ResearchPal/blob/master/Source/Injectors/ResearchManagerPatch.cs
-            private static void Prefix( ResearchManager __instance, ref ResearchProjectDef __state )
-            {
-                __state = __instance.currentProj;
-                Log.Debug( "{0} progress: {1}", __state.LabelCap, __state.ProgressPercent );
-            }
-
-            private static void Postfix( ResearchProjectDef __state )
-            {
-                Log.Debug( "{0} finished?: {1}", __state, __state?.IsFinished );
-                if ( __state?.IsFinished ?? false )
-                {
-                    Log.Debug( "{0} finished", __state.LabelCap );
-                    Queue.TryStartNext( __state );
-                }
-            }
-        }
-
-        [HarmonyPatch( typeof( ResearchManager ), "FinishProject" )]
+        [HarmonyPatch(typeof(ResearchManager), "FinishProject")]
         public class DoCompletionDialog
         {
-            // suppress vanilla completion dialog, we never want to show it.
-            private static void Prefix( ref bool doCompletionDialog )
+            //If Semi Random Research mod is not loaded, suppress vanilla completion dialog.
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "It is used, ignore compiler messages")]
+            private static void Prefix(ref bool doCompletionDialog)
             {
-                doCompletionDialog = false;
+                if (ModLister.GetActiveModWithIdentifier("CaptainMuscles.SemiRandomResearch") == null)
+                {
+                    doCompletionDialog = false;
+                }
+            }
+
+
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "It is used, ignore compiler messages")]
+            private static void Postfix(ResearchProjectDef proj)
+            {
+                if (proj.IsFinished)
+                {
+                    Log.Debug("Patch of FinishProject: {0} finished", proj.label);
+                    Queue.TryStartNext(proj);
+                }
             }
         }
     }
